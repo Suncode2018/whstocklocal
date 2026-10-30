@@ -4,12 +4,14 @@ const { poolPromise, sql } = require('../config/db');
 const jwt = require('jsonwebtoken');
 
 // Middleware ตรวจสอบอายุ Token (เกิน 9 ชั่วโมง ปฏิเสธทันที)
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_local_warehouse_jwt_key_2026';
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, isExpired: true, message: 'กรุณาเข้าสู่ระบบ' });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       return res.status(403).json({ 
         success: false, 
@@ -162,5 +164,7 @@ router.get('/recent', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+
 
 module.exports = router;

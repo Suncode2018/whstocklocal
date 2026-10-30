@@ -8,12 +8,12 @@
 
 ### 🏢 1. หน้าเว็บแอดมิน (Admin Web Portal - Modern Indigo Theme)
 - **📊 รายงานสรุปสต๊อกสินค้า Real-time (Stock Balance Live)**: แสดงยอดคงเหลือตามรหัสสินค้า, บาร์โค้ด และแจกแจงตำแหน่งจัดเก็บ (Locations) ทันที
-- **📑 Export ข้อมูลเป็น Excel (.xlsx)**: ดาวน์โหลดไฟล์ Excel สำหรับทำรายงานหรือ Audit รอบนับสต๊อกได้ทันทีด้วยคลิกเดียว
+- **📑 Export ข้อมูลเป็น Excel (.xlsx)**: ดาวน์โหลดไฟล์ Excel สำหรับทำรายงานหรือ Audit รอบนับสต๊อกได้ทันทีด้วยคลิกเดียว (SheetJS)
 - **🗄️ จัดการ Master Data**: ดูรายการสินค้าทั้งหมด และมีแบบฟอร์มเพิ่มสินค้าใหม่ลงฐานข้อมูล MSSQL
 - **💻 Desktop Quick Scanner**: รองรับการต่อเครื่องสแกนบาร์โค้ด USB เพื่อยิงบันทึกรับเข้าจากคอมพิวเตอร์ได้โดยตรง
 
 ### 📱 2. หน้าเว็บแฮนเฮล (Handheld / PDA / Mobile Web Portal)
-- **🚀 2-Screen Workflow (แยกหน้าเมนู และหน้าสแกนทำงาน)**:
+- **🚀 2-Screen Mobile Workflow (แยกหน้าเมนู และหน้าสแกนทำงาน)**:
   - **หน้า 1 (Menu Grid)**: การ์ดเมนูขนาดใหญ่ 4 ปุ่ม (2x2) สบายตา สัมผัสง่ายด้วยนิ้วโป้งมือเดียว
   - **หน้า 2 (Operation Form)**: หน้าจอสำหรับสแกนทำงานแบบไร้การเลื่อนหน้าจอ (No-scroll) พร้อมปุ่ม `← กลับเมนูหลัก`
 - **4 ฟังก์ชันหลักในการปฏิบัติงาน**:
@@ -22,15 +22,18 @@
   3. 🔄 **ย้ายตำแหน่งที่เก็บ (Transfer / Relocation)**: สแกน Location ต้นทาง $\rightarrow$ Barcode $\rightarrow$ Location ปลายทาง
   4. 🔍 **เช็คสต๊อกด่วน (Quick Stock Lookup)**: ยิงบาร์โค้ดเพื่อดูยอดคงเหลือรวมและพิกัดจัดเก็บทั้งหมดได้ทันที
 - **⚡ Dual Barcode Scanner Support**:
-  - รองรับ **Hardware Laser Barcode Scanner** บนเครื่อง Handheld/PDA (Zebra, Honeywell, Point Mobile, Urovo ฯลฯ) ยิงปุ๊บ Enter อัตโนมัติ
+  - รองรับ **Hardware Laser Barcode Scanner** บนเครื่อง Handheld/PDA (Zebra, Honeywell, Point Mobile, Urovo ฯลฯ) ยิงแล้วกด Enter อัตโนมัติ
   - รองรับ **Camera Scanner** เปิดกล้องมือถือสแกนผ่านเบราว์เซอร์ได้ทันที
 - **🔊 Audio Feedback**: มีเสียง Beep ตอบรับทุกครั้งที่สแกนหรือบันทึกสำเร็จ
 
-### 🔐 3. ระบบยืนยันตัวตนและความปลอดภัย (Authentication)
-- แบ่งสิทธิ์การใช้งานตาม Role (**Role-Based Access Control**):
-  - `ADMIN`: เข้าสู่หน้าจอ Admin Portal จัดการข้อมูล Master Data และดูรายงานภาพรวม
+### ⏱️ 3. นโยบายความปลอดภัยและอายุเซสชัน (Strict 9-Hour Session Policy)
+- **หมดอายุภายใน 9 ชั่วโมงเป๊ะ**: กำหนดอายุการใช้งานของ JWT Token ไว้ที่ `9h` พอดี
+- **ตัดเซสชันอัตโนมัติเมื่อเกิน 9 ชั่วโมง 1 นาที**:
+  - ฝั่งเซิร์ฟเวอร์ (API Backend) จะปฏิเสธการทำรายการทันที
+  - ฝั่งหน้าเว็บ (Frontend) มีระบบตรวจสอบ Token ทุกๆ 1 นาที หากเปิดหน้าจอทิ้งไว้จนครบ 9 ชั่วโมง 1 นาที ระบบจะแจ้งเตือนและส่งกลับไปหน้า Login โดยอัตโนมัติ
+- **Role-Based Access Control**:
+  - `ADMIN`: เข้าสู่หน้าจอ Admin Portal
   - `OPERATOR`: พนักงานคลังสินค้า เข้าสู่หน้าจอ Handheld เพื่อสแกนทำงานทันทีหลังล็อกอิน
-- เข้ารหัสผ่านอย่างปลอดภัยด้วย **bcrypt** และออก Session Token ด้วย **JWT (JSON Web Token)**
 - จัดการความปลอดภัยของฐานข้อมูลด้วย **MSSQL Transactions (ACID)** ป้องกันยอดติดลบและการแย่งกันอัปเดตข้อมูล (Concurrency)
 
 ---
@@ -42,7 +45,7 @@
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla JS), Bootstrap 5, Bootstrap Icons, Google Fonts (Prompt)
 - **Libraries**:
   - `bcryptjs` (Password Hashing)
-  - `jsonwebtoken` (Authentication)
+  - `jsonwebtoken` (Authentication & 9h Expiration)
   - `html5-qrcode` (Mobile Camera Barcode Scanning)
   - `xlsx` SheetJS (Excel .xlsx Export)
 
@@ -62,13 +65,14 @@ c:\code\whstocklocal\
 │   ├── config/
 │   │   └── db.js               # เชื่อมต่อ MSSQL Connection Pool
 │   ├── routes/
-│   │   ├── auth.js             # API Login & Check Session
+│   │   ├── auth.js             # API Login & Token 9 ชั่วโมง
 │   │   ├── products.js         # API สินค้า Master Data
 │   │   ├── locations.js        # API ตำแหน่งจัดเก็บ
 │   │   ├── stock.js            # API ยอดคงเหลือ & ค้นหาสต๊อก
 │   │   └── transactions.js     # API รับ/จ่าย/ย้ายสต๊อก (MSSQL Transactions)
 │   └── server.js               # Express Server & Static File Host
-├── .env                        # การตั้งค่าเชื่อมต่อฐานข้อมูลและพอร์ต
+├── .env                        # การตั้งค่าเชื่อมต่อฐานข้อมูล (ห้ามนำขึ้น Git)
+├── .env.example                # แม่แบบการตั้งค่า Environment สำหรับผู้พัฒนา
 ├── .gitignore                  # รายการไฟล์ที่ไม่นำขึ้น Git
 ├── package.json                # ข้อมูลและแพ็กเกจของโปรเจกต์
 ├── seed.js                     # สคริปต์สร้าง User ทดสอบเริ่มต้น
@@ -176,6 +180,32 @@ npm start
    http://192.168.1.50:3000
    ```
 4. ล็อกอินด้วยบัญชี `picker01` เพื่อเริ่มสแกนรับเข้าหรือเบิกจ่ายได้ทันที
+
+---
+
+## 🐙 วิธีการส่งโปรเจกต์ขึ้น GitHub (Git Deployment Guide)
+
+1. **สร้าง Repository เปล่า** บน [GitHub](https://github.com/new) (แนะนำเลือกแบบ **Private**) โดย **ไม่ต้องติ๊ก** ช่อง Add README หรือ .gitignore
+2. เปิด Command Prompt ที่โฟลเดอร์โปรเจกต์ `c:\code\whstocklocal` แล้วรันคำสั่ง:
+   ```bash
+   # 1. เริ่มต้น Git
+   git init
+
+   # 2. เพิ่มไฟล์ทั้งหมด (ไฟล์ .env จะถูกเพิกเฉยตาม .gitignore)
+   git add .
+
+   # 3. บันทึก Commit
+   git commit -m "feat: complete warehouse stock system with 9h session and handheld UI"
+
+   # 4. ตั้งชื่อ Branch หลัก
+   git branch -M main
+
+   # 5. เชื่อมต่อกับ GitHub (เปลี่ยน URL เป็นของคุณ)
+   git remote add origin https://github.com/YOUR_USERNAME/whstocklocal.git
+
+   # 6. Push ข้อมูลขึ้น GitHub
+   git push -u origin main
+   ```
 
 ---
 

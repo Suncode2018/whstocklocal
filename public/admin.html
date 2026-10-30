@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,6 +27,7 @@
 
     * {
       font-family: 'Prompt', sans-serif;
+      box-sizing: border-box;
     }
 
     body {
@@ -86,6 +88,16 @@
       font-size: 0.72rem;
       padding: 3px 8px;
       border-radius: 9999px;
+    }
+
+    .badge-session-timer {
+      background-color: rgba(0, 0, 0, 0.35);
+      color: #fde047;
+      font-weight: 600;
+      font-size: 0.75rem;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      border: 1px solid rgba(253, 224, 71, 0.3);
     }
 
     .btn-logout {
@@ -233,6 +245,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Top Navigation Header -->
@@ -248,11 +261,16 @@
         </div>
       </div>
 
+      <!-- User Profile & Session Timer -->
       <div class="d-flex align-items-center gap-2">
         <div class="user-pill">
           <i class="bi bi-person"></i>
           <span id="userNameHeader">ผู้ดูแลระบบ</span>
           <span class="badge-admin">ADMIN</span>
+          <!-- ⭐ นาฬิกานับถอยหลังอายุการใช้งาน 9 ชม. -->
+          <span class="badge-session-timer" id="sessionTimerBadge" title="เวลาคงเหลือของเซสชัน">
+            <i class="bi bi-clock-history"></i> กำลังคำนวณ...
+          </span>
         </div>
         <button class="btn-logout" onclick="logout()">
           <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
@@ -271,11 +289,51 @@
       <button class="tab-btn active" id="tabBtnSummary" onclick="switchTab('summary')">
         <i class="bi bi-file-earmark-spreadsheet"></i> สรุปสต๊อก & Export
       </button>
+      <!-- ⭐ เมนูจัดการผู้ใช้งาน -->
+      <button class="tab-btn" id="tabBtnUsers" onclick="switchTab('users')">
+        <i class="bi bi-people"></i> จัดการผู้ใช้งาน
+      </button>
     </div>
   </header>
 
   <!-- Main Container -->
   <main class="main-container">
+
+    <!-- TAB 4: จัดการผู้ใช้งาน (CRUD) -->
+    <div id="sectionUsers" class="d-none">
+      <div class="custom-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <h1 class="card-title-main">จัดการผู้ใช้งานระบบ (User Management)</h1>
+            <p class="card-subtitle">เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านสำหรับพนักงาน</p>
+          </div>
+          <button class="btn btn-primary rounded-pill px-4" onclick="openCreateUserModal()">
+            <i class="bi bi-person-plus-fill"></i> เพิ่มผู้ใช้งานใหม่
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th>ชื่อผู้ใช้ (Username)</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>สิทธิ์การใช้งาน (Role)</th>
+                <th>สถานะ</th>
+                <th>วันที่สร้าง</th>
+                <th style="text-align: center; width: 150px;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="7" class="empty-state">กำลังโหลดข้อมูลผู้ใช้...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
     <!-- TAB 3: สรุปสต๊อก & Export -->
     <div id="sectionSummary">
@@ -368,11 +426,13 @@
         <form id="desktopScanForm" class="row g-3" onsubmit="event.preventDefault(); submitDesktopScan();">
           <div class="col-md-4">
             <label class="form-label fw-bold">ตำแหน่งจัดเก็บ (Location)</label>
-            <input type="text" id="dtLocation" class="form-control form-control-lg text-uppercase" placeholder="เช่น A-01-01" required>
+            <input type="text" id="dtLocation" class="form-control form-control-lg text-uppercase"
+              placeholder="เช่น A-01-01" required>
           </div>
           <div class="col-md-5">
             <label class="form-label fw-bold">บาร์โค้ดสินค้า (Barcode)</label>
-            <input type="text" id="dtBarcode" class="form-control form-control-lg" placeholder="ยิงบาร์โค้ดสินค้า..." required>
+            <input type="text" id="dtBarcode" class="form-control form-control-lg" placeholder="ยิงบาร์โค้ดสินค้า..."
+              required>
           </div>
           <div class="col-md-3">
             <label class="form-label fw-bold">จำนวน</label>
@@ -389,6 +449,56 @@
     </div>
 
   </main>
+
+  <!-- Modal: จัดการผู้ใช้งาน (เพิ่ม / แก้ไข) -->
+  <div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content" style="border-radius: 16px;">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form onsubmit="event.preventDefault(); saveUser();">
+          <div class="modal-body">
+            <input type="hidden" id="uUserId">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">ชื่อผู้ใช้ (Username)</label>
+              <input type="text" id="uUsername" class="form-control" required placeholder="เช่น picker02">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">ชื่อ-นามสกุล (Full Name)</label>
+              <input type="text" id="uFullName" class="form-control" required placeholder="เช่น สมชาย ใจดี">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">รหัสผ่าน (Password)</label>
+              <input type="password" id="uPassword" class="form-control" placeholder="กรอกรหัสผ่าน...">
+              <small class="text-muted" id="uPasswordHelp">กำหนดรหัสผ่านสำหรับเข้าสู่ระบบ</small>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">สิทธิ์การใช้งาน (Role)</label>
+                <select id="uRole" class="form-select">
+                  <option value="OPERATOR">OPERATOR (แฮนเฮล)</option>
+                  <option value="ADMIN">ADMIN (ผู้ดูแลระบบ)</option>
+                </select>
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">สถานะการใช้งาน</label>
+                <select id="uIsActive" class="form-select">
+                  <option value="1">ใช้งานปกติ (Active)</option>
+                  <option value="0">ระงับการใช้งาน (Inactive)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">บันทึกข้อมูล</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: เพิ่มสินค้าใหม่ -->
   <div class="modal fade" id="addProductModal" tabindex="-1">
@@ -435,52 +545,244 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // ⭐ ฟังก์ชันตรวจสอบอายุ Token 9 ชั่วโมงอัตโนมัติ
-    function checkSessionExpiry() {
+    // ⭐ ฟังก์ชันถอดรหัส Base64URL + UTF-8 ภาษาไทย ป้องกัน Error 100%
+    function parseJwt(token) {
+      try {
+        if (!token) return null;
+        const parts = token.split('.');
+        if (parts.length < 2) return null;
+        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) {
+          base64 += '=';
+        }
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        console.warn('Cannot parse token:', e);
+        return null;
+      }
+    }
+
+    // ⭐ ตรวจสอบและแสดงเวลานับถอยหลังจริงของเซสชัน 9 ชั่วโมง
+    function updateSessionCountdown() {
       const token = localStorage.getItem('wms_token');
       if (!token) {
         window.location.href = '/index.html';
         return;
       }
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const now = Math.floor(Date.now() / 1000);
-        if (now >= payload.exp) {
-          localStorage.clear();
-          alert('⏰ เซสชันการใช้งานของคุณหมดอายุแล้ว (เกิน 9 ชั่วโมง)\nระบบจะพาท่านกลับสู่หน้าเข้าสู่ระบบ');
-          window.location.href = '/index.html';
-        }
-      } catch (e) {
+
+      const payload = parseJwt(token);
+      if (!payload || !payload.exp) return;
+
+      const now = Math.floor(Date.now() / 1000);
+      const remainingSeconds = payload.exp - now;
+
+      // ถ้าครบ 9 ชั่วโมงจริง (เหลือเวลา <= 0)
+      if (remainingSeconds <= 0) {
         localStorage.clear();
+        alert('⏰ เซสชันการใช้งานของคุณหมดอายุแล้ว (ครบ 9 ชั่วโมงเต็ม)\nระบบจะพาท่านกลับสู่หน้าเข้าสู่ระบบ');
         window.location.href = '/index.html';
+        return;
+      }
+
+      // แสดงเวลาคงเหลือ
+      const hours = Math.floor(remainingSeconds / 3600);
+      const minutes = Math.floor((remainingSeconds % 3600) / 60);
+
+      const badge = document.getElementById('sessionTimerBadge');
+      if (badge) {
+        badge.innerHTML = `<i class="bi bi-clock-history"></i> เหลือ ${hours} ชม. ${minutes} นาที`;
       }
     }
 
-    checkSessionExpiry();
-    setInterval(checkSessionExpiry, 60000);
+    // รันทันที และอัปเดตทุก 10 วินาที
+    updateSessionCountdown();
+    setInterval(updateSessionCountdown, 10000);
 
+    // ตรวจสอบสิทธิ์ ADMIN
     const token = localStorage.getItem('wms_token');
     const user = JSON.parse(localStorage.getItem('wms_user') || '{}');
-    if (!token || user.role !== 'ADMIN') {
+    const userRole = (user.role || user.Role || '').toUpperCase();
+
+    if (!token || userRole !== 'ADMIN') {
+      alert('เฉพาะผู้ดูแลระบบ (ADMIN) เท่านั้นที่สามารถเข้าใช้งานหน้านี้ได้');
       window.location.href = '/index.html';
     }
-    document.getElementById('userNameHeader').innerText = user.fullName || 'ผู้ดูแลระบบ';
+    document.getElementById('userNameHeader').innerText = user.fullName || user.username || 'ผู้ดูแลระบบ';
 
     let stockDataList = [];
+    let usersList = [];
+    const userModal = new bootstrap.Modal(document.getElementById('userModal'));
 
+    // เปลี่ยน Tab
     function switchTab(tab) {
       document.getElementById('sectionSummary').classList.toggle('d-none', tab !== 'summary');
       document.getElementById('sectionMaster').classList.toggle('d-none', tab !== 'master');
       document.getElementById('sectionScan').classList.toggle('d-none', tab !== 'scan');
+      document.getElementById('sectionUsers').classList.toggle('d-none', tab !== 'users');
 
       document.getElementById('tabBtnSummary').classList.toggle('active', tab === 'summary');
       document.getElementById('tabBtnMaster').classList.toggle('active', tab === 'master');
       document.getElementById('tabBtnScan').classList.toggle('active', tab === 'scan');
+      document.getElementById('tabBtnUsers').classList.toggle('active', tab === 'users');
 
       if (tab === 'summary') loadSummaryStock();
       if (tab === 'master') loadMasterProducts();
+      if (tab === 'users') loadUsers();
     }
 
+    // ==========================================
+    // ฟังก์ชันจัดการผู้ใช้งาน (Users CRUD)
+    // ==========================================
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+
+        if (!data.data || data.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีข้อมูลผู้ใช้งาน</td></tr>';
+          return;
+        }
+
+        usersList = data.data;
+
+        data.data.forEach((u, idx) => {
+          const roleBadge = u.Role === 'ADMIN'
+            ? '<span class="badge bg-warning text-dark fw-bold px-2 py-1">ADMIN</span>'
+            : '<span class="badge bg-info text-dark fw-bold px-2 py-1">OPERATOR (PDA)</span>';
+
+          const statusBadge = u.IsActive
+            ? '<span class="badge bg-success-subtle text-success border border-success px-2 py-1">ใช้งานปกติ</span>'
+            : '<span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">ระงับการใช้งาน</span>';
+
+          const createdDate = new Date(u.CreatedAt).toLocaleDateString('th-TH');
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td class="fw-bold font-monospace">${u.Username}</td>
+              <td>${u.FullName}</td>
+              <td>${roleBadge}</td>
+              <td>${statusBadge}</td>
+              <td class="text-muted small">${createdDate}</td>
+              <td style="text-align: center;">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUserModal(${u.UserId})" title="แก้ไข">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.UserId}, '${u.Username}')" title="ลบ">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="7" class="empty-state text-danger">ไม่สามารถโหลดข้อมูลผู้ใช้ได้</td></tr>';
+      }
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('userModalTitle').innerText = 'เพิ่มผู้ใช้งานใหม่';
+      document.getElementById('uUserId').value = '';
+      document.getElementById('uUsername').value = '';
+      document.getElementById('uUsername').disabled = false;
+      document.getElementById('uFullName').value = '';
+      document.getElementById('uPassword').value = '';
+      document.getElementById('uPassword').required = true;
+      document.getElementById('uPasswordHelp').innerText = 'กำหนดรหัสผ่านสำหรับเข้าสู่ระบบ';
+      document.getElementById('uRole').value = 'OPERATOR';
+      document.getElementById('uIsActive').value = '1';
+      userModal.show();
+    }
+
+    function openEditUserModal(userId) {
+      const u = usersList.find(item => item.UserId === userId);
+      if (!u) return;
+
+      document.getElementById('userModalTitle').innerText = 'แก้ไขข้อมูลผู้ใช้งาน: ' + u.Username;
+      document.getElementById('uUserId').value = u.UserId;
+      document.getElementById('uUsername').value = u.Username;
+      document.getElementById('uUsername').disabled = true;
+      document.getElementById('uFullName').value = u.FullName;
+      document.getElementById('uPassword').value = '';
+      document.getElementById('uPassword').required = false;
+      document.getElementById('uPasswordHelp').innerText = 'เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน';
+      document.getElementById('uRole').value = u.Role;
+      document.getElementById('uIsActive').value = u.IsActive ? '1' : '0';
+      userModal.show();
+    }
+
+    async function saveUser() {
+      const userId = document.getElementById('uUserId').value;
+      const username = document.getElementById('uUsername').value.trim();
+      const fullName = document.getElementById('uFullName').value.trim();
+      const password = document.getElementById('uPassword').value;
+      const role = document.getElementById('uRole').value;
+      const isActive = document.getElementById('uIsActive').value === '1';
+
+      const isEdit = userId !== '';
+      const url = isEdit ? `/api/users/${userId}` : '/api/users';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const payload = { username, fullName, role, isActive };
+      if (password && password.trim() !== '') {
+        payload.password = password.trim();
+      }
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          userModal.hide();
+          loadUsers();
+        } else {
+          alert('❌ ' + data.message);
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      }
+    }
+
+    async function deleteUser(userId, username) {
+      if (!confirm(`คุณต้องการลบหรือระงับการใช้งานผู้ใช้ "${username}" ใช่หรือไม่?`)) return;
+
+      try {
+        const res = await fetch(`/api/users/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          loadUsers();
+        } else {
+          alert('❌ ' + data.message);
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      }
+    }
+
+    // ==========================================
+    // โหลดตารางสรุปสต๊อก (Tab 3)
+    // ==========================================
     async function loadSummaryStock() {
       try {
         const res = await fetch('/api/stock/balance');
@@ -533,7 +835,7 @@
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Stock_Summary");
 
-      const today = new Date().toISOString().slice(0,10);
+      const today = new Date().toISOString().slice(0, 10);
       XLSX.writeFile(workbook, `Stock_Summary_${today}.xlsx`);
     }
 
@@ -638,4 +940,5 @@
     loadSummaryStock();
   </script>
 </body>
+
 </html>
