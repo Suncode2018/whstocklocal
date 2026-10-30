@@ -17,7 +17,8 @@ app.use('/api/locations', require('./routes/locations'));
 app.use('/api/stock', require('./routes/stock'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/users', require('./routes/users'));
-app.use('/api/permissions', require('./routes/permissions')); // 💡 เพิ่มบรรทัดนี้ลงไป
+app.use('/api/permissions', require('./routes/permissions')); // 
+app.use('/api/locations', require('./routes/locations'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {

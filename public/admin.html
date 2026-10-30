@@ -127,6 +127,10 @@
     <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
       <i class="bi bi-shield-lock-fill fs-5"></i> <span>จัดการสิทธิ์เมนู</span>
     </button>
+    <!-- เมนูจัดการโลเคชั่น (Locations Master) -->
+    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')">
+      <i class="bi bi-geo-alt-fill fs-5"></i> <span>จัดการโลเคชั่น</span>
+    </button>
   </div>
 
   <!-- ── CONTENT (พื้นที่แสดงผลเนื้อหาหลัก) ── -->
@@ -260,6 +264,36 @@
       </div>
     </div>
 
+    <!-- ── Tab: Locations Master ── -->
+    <div id="pane-locations" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📍 จัดการโลเคชั่น (Locations Master)</h5>
+            <p class="text-muted small mb-0">เพิ่ม / แก้ไข / ลบ ข้อมูลตำแหน่งจัดเก็บในคลังสินค้า (ตาราง Locations)</p>
+          </div>
+          <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่นใหม่</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>รหัสโลเคชั่น (LocationCode)</th>
+                <th>โซน (Zone)</th>
+                <th>คำอธิบาย (Description)</th>
+                <th>สถานะ (IsActive)</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="locationsTableBody">
+              <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดโลเคชั่น...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /admin-content -->
 </div><!-- /admin-wrapper -->
 
@@ -329,11 +363,11 @@
         <div class="row g-3">
           <div class="col-12">
             <label class="form-label-wms">รหัสสิทธิ์ (Permission Code) <span class="text-danger">*</span></label>
-            <input id="modalPermCode" type="text" class="form-control form-control-wms" placeholder="เช่น LOAD, PUTAWAY">
+            <input id="modalPermCode" type="text" class="form-control form-control-wms" placeholder="เช่น LOAD, PUTAWAY, CYCLE_COUNT">
           </div>
           <div class="col-12">
             <label class="form-label-wms">ชื่อเมนู (Permission Name) <span class="text-danger">*</span></label>
-            <input id="modalPermName" type="text" class="form-control form-control-wms" placeholder="เช่น จัดเก็บสินค้า (Putaway)">
+            <input id="modalPermName" type="text" class="form-control form-control-wms" placeholder="เช่น ตรวจนับสินค้าประจำรอบ (Cycle Count)">
           </div>
           <div class="col-12">
             <label class="form-label-wms">คำอธิบาย (Description)</label>
@@ -351,6 +385,45 @@
       <div class="modal-footer border-0 pb-4 px-4">
         <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
         <button class="btn btn-indigo px-4" onclick="savePermission()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Location Master ══════════ -->
+<div class="modal fade" id="locationModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="locModalTitle">เพิ่มโลเคชั่นใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-wms">รหัสโลเคชั่น (Location Code) <span class="text-danger">*</span></label>
+            <input id="modalLocCode" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01, RCV-01">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">โซน (Zone)</label>
+            <input id="modalLocZone" type="text" class="form-control form-control-wms" placeholder="เช่น ZONE-A, RECEIVING">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">คำอธิบาย (Description)</label>
+            <textarea id="modalLocDesc" class="form-control form-control-wms" rows="2" placeholder="รายละเอียดตำแหน่งจัดเก็บ"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">สถานะ</label>
+            <select id="modalLocStatus" class="form-select form-control-wms">
+              <option value="1">เปิดใช้งาน (Active)</option>
+              <option value="0">ปิดใช้งาน (Inactive)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="saveLocation()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
       </div>
     </div>
   </div>
@@ -400,6 +473,7 @@
 <script src="/js/admin-stock.js"></script>
 <script src="/js/admin-products.js"></script>
 <script src="/js/admin-permissions.js"></script>
+<script src="/js/admin-locations.js"></script>
 <script>
 /* ── Init ── */
 (function () {
@@ -412,6 +486,7 @@
   loadUsers();               // preload
   loadMasterProducts();      // preload
   loadPermissionsMaster();   // preload
+  loadLocationsMaster();     // preload
 })();
 
 /* ── ฟังก์ชันสำหรับเปิด/ปิด Sidebar ── */
@@ -422,7 +497,7 @@ function toggleSidebar() {
 
 /* ── Tab switching ── */
 function switchTab(tab) {
-  ['scan','master','stock','users','permissions'].forEach(t => {
+  ['scan','master','stock','users','permissions','locations'].forEach(t => {
     document.getElementById('pane-' + t).style.display = t === tab ? 'block' : 'none';
     const btn = document.getElementById('tab-' + t);
     if (btn) {
@@ -436,6 +511,7 @@ function switchTab(tab) {
   if (tab === 'master')      loadMasterProducts();
   if (tab === 'users')       loadUsers();
   if (tab === 'permissions') loadPermissionsMaster();
+  if (tab === 'locations')   loadLocationsMaster();
   if (tab === 'scan')        document.getElementById('deskBarcode')?.focus();
 }
 

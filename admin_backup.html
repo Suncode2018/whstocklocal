@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WH Stock System - Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
+  <style>
+    /* ── Layout สำหรับ Sidebar ด้านซ้ายที่เปิด/ปิดได้ ── */
+    .admin-wrapper {
+      display: flex;
+      min-height: calc(100vh - 65px);
+      transition: all 0.3s ease;
+    }
+    .admin-sidebar {
+      width: 260px;
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      padding: 1.25rem 1rem;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    /* คลาสสำหรับพับ/ซ่อน Sidebar */
+    .admin-wrapper.sidebar-collapsed .admin-sidebar {
+      width: 0;
+      padding-left: 0;
+      padding-right: 0;
+      border-right: none;
+      opacity: 0;
+    }
+    .admin-content {
+      flex-grow: 1;
+      padding: 1.5rem;
+      background: #f8fafc;
+      overflow-x: auto;
+      transition: all 0.3s ease;
+    }
+    .sidebar-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: #334155;
+      font-weight: 500;
+      border-radius: 10px;
+      margin-bottom: 0.35rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .sidebar-menu-item:hover {
+      background: #f1f5f9;
+      color: #4f46e5;
+    }
+    .sidebar-menu-item.active {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+    @media (max-width: 768px) {
+      .admin-wrapper { flex-direction: column; }
+      .admin-sidebar { width: 100% !important; border-right: none; border-bottom: 1px solid #e2e8f0; padding: 0.75rem; }
+      .admin-wrapper.sidebar-collapsed .admin-sidebar { display: none; }
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<!-- ══════════ NAVBAR (ด้านบนสุด พร้อมปุ่มเปิด/ปิด Sidebar) ══════════ -->
+<nav class="navbar navbar-dark navbar-wms px-3" style="height: 65px;">
+  <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <!-- ปุ่มสำหรับกดเปิด/ปิด เมนูด้านซ้าย -->
+      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()" title="เปิด/ปิด เมนู" aria-label="สลับการแสดงผลเมนู">
+        <i class="bi bi-list fs-4 text-white"></i>
+      </button>
+
+      <div class="logo-icon">📦</div>
+      <div>
+        <div class="brand-title">WH Stock System (Admin)</div>
+        <div class="brand-sub d-none d-sm-block">จัดการข้อมูล Master Data และดูยอดสต็อก Real-time</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="session-badge d-none d-sm-flex" id="sessionBadge">
+        <i class="bi bi-clock"></i> <span id="sessionTime">--:--</span>
+      </span>
+      <span class="session-badge" style="cursor:default">
+        <i class="bi bi-person-fill"></i>
+        <span id="adminName">-</span>
+        <span class="badge bg-warning text-dark ms-1" id="adminRole">-</span>
+      </span>
+      <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">ออกจากระบบ</span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════ MAIN WRAPPER (SIDEBAR + CONTENT) ══════════ -->
+<div class="admin-wrapper" id="adminWrapper">
+  
+  <!-- ── SIDEBAR (เมนูแนวตั้งด้านซ้าย) ── -->
+  <div class="admin-sidebar" role="tablist">
+    <div class="text-uppercase text-muted fw-bold px-3 mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">เมนูระบบจัดการ</div>
+    
+    <button role="tab" class="sidebar-menu-item active" id="tab-scan" onclick="switchTab('scan')">
+      <i class="bi bi-camera fs-5"></i> <span>สแกนนับสต็อก</span>
+    </button>
+    <button role="tab" class="sidebar-menu-item" id="tab-master" onclick="switchTab('master')">
+      <i class="bi bi-clipboard-data fs-5"></i> <span>จัดการ Master Data</span>
+    </button>
+    <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')">
+      <i class="bi bi-bar-chart-fill fs-5"></i> <span>สรุปสต็อก &amp; Export</span>
+    </button>
+    <button role="tab" class="sidebar-menu-item" id="tab-users" onclick="switchTab('users')">
+      <i class="bi bi-people-fill fs-5"></i> <span>จัดการผู้ใช้งาน</span>
+    </button>
+    <!-- เมนูจัดการสิทธิ์ (Permissions Master) -->
+    <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
+      <i class="bi bi-shield-lock-fill fs-5"></i> <span>จัดการสิทธิ์เมนู</span>
+    </button>
+    <!-- เมนูจัดการโลเคชั่น (Locations Master) -->
+    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')">
+      <i class="bi bi-geo-alt-fill fs-5"></i> <span>จัดการโลเคชั่น</span>
+    </button>
+  </div>
+
+  <!-- ── CONTENT (พื้นที่แสดงผลเนื้อหาหลัก) ── -->
+  <div class="admin-content">
+
+    <!-- ── Tab: Scan ── -->
+    <div id="pane-scan">
+      <div class="card-wms p-4">
+        <h5 class="fw-bold mb-1">🖥️ สแกนนับสต็อก (Desktop)</h5>
+        <p class="text-muted small mb-4">บันทึกรับ/เบิก/ย้ายสินค้าจากคอมพิวเตอร์</p>
+        <div class="row g-3" style="max-width:600px">
+          <div class="col-12">
+            <label class="form-label-wms">โหมด</label>
+            <select id="deskMode" class="form-select form-control-wms">
+              <option value="RECEIVE">📦 รับสินค้า (Receive)</option>
+              <option value="PICK">🚀 เบิกจ่าย (Pick)</option>
+              <option value="TRANSFER">↔️ ย้ายตำแหน่ง (Transfer)</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">บาร์โค้ด</label>
+            <input id="deskBarcode" type="text" class="form-control form-control-wms" placeholder="สแกนหรือพิมพ์บาร์โค้ด... (กด Enter เพื่อบันทึก)" autocomplete="off">
+          </div>
+          <div class="col-6">
+            <label class="form-label-wms">จำนวน</label>
+            <input id="deskQty" type="number" class="form-control form-control-wms" value="1" min="1">
+          </div>
+          <div class="col-6">
+            <label class="form-label-wms">ตำแหน่ง</label>
+            <input id="deskLocation" type="text" class="form-control form-control-wms" placeholder="A-01">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-indigo px-4" onclick="submitDesktopScan()"><i class="bi bi-check2-circle me-2"></i>บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Master Data ── -->
+    <div id="pane-master" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📋 จัดการสินค้า (Master Data)</h5>
+            <p class="text-muted small mb-0">เพิ่ม / แก้ไข / ลบ ข้อมูลสินค้า · <span id="productCount">0 รายการ</span></p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <input id="productSearch" type="search" class="form-control form-control-wms table-search" placeholder="🔎 ค้นหา บาร์โค้ด / รหัส / ชื่อ" autocomplete="off">
+            <button class="btn btn-indigo" onclick="openAddProduct()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสินค้า</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จัดการ</th></tr></thead>
+            <tbody id="productTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Stock Summary ── -->
+    <div id="pane-stock" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📊 รายงานสรุปการตรวจนับสต็อก (Real-time Live)</h5>
+            <p class="text-muted small mb-0">รีเฟรชอัตโนมัติทุก 15 วินาที · <span id="stockUpdated">-</span> · <span id="stockCount">0 รายการ</span></p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <input id="stockSearch" type="search" class="form-control form-control-wms table-search" placeholder="🔎 ค้นหา บาร์โค้ด / รหัส / ชื่อ / ตำแหน่ง" autocomplete="off">
+            <button class="btn btn-outline-secondary" onclick="loadSummaryStock()" title="รีเฟรช" aria-label="รีเฟรชยอดสต็อก"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-success" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>Export สรุปสต็อก (.xlsx)</button>
+            <button class="btn btn-outline-danger" onclick="clearCurrentRound()"><i class="bi bi-trash me-1"></i>ล้างยอดนับรอบนี้</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่ง</th><th>ยอดนับสต็อก</th><th>เวลานับล่าสุด</th></tr></thead>
+            <tbody id="stockTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Users ── -->
+    <div id="pane-users" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">👥 จัดการผู้ใช้งานระบบ (User Management)</h5>
+            <p class="text-muted small mb-0">เพิ่ม ลบ แก้ไขสิทธิ์ และกำหนดเมนูให้ผู้ใช้งาน Handheld</p>
+          </div>
+          <button class="btn btn-indigo" onclick="openAddUser()"><i class="bi bi-person-plus me-1"></i>เพิ่มผู้ใช้งานใหม่</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead><tr><th>#</th><th>ชื่อผู้ใช้ (Username)</th><th>ชื่อ-นามสกุล</th><th>สิทธิ์หลัก</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <tbody id="usersTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Permissions Master ── -->
+    <div id="pane-permissions" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">🛡️ จัดการสิทธิ์เมนู (Permissions Master)</h5>
+            <p class="text-muted small mb-0">จัดการรายการเมนูและสิทธิ์สำหรับโปรแกรมบน Handheld (ตาราง Permissions)</p>
+          </div>
+          <button class="btn btn-indigo" onclick="openAddPermission()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสิทธิ์เมนูใหม่</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>รหัสสิทธิ์ (PermissionCode)</th>
+                <th>ชื่อเมนู (PermissionName)</th>
+                <th>คำอธิบาย (Description)</th>
+                <th>สถานะ (IsActive)</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="permissionsTableBody">
+              <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดข้อมูลสิทธิ์...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Locations Master ── -->
+    <div id="pane-locations" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📍 จัดการโลเคชั่น (Locations Master)</h5>
+            <p class="text-muted small mb-0">เพิ่ม / แก้ไข / ลบ ข้อมูลตำแหน่งจัดเก็บในคลังสินค้า (ตาราง Locations)</p>
+          </div>
+          <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่นใหม่</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>รหัสโลเคชั่น (LocationCode)</th>
+                <th>โซน (Zone)</th>
+                <th>คำอธิบาย (Description)</th>
+                <th>สถานะ (IsActive)</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="locationsTableBody">
+              <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดโลเคชั่น...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /admin-content -->
+</div><!-- /admin-wrapper -->
+
+<!-- ══════════ MODAL: User (ดึงสิทธิ์ Dynamic จากฐานข้อมูล) ══════════ -->
+<div class="modal fade" id="userModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label-wms">ชื่อผู้ใช้ (Username) <span class="text-danger">*</span></label>
+            <input id="modalUsername" type="text" class="form-control form-control-wms" placeholder="กรอก username">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">ชื่อ-นามสกุล (Full Name)</label>
+            <input id="modalFullname" type="text" class="form-control form-control-wms" placeholder="กรอกชื่อ-นามสกุล">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">รหัสผ่าน (Password)</label>
+            <input id="modalPassword" type="password" class="form-control form-control-wms" placeholder="กรอกรหัสผ่าน (เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">สิทธิ์หลัก (Role)</label>
+            <select id="modalRole" class="form-select form-control-wms" onchange="syncPermVisibility()">
+              <option value="OPERATOR">OPERATOR (แฮนด์เฮลด์)</option>
+              <option value="ADMIN">ADMIN (ผู้ดูแลระบบ)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">สถานะ</label>
+            <select id="modalStatus" class="form-select form-control-wms">
+              <option value="1">ใช้งานปกติ (Active)</option>
+              <option value="0">ระงับใช้งาน (Inactive)</option>
+            </select>
+          </div>
+          
+          <!-- พื้นที่แสดงผล Checkbox สิทธิ์เมนู ที่โหลดสดจากฐานข้อมูล DB -->
+          <div class="col-12" id="permSection">
+            <label class="form-label-wms">🎛️ กำหนดเมนูที่เปิดให้ใช้งานบน Handheld</label>
+            <div class="p-3 border rounded bg-white" id="permissionsContainer">
+              <div class="text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดรายการสิทธิ์...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="saveUser()"><i class="bi bi-floppy me-1"></i>บันทึกข้อมูล</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Permission Master ══════════ -->
+<div class="modal fade" id="permModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="permModalTitle">เพิ่มสิทธิ์เมนูใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-wms">รหัสสิทธิ์ (Permission Code) <span class="text-danger">*</span></label>
+            <input id="modalPermCode" type="text" class="form-control form-control-wms" placeholder="เช่น LOAD, PUTAWAY, CYCLE_COUNT">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">ชื่อเมนู (Permission Name) <span class="text-danger">*</span></label>
+            <input id="modalPermName" type="text" class="form-control form-control-wms" placeholder="เช่น ตรวจนับสินค้าประจำรอบ (Cycle Count)">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">คำอธิบาย (Description)</label>
+            <textarea id="modalPermDesc" class="form-control form-control-wms" rows="2" placeholder="คำอธิบายรายละเอียดสิทธิ์เมนู"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">สถานะ</label>
+            <select id="modalPermStatus" class="form-select form-control-wms">
+              <option value="1">เปิดใช้งาน (Active)</option>
+              <option value="0">ปิดใช้งาน (Inactive)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="savePermission()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Location Master ══════════ -->
+<div class="modal fade" id="locationModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="locModalTitle">เพิ่มโลเคชั่นใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-wms">รหัสโลเคชั่น (Location Code) <span class="text-danger">*</span></label>
+            <input id="modalLocCode" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01, RCV-01">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">โซน (Zone)</label>
+            <input id="modalLocZone" type="text" class="form-control form-control-wms" placeholder="เช่น ZONE-A, RECEIVING">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">คำอธิบาย (Description)</label>
+            <textarea id="modalLocDesc" class="form-control form-control-wms" rows="2" placeholder="รายละเอียดตำแหน่งจัดเก็บ"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">สถานะ</label>
+            <select id="modalLocStatus" class="form-select form-control-wms">
+              <option value="1">เปิดใช้งาน (Active)</option>
+              <option value="0">ปิดใช้งาน (Inactive)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="saveLocation()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Product ══════════ -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="productModalTitle">เพิ่มสินค้าใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-wms">บาร์โค้ด</label>
+            <input id="prodBarcode" type="text" class="form-control form-control-wms" placeholder="บาร์โค้ดสินค้า">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">รหัสสินค้า <span class="text-danger">*</span></label>
+            <input id="prodCode" type="text" class="form-control form-control-wms" placeholder="ITM001">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">หน่วย</label>
+            <input id="prodUnit" type="text" class="form-control form-control-wms" placeholder="ชิ้น / กล่อง">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">ชื่อสินค้า <span class="text-danger">*</span></label>
+            <input id="prodName" type="text" class="form-control form-control-wms" placeholder="ชื่อสินค้า">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="saveProduct()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCRIPTS ══════════ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/common.js"></script>
+<script src="/js/admin-users.js"></script>
+<script src="/js/admin-stock.js"></script>
+<script src="/js/admin-products.js"></script>
+<script src="/js/admin-permissions.js"></script>
+<script src="/js/admin-locations.js"></script>
+<script>
+/* ── Init ── */
+(function () {
+  const payload = requireAuth(['ADMIN']);
+  if (!payload) return;
+  document.getElementById('adminName').textContent = payload.fullname || payload.username;
+  document.getElementById('adminRole').textContent = payload.role;
+  startSessionCountdown();
+  loadSummaryStock();        // preload
+  loadUsers();               // preload
+  loadMasterProducts();      // preload
+  loadPermissionsMaster();   // preload
+  loadLocationsMaster();     // preload
+})();
+
+/* ── ฟังก์ชันสำหรับเปิด/ปิด Sidebar ── */
+function toggleSidebar() {
+  const wrapper = document.getElementById('adminWrapper');
+  wrapper.classList.toggle('sidebar-collapsed');
+}
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+  ['scan','master','stock','users','permissions','locations'].forEach(t => {
+    document.getElementById('pane-' + t).style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-' + t);
+    if (btn) {
+      btn.classList.toggle('active', t === tab);
+      btn.setAttribute('aria-selected', t === tab);
+    }
+  });
+
+  if (tab === 'stock') { loadSummaryStock(true); startStockAutoRefresh(); }
+  else                 { stopStockAutoRefresh(); }
+  if (tab === 'master')      loadMasterProducts();
+  if (tab === 'users')       loadUsers();
+  if (tab === 'permissions') loadPermissionsMaster();
+  if (tab === 'locations')   loadLocationsMaster();
+  if (tab === 'scan')        document.getElementById('deskBarcode')?.focus();
+}
+
+/* ── Logout ── */
+function doLogout() {
+  Swal.fire({
+    title:'ออกจากระบบ?', icon:'question', showCancelButton:true,
+    confirmButtonColor:'#ef4444', cancelButtonColor:'#6b7280',
+    confirmButtonText:'ออกจากระบบ', cancelButtonText:'ยกเลิก'
+  }).then(r => { if (r.isConfirmed) logout(); });
+}
+</script>
+</body>
+</html>
