@@ -48,16 +48,16 @@ router.post('/login', async (req, res) => {
     }
 
     const roleName = (user.Role || user.role || 'OPERATOR').toUpperCase();
-
-    // ⭐ กำหนดเวลา 32,400 วินาที = 9 ชั่วโมงพอดีเป๊ะ (9 * 60 * 60)
-    const NINE_HOURS_IN_SECONDS = 9 * 60 * 60; // 32400
+    const permissions = user.Permissions || 'RECEIVE,PICK,TRANSFER,LOOKUP';
+    const NINE_HOURS_IN_SECONDS = 9 * 60 * 60; // 32400 วินาที
 
     const token = jwt.sign(
       { 
         userId: user.UserId || user.userId, 
         username: user.Username || user.username, 
         role: roleName, 
-        fullName: user.FullName || user.fullName || user.Username 
+        fullName: user.FullName || user.fullName || user.Username,
+        permissions: permissions
       },
       JWT_SECRET,
       { expiresIn: NINE_HOURS_IN_SECONDS }
@@ -70,7 +70,8 @@ router.post('/login', async (req, res) => {
         userId: user.UserId || user.userId,
         username: user.Username || user.username,
         fullName: user.FullName || user.fullName,
-        role: roleName
+        role: roleName,
+        permissions: permissions
       }
     });
   } catch (err) {

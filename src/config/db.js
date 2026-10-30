@@ -21,8 +21,22 @@ const config = {
 
 const poolPromise = new sql.ConnectionPool(config)
   .connect()
-  .then(pool => {
+  .then(async pool => {
     console.log('✅ Connected to MSSQL Database successfully.');
+
+    // ⭐ เพิ่มคอลัมน์ Permissions ใน Users อัตโนมัติ หากยังไม่มี
+    try {
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Users') AND name = 'Permissions')
+        BEGIN
+            ALTER TABLE dbo.Users ADD Permissions NVARCHAR(100) NULL;
+            EXEC('UPDATE dbo.Users SET Permissions = ''RECEIVE,PICK,TRANSFER,LOOKUP'' WHERE Permissions IS NULL');
+        END
+      `);
+    } catch (e) {
+      console.warn('Auto migration info:', e.message);
+    }
+
     return pool;
   })
   .catch(err => {

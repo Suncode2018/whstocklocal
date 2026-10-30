@@ -14,7 +14,8 @@ router.get('/lookup', async (req, res) => {
       .query(`
         SELECT p.ProductId, p.ItemCode, p.ItemName, p.Barcode, p.UOM,
                ISNULL(l.LocationCode, 'N/A') AS LocationCode,
-               ISNULL(s.Quantity, 0) AS Quantity
+               ISNULL(s.Quantity, 0) AS Quantity,
+               s.LastUpdated
         FROM Products p
         LEFT JOIN Stock s ON p.ProductId = s.ProductId AND s.Quantity > 0
         LEFT JOIN Locations l ON s.LocationId = l.LocationId
@@ -38,7 +39,8 @@ router.get('/lookup', async (req, res) => {
         totalQuantity: totalQty,
         locations: result.recordset.filter(r => r.Quantity > 0).map(r => ({
           locationCode: r.LocationCode,
-          quantity: r.Quantity
+          quantity: r.Quantity,
+          lastUpdated: r.LastUpdated
         }))
       }
     });
@@ -55,7 +57,8 @@ router.get('/balance', async (req, res) => {
       SELECT 
         p.ProductId, p.ItemCode, p.Barcode, p.ItemName, p.Category, p.UOM, p.MinStock,
         ISNULL(SUM(s.Quantity), 0) AS TotalStock,
-        STRING_AGG(CONCAT(l.LocationCode, ' (', s.Quantity, ')'), ', ') AS LocationDetails
+        STRING_AGG(CONCAT(l.LocationCode, ' (', s.Quantity, ')'), ', ') AS LocationDetails,
+        MAX(s.LastUpdated) AS LastUpdated
       FROM Products p
       LEFT JOIN Stock s ON p.ProductId = s.ProductId AND s.Quantity > 0
       LEFT JOIN Locations l ON s.LocationId = l.LocationId

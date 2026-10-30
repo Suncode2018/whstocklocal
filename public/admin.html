@@ -1,944 +1,452 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WH Stock System (Admin)</title>
-  <!-- Google Fonts: Prompt -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Bootstrap 5 & Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <!-- SheetJS สำหรับ Export Excel .xlsx -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
+  <title>WH Stock System - Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
   <style>
-    :root {
-      --primary-color: #4f46e5;
-      --primary-dark: #4338ca;
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --text-dark: #1e293b;
-      --text-muted: #64748b;
-    }
-
-    * {
-      font-family: 'Prompt', sans-serif;
-      box-sizing: border-box;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-dark);
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-
-    /* Top Bar Header */
-    .top-navbar {
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-      padding: 20px 32px 14px 32px;
-      color: #ffffff;
-      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
-    }
-
-    .brand-logo-icon {
-      width: 38px;
-      height: 38px;
-      background-color: #facc15;
-      border-radius: 10px;
+    /* ── Layout สำหรับ Sidebar ด้านซ้ายที่เปิด/ปิดได้ ── */
+    .admin-wrapper {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #1e1b4b;
-      font-size: 20px;
-      box-shadow: 0 2px 8px rgba(250, 204, 21, 0.4);
+      min-height: calc(100vh - 65px);
+      transition: all 0.3s ease;
     }
-
-    .brand-title {
-      font-size: 1.35rem;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-
-    .brand-subtitle {
-      font-size: 0.85rem;
-      color: #c7d2fe;
-    }
-
-    .user-pill {
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(8px);
-      padding: 6px 14px;
-      border-radius: 9999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.88rem;
-    }
-
-    .badge-admin {
-      background-color: #fbbf24;
-      color: #78350f;
-      font-weight: 700;
-      font-size: 0.72rem;
-      padding: 3px 8px;
-      border-radius: 9999px;
-    }
-
-    .badge-session-timer {
-      background-color: rgba(0, 0, 0, 0.35);
-      color: #fde047;
-      font-weight: 600;
-      font-size: 0.75rem;
-      padding: 3px 9px;
-      border-radius: 9999px;
-      border: 1px solid rgba(253, 224, 71, 0.3);
-    }
-
-    .btn-logout {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.88rem;
-      transition: all 0.2s;
-    }
-
-    .btn-logout:hover {
-      background: rgba(255, 255, 255, 0.25);
-    }
-
-    /* Navigation Tabs */
-    .nav-tabs-custom {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .tab-btn {
-      background: transparent;
-      color: #e0e7ff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .tab-btn:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .tab-btn.active {
+    .admin-sidebar {
+      width: 260px;
       background: #ffffff;
-      color: #1e1b4b;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border-right: 1px solid #e2e8f0;
+      padding: 1.25rem 1rem;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+      overflow: hidden;
     }
-
-    /* Content Area */
-    .main-container {
-      max-width: 1350px;
-      margin: 28px auto;
-      padding: 0 20px;
+    /* คลาสสำหรับพับ/ซ่อน Sidebar */
+    .admin-wrapper.sidebar-collapsed .admin-sidebar {
+      width: 0;
+      padding-left: 0;
+      padding-right: 0;
+      border-right: none;
+      opacity: 0;
     }
-
-    .custom-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 28px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-      border: 1px solid #e2e8f0;
+    .admin-content {
+      flex-grow: 1;
+      padding: 1.5rem;
+      background: #f8fafc;
+      overflow-x: auto;
+      transition: all 0.3s ease;
     }
-
-    .card-title-main {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 2px;
-    }
-
-    .card-subtitle {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 0;
-    }
-
-    .btn-export {
-      background-color: #059669;
-      color: #ffffff;
-      border: none;
-      border-radius: 10px;
-      padding: 9px 18px;
+    .sidebar-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: #334155;
       font-weight: 500;
-      font-size: 0.92rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
-    }
-
-    .btn-export:hover {
-      background-color: #047857;
-      color: #ffffff;
-    }
-
-    .btn-clear-round {
-      background-color: transparent;
-      color: #e11d48;
-      border: 1px solid #fecdd3;
       border-radius: 10px;
-      padding: 8px 16px;
-      font-size: 0.92rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      margin-bottom: 0.35rem;
+      text-decoration: none;
       transition: all 0.2s;
-    }
-
-    .btn-clear-round:hover {
-      background-color: #ffe4e6;
-      color: #be123c;
-    }
-
-    .custom-table {
+      cursor: pointer;
+      border: none;
+      background: transparent;
       width: 100%;
-      margin-top: 24px;
-      border-collapse: separate;
-      border-spacing: 0;
+      text-align: left;
+      white-space: nowrap;
     }
-
-    .custom-table th {
-      background-color: #f8fafc;
-      color: #475569;
-      font-weight: 600;
-      font-size: 0.88rem;
-      padding: 14px 16px;
-      border-top: 1px solid #e2e8f0;
-      border-bottom: 2px solid #e2e8f0;
+    .sidebar-menu-item:hover {
+      background: #f1f5f9;
+      color: #4f46e5;
     }
-
-    .custom-table td {
-      padding: 14px 16px;
-      font-size: 0.92rem;
-      border-bottom: 1px solid #f1f5f9;
-      vertical-align: middle;
+    .sidebar-menu-item.active {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
     }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 0;
-      color: #94a3b8;
-      font-size: 0.95rem;
+    @media (max-width: 768px) {
+      .admin-wrapper { flex-direction: column; }
+      .admin-sidebar { width: 100% !important; border-right: none; border-bottom: 1px solid #e2e8f0; padding: 0.75rem; }
+      .admin-wrapper.sidebar-collapsed .admin-sidebar { display: none; }
     }
   </style>
 </head>
+<body class="bg-light">
 
-<body>
+<!-- ══════════ NAVBAR (ด้านบนสุด พร้อมปุ่มเปิด/ปิด Sidebar) ══════════ -->
+<nav class="navbar navbar-dark navbar-wms px-3" style="height: 65px;">
+  <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <!-- ปุ่มสำหรับกดเปิด/ปิด เมนูด้านซ้าย -->
+      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()" title="เปิด/ปิด เมนู" aria-label="สลับการแสดงผลเมนู">
+        <i class="bi bi-list fs-4 text-white"></i>
+      </button>
 
-  <!-- Top Navigation Header -->
-  <header class="top-navbar">
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center gap-3">
-        <div class="brand-logo-icon">
-          <i class="bi bi-boxes"></i>
-        </div>
-        <div>
-          <div class="brand-title">WH Stock System (Admin)</div>
-          <div class="brand-subtitle">จัดการข้อมูล Master Data และดูยอดสต๊อก Real-time</div>
-        </div>
-      </div>
-
-      <!-- User Profile & Session Timer -->
-      <div class="d-flex align-items-center gap-2">
-        <div class="user-pill">
-          <i class="bi bi-person"></i>
-          <span id="userNameHeader">ผู้ดูแลระบบ</span>
-          <span class="badge-admin">ADMIN</span>
-          <!-- ⭐ นาฬิกานับถอยหลังอายุการใช้งาน 9 ชม. -->
-          <span class="badge-session-timer" id="sessionTimerBadge" title="เวลาคงเหลือของเซสชัน">
-            <i class="bi bi-clock-history"></i> กำลังคำนวณ...
-          </span>
-        </div>
-        <button class="btn-logout" onclick="logout()">
-          <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
-        </button>
+      <div class="logo-icon">📦</div>
+      <div>
+        <div class="brand-title">WH Stock System (Admin)</div>
+        <div class="brand-sub d-none d-sm-block">จัดการข้อมูล Master Data และดูยอดสต็อก Real-time</div>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs-custom">
-      <button class="tab-btn" id="tabBtnScan" onclick="switchTab('scan')">
-        <i class="bi bi-upc-scan"></i> สแกนนับสต๊อก
-      </button>
-      <button class="tab-btn" id="tabBtnMaster" onclick="switchTab('master')">
-        <i class="bi bi-database"></i> จัดการ Master Data
-      </button>
-      <button class="tab-btn active" id="tabBtnSummary" onclick="switchTab('summary')">
-        <i class="bi bi-file-earmark-spreadsheet"></i> สรุปสต๊อก & Export
-      </button>
-      <!-- ⭐ เมนูจัดการผู้ใช้งาน -->
-      <button class="tab-btn" id="tabBtnUsers" onclick="switchTab('users')">
-        <i class="bi bi-people"></i> จัดการผู้ใช้งาน
-      </button>
+    <div class="d-flex align-items-center gap-2">
+      <span class="session-badge d-none d-sm-flex" id="sessionBadge">
+        <i class="bi bi-clock"></i> <span id="sessionTime">--:--</span>
+      </span>
+      <span class="session-badge" style="cursor:default">
+        <i class="bi bi-person-fill"></i>
+        <span id="adminName">-</span>
+        <span class="badge bg-warning text-dark ms-1" id="adminRole">-</span>
+      </span>
+      <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">ออกจากระบบ</span></button>
     </div>
-  </header>
+  </div>
+</nav>
 
-  <!-- Main Container -->
-  <main class="main-container">
+<!-- ══════════ MAIN WRAPPER (SIDEBAR + CONTENT) ══════════ -->
+<div class="admin-wrapper" id="adminWrapper">
+  
+  <!-- ── SIDEBAR (เมนูแนวตั้งด้านซ้าย) ── -->
+  <div class="admin-sidebar" role="tablist">
+    <div class="text-uppercase text-muted fw-bold px-3 mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">เมนูระบบจัดการ</div>
+    
+    <button role="tab" class="sidebar-menu-item active" id="tab-scan" onclick="switchTab('scan')">
+      <i class="bi bi-camera fs-5"></i> <span>สแกนนับสต็อก</span>
+    </button>
+    <button role="tab" class="sidebar-menu-item" id="tab-master" onclick="switchTab('master')">
+      <i class="bi bi-clipboard-data fs-5"></i> <span>จัดการ Master Data</span>
+    </button>
+    <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')">
+      <i class="bi bi-bar-chart-fill fs-5"></i> <span>สรุปสต็อก &amp; Export</span>
+    </button>
+    <button role="tab" class="sidebar-menu-item" id="tab-users" onclick="switchTab('users')">
+      <i class="bi bi-people-fill fs-5"></i> <span>จัดการผู้ใช้งาน</span>
+    </button>
+    <!-- เมนูจัดการสิทธิ์ (Permissions Master) -->
+    <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
+      <i class="bi bi-shield-lock-fill fs-5"></i> <span>จัดการสิทธิ์เมนู</span>
+    </button>
+  </div>
 
-    <!-- TAB 4: จัดการผู้ใช้งาน (CRUD) -->
-    <div id="sectionUsers" class="d-none">
-      <div class="custom-card">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-          <div>
-            <h1 class="card-title-main">จัดการผู้ใช้งานระบบ (User Management)</h1>
-            <p class="card-subtitle">เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านสำหรับพนักงาน</p>
+  <!-- ── CONTENT (พื้นที่แสดงผลเนื้อหาหลัก) ── -->
+  <div class="admin-content">
+
+    <!-- ── Tab: Scan ── -->
+    <div id="pane-scan">
+      <div class="card-wms p-4">
+        <h5 class="fw-bold mb-1">🖥️ สแกนนับสต็อก (Desktop)</h5>
+        <p class="text-muted small mb-4">บันทึกรับ/เบิก/ย้ายสินค้าจากคอมพิวเตอร์</p>
+        <div class="row g-3" style="max-width:600px">
+          <div class="col-12">
+            <label class="form-label-wms">โหมด</label>
+            <select id="deskMode" class="form-select form-control-wms">
+              <option value="RECEIVE">📦 รับสินค้า (Receive)</option>
+              <option value="PICK">🚀 เบิกจ่าย (Pick)</option>
+              <option value="TRANSFER">↔️ ย้ายตำแหน่ง (Transfer)</option>
+            </select>
           </div>
-          <button class="btn btn-primary rounded-pill px-4" onclick="openCreateUserModal()">
-            <i class="bi bi-person-plus-fill"></i> เพิ่มผู้ใช้งานใหม่
-          </button>
+          <div class="col-12">
+            <label class="form-label-wms">บาร์โค้ด</label>
+            <input id="deskBarcode" type="text" class="form-control form-control-wms" placeholder="สแกนหรือพิมพ์บาร์โค้ด... (กด Enter เพื่อบันทึก)" autocomplete="off">
+          </div>
+          <div class="col-6">
+            <label class="form-label-wms">จำนวน</label>
+            <input id="deskQty" type="number" class="form-control form-control-wms" value="1" min="1">
+          </div>
+          <div class="col-6">
+            <label class="form-label-wms">ตำแหน่ง</label>
+            <input id="deskLocation" type="text" class="form-control form-control-wms" placeholder="A-01">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-indigo px-4" onclick="submitDesktopScan()"><i class="bi bi-check2-circle me-2"></i>บันทึก</button>
+          </div>
         </div>
+      </div>
+    </div>
 
+    <!-- ── Tab: Master Data ── -->
+    <div id="pane-master" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📋 จัดการสินค้า (Master Data)</h5>
+            <p class="text-muted small mb-0">เพิ่ม / แก้ไข / ลบ ข้อมูลสินค้า · <span id="productCount">0 รายการ</span></p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <input id="productSearch" type="search" class="form-control form-control-wms table-search" placeholder="🔎 ค้นหา บาร์โค้ด / รหัส / ชื่อ" autocomplete="off">
+            <button class="btn btn-indigo" onclick="openAddProduct()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสินค้า</button>
+          </div>
+        </div>
         <div class="table-responsive">
-          <table class="custom-table">
+          <table class="table table-wms">
+            <thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จัดการ</th></tr></thead>
+            <tbody id="productTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Stock Summary ── -->
+    <div id="pane-stock" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📊 รายงานสรุปการตรวจนับสต็อก (Real-time Live)</h5>
+            <p class="text-muted small mb-0">รีเฟรชอัตโนมัติทุก 15 วินาที · <span id="stockUpdated">-</span> · <span id="stockCount">0 รายการ</span></p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <input id="stockSearch" type="search" class="form-control form-control-wms table-search" placeholder="🔎 ค้นหา บาร์โค้ด / รหัส / ชื่อ / ตำแหน่ง" autocomplete="off">
+            <button class="btn btn-outline-secondary" onclick="loadSummaryStock()" title="รีเฟรช" aria-label="รีเฟรชยอดสต็อก"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-success" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>Export สรุปสต็อก (.xlsx)</button>
+            <button class="btn btn-outline-danger" onclick="clearCurrentRound()"><i class="bi bi-trash me-1"></i>ล้างยอดนับรอบนี้</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่ง</th><th>ยอดนับสต็อก</th><th>เวลานับล่าสุด</th></tr></thead>
+            <tbody id="stockTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Users ── -->
+    <div id="pane-users" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">👥 จัดการผู้ใช้งานระบบ (User Management)</h5>
+            <p class="text-muted small mb-0">เพิ่ม ลบ แก้ไขสิทธิ์ และกำหนดเมนูให้ผู้ใช้งาน Handheld</p>
+          </div>
+          <button class="btn btn-indigo" onclick="openAddUser()"><i class="bi bi-person-plus me-1"></i>เพิ่มผู้ใช้งานใหม่</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
+            <thead><tr><th>#</th><th>ชื่อผู้ใช้ (Username)</th><th>ชื่อ-นามสกุล</th><th>สิทธิ์หลัก</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <tbody id="usersTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Permissions Master ── -->
+    <div id="pane-permissions" style="display:none">
+      <div class="card-wms p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">🛡️ จัดการสิทธิ์เมนู (Permissions Master)</h5>
+            <p class="text-muted small mb-0">จัดการรายการเมนูและสิทธิ์สำหรับโปรแกรมบน Handheld (ตาราง Permissions)</p>
+          </div>
+          <button class="btn btn-indigo" onclick="openAddPermission()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสิทธิ์เมนูใหม่</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-wms">
             <thead>
               <tr>
-                <th style="width: 60px;">#</th>
-                <th>ชื่อผู้ใช้ (Username)</th>
-                <th>ชื่อ-นามสกุล</th>
-                <th>สิทธิ์การใช้งาน (Role)</th>
-                <th>สถานะ</th>
-                <th>วันที่สร้าง</th>
-                <th style="text-align: center; width: 150px;">จัดการ</th>
+                <th>#</th>
+                <th>รหัสสิทธิ์ (PermissionCode)</th>
+                <th>ชื่อเมนู (PermissionName)</th>
+                <th>คำอธิบาย (Description)</th>
+                <th>สถานะ (IsActive)</th>
+                <th>จัดการ</th>
               </tr>
             </thead>
-            <tbody id="usersTableBody">
-              <tr>
-                <td colspan="7" class="empty-state">กำลังโหลดข้อมูลผู้ใช้...</td>
-              </tr>
+            <tbody id="permissionsTableBody">
+              <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดข้อมูลสิทธิ์...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: สรุปสต๊อก & Export -->
-    <div id="sectionSummary">
-      <div class="custom-card">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-          <div>
-            <h1 class="card-title-main">รายงานสรุปการตรวจนับสต๊อก (Real-time Live)</h1>
-            <p class="card-subtitle">ข้อมูลอัปเดตตรงกับเครื่อง Handheld ทันที</p>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <button class="btn-export" onclick="exportToExcel()">
-              <i class="bi bi-file-earmark-excel"></i> Export สรุปสต๊อก (.xlsx)
-            </button>
-            <button class="btn-clear-round" onclick="clearCurrentRound()">
-              <i class="bi bi-trash"></i> ล้างยอดนับรอบนี้
-            </button>
-          </div>
-        </div>
+  </div><!-- /admin-content -->
+</div><!-- /admin-wrapper -->
 
-        <div class="table-responsive">
-          <table class="custom-table" id="summaryTable">
-            <thead>
-              <tr>
-                <th style="width: 60px;">#</th>
-                <th>บาร์โค้ด</th>
-                <th>รหัสสินค้า</th>
-                <th>ชื่อสินค้า</th>
-                <th style="text-align: right;">ยอดนับสต๊อก</th>
-                <th style="text-align: right;">เวลานับล่าสุด</th>
-              </tr>
-            </thead>
-            <tbody id="summaryTableBody">
-              <tr>
-                <td colspan="6" class="empty-state">กำลังโหลดข้อมูลสต๊อก...</td>
-              </tr>
-            </tbody>
-          </table>
+<!-- ══════════ MODAL: User (ดึงสิทธิ์ Dynamic จากฐานข้อมูล) ══════════ -->
+<div class="modal fade" id="userModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label-wms">ชื่อผู้ใช้ (Username) <span class="text-danger">*</span></label>
+            <input id="modalUsername" type="text" class="form-control form-control-wms" placeholder="กรอก username">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">ชื่อ-นามสกุล (Full Name)</label>
+            <input id="modalFullname" type="text" class="form-control form-control-wms" placeholder="กรอกชื่อ-นามสกุล">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">รหัสผ่าน (Password)</label>
+            <input id="modalPassword" type="password" class="form-control form-control-wms" placeholder="กรอกรหัสผ่าน (เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">สิทธิ์หลัก (Role)</label>
+            <select id="modalRole" class="form-select form-control-wms" onchange="syncPermVisibility()">
+              <option value="OPERATOR">OPERATOR (แฮนด์เฮลด์)</option>
+              <option value="ADMIN">ADMIN (ผู้ดูแลระบบ)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">สถานะ</label>
+            <select id="modalStatus" class="form-select form-control-wms">
+              <option value="1">ใช้งานปกติ (Active)</option>
+              <option value="0">ระงับใช้งาน (Inactive)</option>
+            </select>
+          </div>
+          
+          <!-- พื้นที่แสดงผล Checkbox สิทธิ์เมนู ที่โหลดสดจากฐานข้อมูล DB -->
+          <div class="col-12" id="permSection">
+            <label class="form-label-wms">🎛️ กำหนดเมนูที่เปิดให้ใช้งานบน Handheld</label>
+            <div class="p-3 border rounded bg-white" id="permissionsContainer">
+              <div class="text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดรายการสิทธิ์...</div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- TAB 2: จัดการ Master Data -->
-    <div id="sectionMaster" class="d-none">
-      <div class="custom-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h1 class="card-title-main">จัดการข้อมูลสินค้า Master Data</h1>
-            <p class="card-subtitle">รายการสินค้า บาร์โค้ด และหน่วยนับในระบบ</p>
-          </div>
-          <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addProductModal">
-            <i class="bi bi-plus-lg"></i> เพิ่มสินค้าใหม่
-          </button>
-        </div>
-
-        <div class="table-responsive">
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>รหัสสินค้า (Item Code)</th>
-                <th>บาร์โค้ด (Barcode)</th>
-                <th>ชื่อสินค้า</th>
-                <th>หมวดหมู่</th>
-                <th>หน่วยนับ</th>
-                <th>Min Stock</th>
-              </tr>
-            </thead>
-            <tbody id="masterTableBody">
-              <tr>
-                <td colspan="6" class="empty-state">กำลังโหลดข้อมูล...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 1: สแกนนับสต๊อกจากคอมพิวเตอร์ -->
-    <div id="sectionScan" class="d-none">
-      <div class="custom-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h1 class="card-title-main">ระบบสแกนนับสต๊อก (Quick Desktop Scanner)</h1>
-            <p class="card-subtitle">สามารถต่อเครื่องสแกนบาร์โค้ด USB เพื่อยิงนับสต๊อกได้จากหน้านี้</p>
-          </div>
-          <a href="/handheld.html" target="_blank" class="btn btn-outline-primary rounded-pill px-3">
-            <i class="bi bi-phone"></i> เปิดหน้าจอมือถือ/Handheld ↗
-          </a>
-        </div>
-
-        <form id="desktopScanForm" class="row g-3" onsubmit="event.preventDefault(); submitDesktopScan();">
-          <div class="col-md-4">
-            <label class="form-label fw-bold">ตำแหน่งจัดเก็บ (Location)</label>
-            <input type="text" id="dtLocation" class="form-control form-control-lg text-uppercase"
-              placeholder="เช่น A-01-01" required>
-          </div>
-          <div class="col-md-5">
-            <label class="form-label fw-bold">บาร์โค้ดสินค้า (Barcode)</label>
-            <input type="text" id="dtBarcode" class="form-control form-control-lg" placeholder="ยิงบาร์โค้ดสินค้า..."
-              required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">จำนวน</label>
-            <input type="number" id="dtQty" class="form-control form-control-lg" value="1" min="1" required>
-          </div>
-          <div class="col-12 mt-3">
-            <button type="submit" class="btn btn-primary btn-lg px-4">
-              <i class="bi bi-check-circle"></i> บันทึกยอดตรวจนับ
-            </button>
-          </div>
-        </form>
-        <div id="scanAlert" class="mt-3 alert d-none"></div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Modal: จัดการผู้ใช้งาน (เพิ่ม / แก้ไข) -->
-  <div class="modal fade" id="userModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content" style="border-radius: 16px;">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <form onsubmit="event.preventDefault(); saveUser();">
-          <div class="modal-body">
-            <input type="hidden" id="uUserId">
-            <div class="mb-3">
-              <label class="form-label fw-semibold">ชื่อผู้ใช้ (Username)</label>
-              <input type="text" id="uUsername" class="form-control" required placeholder="เช่น picker02">
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-semibold">ชื่อ-นามสกุล (Full Name)</label>
-              <input type="text" id="uFullName" class="form-control" required placeholder="เช่น สมชาย ใจดี">
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-semibold">รหัสผ่าน (Password)</label>
-              <input type="password" id="uPassword" class="form-control" placeholder="กรอกรหัสผ่าน...">
-              <small class="text-muted" id="uPasswordHelp">กำหนดรหัสผ่านสำหรับเข้าสู่ระบบ</small>
-            </div>
-            <div class="row">
-              <div class="col-6 mb-3">
-                <label class="form-label fw-semibold">สิทธิ์การใช้งาน (Role)</label>
-                <select id="uRole" class="form-select">
-                  <option value="OPERATOR">OPERATOR (แฮนเฮล)</option>
-                  <option value="ADMIN">ADMIN (ผู้ดูแลระบบ)</option>
-                </select>
-              </div>
-              <div class="col-6 mb-3">
-                <label class="form-label fw-semibold">สถานะการใช้งาน</label>
-                <select id="uIsActive" class="form-select">
-                  <option value="1">ใช้งานปกติ (Active)</option>
-                  <option value="0">ระงับการใช้งาน (Inactive)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="submit" class="btn btn-primary rounded-pill px-4">บันทึกข้อมูล</button>
-          </div>
-        </form>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="saveUser()"><i class="bi bi-floppy me-1"></i>บันทึกข้อมูล</button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Modal: เพิ่มสินค้าใหม่ -->
-  <div class="modal fade" id="addProductModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content" style="border-radius: 16px;">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold">เพิ่มสินค้าใหม่ (New Product)</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- ══════════ MODAL: Permission Master ══════════ -->
+<div class="modal fade" id="permModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="permModalTitle">เพิ่มสิทธิ์เมนูใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-wms">รหัสสิทธิ์ (Permission Code) <span class="text-danger">*</span></label>
+            <input id="modalPermCode" type="text" class="form-control form-control-wms" placeholder="เช่น LOAD, PUTAWAY">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">ชื่อเมนู (Permission Name) <span class="text-danger">*</span></label>
+            <input id="modalPermName" type="text" class="form-control form-control-wms" placeholder="เช่น จัดเก็บสินค้า (Putaway)">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">คำอธิบาย (Description)</label>
+            <textarea id="modalPermDesc" class="form-control form-control-wms" rows="2" placeholder="คำอธิบายรายละเอียดสิทธิ์เมนู"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">สถานะ</label>
+            <select id="modalPermStatus" class="form-select form-control-wms">
+              <option value="1">เปิดใช้งาน (Active)</option>
+              <option value="0">ปิดใช้งาน (Inactive)</option>
+            </select>
+          </div>
         </div>
-        <form onsubmit="event.preventDefault(); saveProduct();">
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">รหัสสินค้า (Item Code)</label>
-              <input type="text" id="mItemCode" class="form-control" required placeholder="เช่น ITM004">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">บาร์โค้ด (Barcode)</label>
-              <input type="text" id="mBarcode" class="form-control" required placeholder="เช่น 885000000001">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">ชื่อสินค้า</label>
-              <input type="text" id="mItemName" class="form-control" required>
-            </div>
-            <div class="row">
-              <div class="col-6 mb-3">
-                <label class="form-label">หมวดหมู่</label>
-                <input type="text" id="mCategory" class="form-control" placeholder="เช่น General">
-              </div>
-              <div class="col-6 mb-3">
-                <label class="form-label">หน่วยนับ (UOM)</label>
-                <input type="text" id="mUom" class="form-control" value="PCS">
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="submit" class="btn btn-primary rounded-pill px-4">บันทึกสินค้า</button>
-          </div>
-        </form>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="savePermission()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // ⭐ ฟังก์ชันถอดรหัส Base64URL + UTF-8 ภาษาไทย ป้องกัน Error 100%
-    function parseJwt(token) {
-      try {
-        if (!token) return null;
-        const parts = token.split('.');
-        if (parts.length < 2) return null;
-        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        while (base64.length % 4) {
-          base64 += '=';
-        }
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        );
-        return JSON.parse(jsonPayload);
-      } catch (e) {
-        console.warn('Cannot parse token:', e);
-        return null;
-      }
+<!-- ══════════ MODAL: Product ══════════ -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header-wms d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" id="productModalTitle">เพิ่มสินค้าใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-wms">บาร์โค้ด</label>
+            <input id="prodBarcode" type="text" class="form-control form-control-wms" placeholder="บาร์โค้ดสินค้า">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">รหัสสินค้า <span class="text-danger">*</span></label>
+            <input id="prodCode" type="text" class="form-control form-control-wms" placeholder="ITM001">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-wms">หน่วย</label>
+            <input id="prodUnit" type="text" class="form-control form-control-wms" placeholder="ชิ้น / กล่อง">
+          </div>
+          <div class="col-12">
+            <label class="form-label-wms">ชื่อสินค้า <span class="text-danger">*</span></label>
+            <input id="prodName" type="text" class="form-control form-control-wms" placeholder="ชื่อสินค้า">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pb-4 px-4">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-indigo px-4" onclick="saveProduct()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCRIPTS ══════════ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/common.js"></script>
+<script src="/js/admin-users.js"></script>
+<script src="/js/admin-stock.js"></script>
+<script src="/js/admin-products.js"></script>
+<script src="/js/admin-permissions.js"></script>
+<script>
+/* ── Init ── */
+(function () {
+  const payload = requireAuth(['ADMIN']);
+  if (!payload) return;
+  document.getElementById('adminName').textContent = payload.fullname || payload.username;
+  document.getElementById('adminRole').textContent = payload.role;
+  startSessionCountdown();
+  loadSummaryStock();        // preload
+  loadUsers();               // preload
+  loadMasterProducts();      // preload
+  loadPermissionsMaster();   // preload
+})();
+
+/* ── ฟังก์ชันสำหรับเปิด/ปิด Sidebar ── */
+function toggleSidebar() {
+  const wrapper = document.getElementById('adminWrapper');
+  wrapper.classList.toggle('sidebar-collapsed');
+}
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+  ['scan','master','stock','users','permissions'].forEach(t => {
+    document.getElementById('pane-' + t).style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-' + t);
+    if (btn) {
+      btn.classList.toggle('active', t === tab);
+      btn.setAttribute('aria-selected', t === tab);
     }
+  });
 
-    // ⭐ ตรวจสอบและแสดงเวลานับถอยหลังจริงของเซสชัน 9 ชั่วโมง
-    function updateSessionCountdown() {
-      const token = localStorage.getItem('wms_token');
-      if (!token) {
-        window.location.href = '/index.html';
-        return;
-      }
+  if (tab === 'stock') { loadSummaryStock(true); startStockAutoRefresh(); }
+  else                 { stopStockAutoRefresh(); }
+  if (tab === 'master')      loadMasterProducts();
+  if (tab === 'users')       loadUsers();
+  if (tab === 'permissions') loadPermissionsMaster();
+  if (tab === 'scan')        document.getElementById('deskBarcode')?.focus();
+}
 
-      const payload = parseJwt(token);
-      if (!payload || !payload.exp) return;
-
-      const now = Math.floor(Date.now() / 1000);
-      const remainingSeconds = payload.exp - now;
-
-      // ถ้าครบ 9 ชั่วโมงจริง (เหลือเวลา <= 0)
-      if (remainingSeconds <= 0) {
-        localStorage.clear();
-        alert('⏰ เซสชันการใช้งานของคุณหมดอายุแล้ว (ครบ 9 ชั่วโมงเต็ม)\nระบบจะพาท่านกลับสู่หน้าเข้าสู่ระบบ');
-        window.location.href = '/index.html';
-        return;
-      }
-
-      // แสดงเวลาคงเหลือ
-      const hours = Math.floor(remainingSeconds / 3600);
-      const minutes = Math.floor((remainingSeconds % 3600) / 60);
-
-      const badge = document.getElementById('sessionTimerBadge');
-      if (badge) {
-        badge.innerHTML = `<i class="bi bi-clock-history"></i> เหลือ ${hours} ชม. ${minutes} นาที`;
-      }
-    }
-
-    // รันทันที และอัปเดตทุก 10 วินาที
-    updateSessionCountdown();
-    setInterval(updateSessionCountdown, 10000);
-
-    // ตรวจสอบสิทธิ์ ADMIN
-    const token = localStorage.getItem('wms_token');
-    const user = JSON.parse(localStorage.getItem('wms_user') || '{}');
-    const userRole = (user.role || user.Role || '').toUpperCase();
-
-    if (!token || userRole !== 'ADMIN') {
-      alert('เฉพาะผู้ดูแลระบบ (ADMIN) เท่านั้นที่สามารถเข้าใช้งานหน้านี้ได้');
-      window.location.href = '/index.html';
-    }
-    document.getElementById('userNameHeader').innerText = user.fullName || user.username || 'ผู้ดูแลระบบ';
-
-    let stockDataList = [];
-    let usersList = [];
-    const userModal = new bootstrap.Modal(document.getElementById('userModal'));
-
-    // เปลี่ยน Tab
-    function switchTab(tab) {
-      document.getElementById('sectionSummary').classList.toggle('d-none', tab !== 'summary');
-      document.getElementById('sectionMaster').classList.toggle('d-none', tab !== 'master');
-      document.getElementById('sectionScan').classList.toggle('d-none', tab !== 'scan');
-      document.getElementById('sectionUsers').classList.toggle('d-none', tab !== 'users');
-
-      document.getElementById('tabBtnSummary').classList.toggle('active', tab === 'summary');
-      document.getElementById('tabBtnMaster').classList.toggle('active', tab === 'master');
-      document.getElementById('tabBtnScan').classList.toggle('active', tab === 'scan');
-      document.getElementById('tabBtnUsers').classList.toggle('active', tab === 'users');
-
-      if (tab === 'summary') loadSummaryStock();
-      if (tab === 'master') loadMasterProducts();
-      if (tab === 'users') loadUsers();
-    }
-
-    // ==========================================
-    // ฟังก์ชันจัดการผู้ใช้งาน (Users CRUD)
-    // ==========================================
-    async function loadUsers() {
-      try {
-        const res = await fetch('/api/users', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '';
-
-        if (!data.data || data.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีข้อมูลผู้ใช้งาน</td></tr>';
-          return;
-        }
-
-        usersList = data.data;
-
-        data.data.forEach((u, idx) => {
-          const roleBadge = u.Role === 'ADMIN'
-            ? '<span class="badge bg-warning text-dark fw-bold px-2 py-1">ADMIN</span>'
-            : '<span class="badge bg-info text-dark fw-bold px-2 py-1">OPERATOR (PDA)</span>';
-
-          const statusBadge = u.IsActive
-            ? '<span class="badge bg-success-subtle text-success border border-success px-2 py-1">ใช้งานปกติ</span>'
-            : '<span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">ระงับการใช้งาน</span>';
-
-          const createdDate = new Date(u.CreatedAt).toLocaleDateString('th-TH');
-
-          tbody.innerHTML += `
-            <tr>
-              <td>${idx + 1}</td>
-              <td class="fw-bold font-monospace">${u.Username}</td>
-              <td>${u.FullName}</td>
-              <td>${roleBadge}</td>
-              <td>${statusBadge}</td>
-              <td class="text-muted small">${createdDate}</td>
-              <td style="text-align: center;">
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUserModal(${u.UserId})" title="แก้ไข">
-                  <i class="bi bi-pencil-square"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.UserId}, '${u.Username}')" title="ลบ">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </td>
-            </tr>
-          `;
-        });
-      } catch (err) {
-        document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="7" class="empty-state text-danger">ไม่สามารถโหลดข้อมูลผู้ใช้ได้</td></tr>';
-      }
-    }
-
-    function openCreateUserModal() {
-      document.getElementById('userModalTitle').innerText = 'เพิ่มผู้ใช้งานใหม่';
-      document.getElementById('uUserId').value = '';
-      document.getElementById('uUsername').value = '';
-      document.getElementById('uUsername').disabled = false;
-      document.getElementById('uFullName').value = '';
-      document.getElementById('uPassword').value = '';
-      document.getElementById('uPassword').required = true;
-      document.getElementById('uPasswordHelp').innerText = 'กำหนดรหัสผ่านสำหรับเข้าสู่ระบบ';
-      document.getElementById('uRole').value = 'OPERATOR';
-      document.getElementById('uIsActive').value = '1';
-      userModal.show();
-    }
-
-    function openEditUserModal(userId) {
-      const u = usersList.find(item => item.UserId === userId);
-      if (!u) return;
-
-      document.getElementById('userModalTitle').innerText = 'แก้ไขข้อมูลผู้ใช้งาน: ' + u.Username;
-      document.getElementById('uUserId').value = u.UserId;
-      document.getElementById('uUsername').value = u.Username;
-      document.getElementById('uUsername').disabled = true;
-      document.getElementById('uFullName').value = u.FullName;
-      document.getElementById('uPassword').value = '';
-      document.getElementById('uPassword').required = false;
-      document.getElementById('uPasswordHelp').innerText = 'เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน';
-      document.getElementById('uRole').value = u.Role;
-      document.getElementById('uIsActive').value = u.IsActive ? '1' : '0';
-      userModal.show();
-    }
-
-    async function saveUser() {
-      const userId = document.getElementById('uUserId').value;
-      const username = document.getElementById('uUsername').value.trim();
-      const fullName = document.getElementById('uFullName').value.trim();
-      const password = document.getElementById('uPassword').value;
-      const role = document.getElementById('uRole').value;
-      const isActive = document.getElementById('uIsActive').value === '1';
-
-      const isEdit = userId !== '';
-      const url = isEdit ? `/api/users/${userId}` : '/api/users';
-      const method = isEdit ? 'PUT' : 'POST';
-
-      const payload = { username, fullName, role, isActive };
-      if (password && password.trim() !== '') {
-        payload.password = password.trim();
-      }
-
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert('✅ ' + data.message);
-          userModal.hide();
-          loadUsers();
-        } else {
-          alert('❌ ' + data.message);
-        }
-      } catch (err) {
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-      }
-    }
-
-    async function deleteUser(userId, username) {
-      if (!confirm(`คุณต้องการลบหรือระงับการใช้งานผู้ใช้ "${username}" ใช่หรือไม่?`)) return;
-
-      try {
-        const res = await fetch(`/api/users/${userId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert('✅ ' + data.message);
-          loadUsers();
-        } else {
-          alert('❌ ' + data.message);
-        }
-      } catch (err) {
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-      }
-    }
-
-    // ==========================================
-    // โหลดตารางสรุปสต๊อก (Tab 3)
-    // ==========================================
-    async function loadSummaryStock() {
-      try {
-        const res = await fetch('/api/stock/balance');
-        const data = await res.json();
-        const tbody = document.getElementById('summaryTableBody');
-        tbody.innerHTML = '';
-
-        if (!data.data || data.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีรายการสต๊อกที่ตรวจนับ</td></tr>';
-          return;
-        }
-
-        stockDataList = data.data;
-
-        data.data.forEach((item, index) => {
-          const nowStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          tbody.innerHTML += `
-            <tr>
-              <td>${index + 1}</td>
-              <td class="font-monospace fw-semibold text-secondary">${item.Barcode}</td>
-              <td class="fw-bold">${item.ItemCode}</td>
-              <td>${item.ItemName}</td>
-              <td style="text-align: right;"><span class="badge bg-primary fs-6 px-3 py-1">${item.TotalStock}</span></td>
-              <td style="text-align: right;" class="text-muted small">${nowStr}</td>
-            </tr>
-          `;
-        });
-      } catch (err) {
-        document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="6" class="empty-state text-danger">ไม่สามารถโหลดข้อมูลได้</td></tr>';
-      }
-    }
-
-    function exportToExcel() {
-      if (stockDataList.length === 0) {
-        alert('ไม่มีข้อมูลสำหรับ Export');
-        return;
-      }
-      const exportRows = stockDataList.map((item, idx) => ({
-        ลำดับ: idx + 1,
-        บาร์โค้ด: item.Barcode,
-        รหัสสินค้า: item.ItemCode,
-        ชื่อสินค้า: item.ItemName,
-        หมวดหมู่: item.Category || '-',
-        หน่วยนับ: item.UOM,
-        ยอดนับสต๊อก: item.TotalStock,
-        ตำแหน่งจัดเก็บ: item.LocationDetails || '-'
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(exportRows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Stock_Summary");
-
-      const today = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(workbook, `Stock_Summary_${today}.xlsx`);
-    }
-
-    function clearCurrentRound() {
-      if (confirm('คุณต้องการล้างรอบการตรวจนับปัจจุบันใช่หรือไม่?')) {
-        alert('ทำการรีเซ็ตรอบการนับเรียบร้อยแล้ว');
-        loadSummaryStock();
-      }
-    }
-
-    async function loadMasterProducts() {
-      const res = await fetch('/api/products');
-      const data = await res.json();
-      const tbody = document.getElementById('masterTableBody');
-      tbody.innerHTML = '';
-      if (!data.data || data.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่มีสินค้าในระบบ</td></tr>';
-        return;
-      }
-      data.data.forEach(p => {
-        tbody.innerHTML += `
-          <tr>
-            <td class="fw-bold">${p.ItemCode}</td>
-            <td class="font-monospace">${p.Barcode}</td>
-            <td>${p.ItemName}</td>
-            <td>${p.Category || '-'}</td>
-            <td>${p.UOM}</td>
-            <td>${p.MinStock}</td>
-          </tr>
-        `;
-      });
-    }
-
-    async function saveProduct() {
-      const payload = {
-        itemCode: document.getElementById('mItemCode').value,
-        barcode: document.getElementById('mBarcode').value,
-        itemName: document.getElementById('mItemName').value,
-        category: document.getElementById('mCategory').value,
-        uom: document.getElementById('mUom').value
-      };
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('เพิ่มสินค้าสำเร็จ');
-        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
-        loadMasterProducts();
-      } else {
-        alert('เกิดข้อผิดพลาด: ' + data.message);
-      }
-    }
-
-    async function submitDesktopScan() {
-      const barcode = document.getElementById('dtBarcode').value;
-      const loc = document.getElementById('dtLocation').value;
-      const qty = document.getElementById('dtQty').value;
-      const alertBox = document.getElementById('scanAlert');
-
-      const res = await fetch('/api/transactions/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          type: 'RECEIVE',
-          barcode,
-          locationCode: loc,
-          quantity: qty
-        })
-      });
-      const data = await res.json();
-
-      if (res.status === 401 || res.status === 403 || data.isExpired) {
-        localStorage.clear();
-        alert('⏰ ' + (data.message || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'));
-        window.location.href = '/index.html';
-        return;
-      }
-
-      alertBox.classList.remove('d-none');
-      if (data.success) {
-        alertBox.className = 'mt-3 alert alert-success';
-        alertBox.innerText = '✅ บันทึกสำเร็จ: ' + data.message;
-        document.getElementById('dtBarcode').value = '';
-        document.getElementById('dtBarcode').focus();
-      } else {
-        alertBox.className = 'mt-3 alert alert-danger';
-        alertBox.innerText = '❌ เกิดข้อผิดพลาด: ' + data.message;
-      }
-    }
-
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/index.html';
-    }
-
-    loadSummaryStock();
-  </script>
+/* ── Logout ── */
+function doLogout() {
+  Swal.fire({
+    title:'ออกจากระบบ?', icon:'question', showCancelButton:true,
+    confirmButtonColor:'#ef4444', cancelButtonColor:'#6b7280',
+    confirmButtonText:'ออกจากระบบ', cancelButtonText:'ยกเลิก'
+  }).then(r => { if (r.isConfirmed) logout(); });
+}
+</script>
 </body>
-
 </html>
