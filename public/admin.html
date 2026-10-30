@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WH Stock System (Admin)</title>
+  <!-- Google Fonts: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- SheetJS สำหรับ Export Excel .xlsx -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --primary-dark: #4338ca;
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    * {
+      font-family: 'Prompt', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-dark);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    /* Top Bar Header */
+    .top-navbar {
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      padding: 20px 32px 14px 32px;
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+    }
+
+    .brand-logo-icon {
+      width: 38px;
+      height: 38px;
+      background-color: #facc15;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e1b4b;
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(250, 204, 21, 0.4);
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 0.85rem;
+      color: #c7d2fe;
+    }
+
+    .user-pill {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+    }
+
+    .badge-admin {
+      background-color: #fbbf24;
+      color: #78350f;
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs-custom {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: #e0e7ff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: #1e1b4b;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Content Area */
+    .main-container {
+      max-width: 1350px;
+      margin: 28px auto;
+      padding: 0 20px;
+    }
+
+    .custom-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e2e8f0;
+    }
+
+    .card-title-main {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    .btn-export {
+      background-color: #059669;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-weight: 500;
+      font-size: 0.92rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+    }
+
+    .btn-export:hover {
+      background-color: #047857;
+      color: #ffffff;
+    }
+
+    .btn-clear-round {
+      background-color: transparent;
+      color: #e11d48;
+      border: 1px solid #fecdd3;
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 0.92rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-clear-round:hover {
+      background-color: #ffe4e6;
+      color: #be123c;
+    }
+
+    .custom-table {
+      width: 100%;
+      margin-top: 24px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .custom-table th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 14px 16px;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .custom-table td {
+      padding: 14px 16px;
+      font-size: 0.92rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 0;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="top-navbar">
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <div class="brand-logo-icon">
+          <i class="bi bi-boxes"></i>
+        </div>
+        <div>
+          <div class="brand-title">WH Stock System (Admin)</div>
+          <div class="brand-subtitle">จัดการข้อมูล Master Data และดูยอดสต๊อก Real-time</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="user-pill">
+          <i class="bi bi-person"></i>
+          <span id="userNameHeader">ผู้ดูแลระบบ</span>
+          <span class="badge-admin">ADMIN</span>
+        </div>
+        <button class="btn-logout" onclick="logout()">
+          <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs-custom">
+      <button class="tab-btn" id="tabBtnScan" onclick="switchTab('scan')">
+        <i class="bi bi-upc-scan"></i> สแกนนับสต๊อก
+      </button>
+      <button class="tab-btn" id="tabBtnMaster" onclick="switchTab('master')">
+        <i class="bi bi-database"></i> จัดการ Master Data
+      </button>
+      <button class="tab-btn active" id="tabBtnSummary" onclick="switchTab('summary')">
+        <i class="bi bi-file-earmark-spreadsheet"></i> สรุปสต๊อก & Export
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- TAB 3: สรุปสต๊อก & Export -->
+    <div id="sectionSummary">
+      <div class="custom-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <h1 class="card-title-main">รายงานสรุปการตรวจนับสต๊อก (Real-time Live)</h1>
+            <p class="card-subtitle">ข้อมูลอัปเดตตรงกับเครื่อง Handheld ทันที</p>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn-export" onclick="exportToExcel()">
+              <i class="bi bi-file-earmark-excel"></i> Export สรุปสต๊อก (.xlsx)
+            </button>
+            <button class="btn-clear-round" onclick="clearCurrentRound()">
+              <i class="bi bi-trash"></i> ล้างยอดนับรอบนี้
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table" id="summaryTable">
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th>บาร์โค้ด</th>
+                <th>รหัสสินค้า</th>
+                <th>ชื่อสินค้า</th>
+                <th style="text-align: right;">ยอดนับสต๊อก</th>
+                <th style="text-align: right;">เวลานับล่าสุด</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody">
+              <tr>
+                <td colspan="6" class="empty-state">กำลังโหลดข้อมูลสต๊อก...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: จัดการ Master Data -->
+    <div id="sectionMaster" class="d-none">
+      <div class="custom-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h1 class="card-title-main">จัดการข้อมูลสินค้า Master Data</h1>
+            <p class="card-subtitle">รายการสินค้า บาร์โค้ด และหน่วยนับในระบบ</p>
+          </div>
+          <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="bi bi-plus-lg"></i> เพิ่มสินค้าใหม่
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>รหัสสินค้า (Item Code)</th>
+                <th>บาร์โค้ด (Barcode)</th>
+                <th>ชื่อสินค้า</th>
+                <th>หมวดหมู่</th>
+                <th>หน่วยนับ</th>
+                <th>Min Stock</th>
+              </tr>
+            </thead>
+            <tbody id="masterTableBody">
+              <tr>
+                <td colspan="6" class="empty-state">กำลังโหลดข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: สแกนนับสต๊อกจากคอมพิวเตอร์ -->
+    <div id="sectionScan" class="d-none">
+      <div class="custom-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h1 class="card-title-main">ระบบสแกนนับสต๊อก (Quick Desktop Scanner)</h1>
+            <p class="card-subtitle">สามารถต่อเครื่องสแกนบาร์โค้ด USB เพื่อยิงนับสต๊อกได้จากหน้านี้</p>
+          </div>
+          <a href="/handheld.html" target="_blank" class="btn btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-phone"></i> เปิดหน้าจอมือถือ/Handheld ↗
+          </a>
+        </div>
+
+        <form id="desktopScanForm" class="row g-3" onsubmit="event.preventDefault(); submitDesktopScan();">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">ตำแหน่งจัดเก็บ (Location)</label>
+            <input type="text" id="dtLocation" class="form-control form-control-lg text-uppercase" placeholder="เช่น A-01-01" required>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-bold">บาร์โค้ดสินค้า (Barcode)</label>
+            <input type="text" id="dtBarcode" class="form-control form-control-lg" placeholder="ยิงบาร์โค้ดสินค้า..." required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">จำนวน</label>
+            <input type="number" id="dtQty" class="form-control form-control-lg" value="1" min="1" required>
+          </div>
+          <div class="col-12 mt-3">
+            <button type="submit" class="btn btn-primary btn-lg px-4">
+              <i class="bi bi-check-circle"></i> บันทึกยอดตรวจนับ
+            </button>
+          </div>
+        </form>
+        <div id="scanAlert" class="mt-3 alert d-none"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal: เพิ่มสินค้าใหม่ -->
+  <div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content" style="border-radius: 16px;">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">เพิ่มสินค้าใหม่ (New Product)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form onsubmit="event.preventDefault(); saveProduct();">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">รหัสสินค้า (Item Code)</label>
+              <input type="text" id="mItemCode" class="form-control" required placeholder="เช่น ITM004">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">บาร์โค้ด (Barcode)</label>
+              <input type="text" id="mBarcode" class="form-control" required placeholder="เช่น 885000000001">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">ชื่อสินค้า</label>
+              <input type="text" id="mItemName" class="form-control" required>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label">หมวดหมู่</label>
+                <input type="text" id="mCategory" class="form-control" placeholder="เช่น General">
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label">หน่วยนับ (UOM)</label>
+                <input type="text" id="mUom" class="form-control" value="PCS">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">บันทึกสินค้า</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ⭐ ฟังก์ชันตรวจสอบอายุ Token 9 ชั่วโมงอัตโนมัติ
+    function checkSessionExpiry() {
+      const token = localStorage.getItem('wms_token');
+      if (!token) {
+        window.location.href = '/index.html';
+        return;
+      }
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
+        if (now >= payload.exp) {
+          localStorage.clear();
+          alert('⏰ เซสชันการใช้งานของคุณหมดอายุแล้ว (เกิน 9 ชั่วโมง)\nระบบจะพาท่านกลับสู่หน้าเข้าสู่ระบบ');
+          window.location.href = '/index.html';
+        }
+      } catch (e) {
+        localStorage.clear();
+        window.location.href = '/index.html';
+      }
+    }
+
+    checkSessionExpiry();
+    setInterval(checkSessionExpiry, 60000);
+
+    const token = localStorage.getItem('wms_token');
+    const user = JSON.parse(localStorage.getItem('wms_user') || '{}');
+    if (!token || user.role !== 'ADMIN') {
+      window.location.href = '/index.html';
+    }
+    document.getElementById('userNameHeader').innerText = user.fullName || 'ผู้ดูแลระบบ';
+
+    let stockDataList = [];
+
+    function switchTab(tab) {
+      document.getElementById('sectionSummary').classList.toggle('d-none', tab !== 'summary');
+      document.getElementById('sectionMaster').classList.toggle('d-none', tab !== 'master');
+      document.getElementById('sectionScan').classList.toggle('d-none', tab !== 'scan');
+
+      document.getElementById('tabBtnSummary').classList.toggle('active', tab === 'summary');
+      document.getElementById('tabBtnMaster').classList.toggle('active', tab === 'master');
+      document.getElementById('tabBtnScan').classList.toggle('active', tab === 'scan');
+
+      if (tab === 'summary') loadSummaryStock();
+      if (tab === 'master') loadMasterProducts();
+    }
+
+    async function loadSummaryStock() {
+      try {
+        const res = await fetch('/api/stock/balance');
+        const data = await res.json();
+        const tbody = document.getElementById('summaryTableBody');
+        tbody.innerHTML = '';
+
+        if (!data.data || data.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีรายการสต๊อกที่ตรวจนับ</td></tr>';
+          return;
+        }
+
+        stockDataList = data.data;
+
+        data.data.forEach((item, index) => {
+          const nowStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          tbody.innerHTML += `
+            <tr>
+              <td>${index + 1}</td>
+              <td class="font-monospace fw-semibold text-secondary">${item.Barcode}</td>
+              <td class="fw-bold">${item.ItemCode}</td>
+              <td>${item.ItemName}</td>
+              <td style="text-align: right;"><span class="badge bg-primary fs-6 px-3 py-1">${item.TotalStock}</span></td>
+              <td style="text-align: right;" class="text-muted small">${nowStr}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="6" class="empty-state text-danger">ไม่สามารถโหลดข้อมูลได้</td></tr>';
+      }
+    }
+
+    function exportToExcel() {
+      if (stockDataList.length === 0) {
+        alert('ไม่มีข้อมูลสำหรับ Export');
+        return;
+      }
+      const exportRows = stockDataList.map((item, idx) => ({
+        ลำดับ: idx + 1,
+        บาร์โค้ด: item.Barcode,
+        รหัสสินค้า: item.ItemCode,
+        ชื่อสินค้า: item.ItemName,
+        หมวดหมู่: item.Category || '-',
+        หน่วยนับ: item.UOM,
+        ยอดนับสต๊อก: item.TotalStock,
+        ตำแหน่งจัดเก็บ: item.LocationDetails || '-'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Stock_Summary");
+
+      const today = new Date().toISOString().slice(0,10);
+      XLSX.writeFile(workbook, `Stock_Summary_${today}.xlsx`);
+    }
+
+    function clearCurrentRound() {
+      if (confirm('คุณต้องการล้างรอบการตรวจนับปัจจุบันใช่หรือไม่?')) {
+        alert('ทำการรีเซ็ตรอบการนับเรียบร้อยแล้ว');
+        loadSummaryStock();
+      }
+    }
+
+    async function loadMasterProducts() {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      const tbody = document.getElementById('masterTableBody');
+      tbody.innerHTML = '';
+      if (!data.data || data.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่มีสินค้าในระบบ</td></tr>';
+        return;
+      }
+      data.data.forEach(p => {
+        tbody.innerHTML += `
+          <tr>
+            <td class="fw-bold">${p.ItemCode}</td>
+            <td class="font-monospace">${p.Barcode}</td>
+            <td>${p.ItemName}</td>
+            <td>${p.Category || '-'}</td>
+            <td>${p.UOM}</td>
+            <td>${p.MinStock}</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function saveProduct() {
+      const payload = {
+        itemCode: document.getElementById('mItemCode').value,
+        barcode: document.getElementById('mBarcode').value,
+        itemName: document.getElementById('mItemName').value,
+        category: document.getElementById('mCategory').value,
+        uom: document.getElementById('mUom').value
+      };
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('เพิ่มสินค้าสำเร็จ');
+        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+        loadMasterProducts();
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + data.message);
+      }
+    }
+
+    async function submitDesktopScan() {
+      const barcode = document.getElementById('dtBarcode').value;
+      const loc = document.getElementById('dtLocation').value;
+      const qty = document.getElementById('dtQty').value;
+      const alertBox = document.getElementById('scanAlert');
+
+      const res = await fetch('/api/transactions/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'RECEIVE',
+          barcode,
+          locationCode: loc,
+          quantity: qty
+        })
+      });
+      const data = await res.json();
+
+      if (res.status === 401 || res.status === 403 || data.isExpired) {
+        localStorage.clear();
+        alert('⏰ ' + (data.message || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'));
+        window.location.href = '/index.html';
+        return;
+      }
+
+      alertBox.classList.remove('d-none');
+      if (data.success) {
+        alertBox.className = 'mt-3 alert alert-success';
+        alertBox.innerText = '✅ บันทึกสำเร็จ: ' + data.message;
+        document.getElementById('dtBarcode').value = '';
+        document.getElementById('dtBarcode').focus();
+      } else {
+        alertBox.className = 'mt-3 alert alert-danger';
+        alertBox.innerText = '❌ เกิดข้อผิดพลาด: ' + data.message;
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/index.html';
+    }
+
+    loadSummaryStock();
+  </script>
+</body>
+</html>

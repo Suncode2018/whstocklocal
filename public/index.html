@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบ - ระบบสต๊อกสินค้า</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .card-login { max-width: 400px; width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .btn-login { background-color: #0d6efd; padding: 12px; font-weight: 600; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <div class="card card-login p-4">
+    <div class="text-center mb-4">
+      <h3 class="fw-bold text-primary">📦 WMS Local Stock</h3>
+      <p class="text-muted small">ระบบจัดการสต๊อกสินค้าและแฮนเฮลสแกนเนอร์</p>
+    </div>
+    <div id="alertMsg" class="alert alert-danger d-none" role="alert"></div>
+    <form id="loginForm">
+      <div class="mb-3">
+        <label class="form-label">ชื่อผู้ใช้ (Username)</label>
+        <input type="text" id="username" class="form-control form-control-lg" required autofocus autocomplete="username">
+      </div>
+      <div class="mb-4">
+        <label class="form-label">รหัสผ่าน (Password)</label>
+        <input type="password" id="password" class="form-control form-control-lg" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-login w-100">เข้าสู่ระบบ</button>
+    </form>
+    <div class="mt-4 text-center text-muted small">
+      ทดสอบ: admin / admin123 (แอดมิน)<br>
+      หรือ: picker01 / admin123 (แฮนเฮล)
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const alertMsg = document.getElementById('alertMsg');
+      alertMsg.classList.add('d-none');
+      
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('wms_token', data.token);
+        localStorage.setItem('wms_user', JSON.stringify(data.user));
+        // ถ้าเป็น OPERATOR ให้ไปหน้า Handheld ทันที ถ้าเป็น ADMIN ให้ไปหน้า Admin
+        if (data.user.role === 'OPERATOR') {
+          window.location.href = '/handheld.html';
+        } else {
+          window.location.href = '/admin.html';
+        }
+      } else {
+        alertMsg.innerText = data.message;
+        alertMsg.classList.remove('d-none');
+      }
+    });
+  </script>
+</body>
+</html>
