@@ -35,20 +35,40 @@
 <!-- MAIN WRAPPER -->
 <div class="admin-wrapper" id="adminWrapper">
   <aside class="admin-sidebar" role="tablist">
-    <div class="sidebar-section-title">งานปฏิบัติการ</div>
-    <button role="tab" class="sidebar-menu-item" id="tab-op-CYCLECOUNT" onclick="switchTab('OP_CYCLECOUNT')"><i class="bi bi-clipboard2-check-fill fs-5 text-primary"></i> <span>CYCLECOUNT</span></button>
+    <section class="sidebar-group" data-sidebar-group="main-process">
+    <button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-main-process" onclick="toggleSidebarGroup('main-process')"><span>กระบวนการหลัก</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+    <div class="sidebar-group-items" id="sidebar-group-main-process">
     <button role="tab" class="sidebar-menu-item active" id="tab-op-RECEIVE" onclick="switchTab('OP_RECEIVE')"><i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')"><i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY</span></button>
     <button role="tab" class="sidebar-menu-item" id="tab-op-PICK" onclick="switchTab('OP_PICK')"><i class="bi bi-box-arrow-up fs-5 text-danger"></i> <span>PICK</span></button>
     <button role="tab" class="sidebar-menu-item" id="tab-op-CHECK" onclick="switchTab('OP_CHECK')"><i class="bi bi-clipboard-check fs-5 text-info"></i> <span>CHECK</span></button>
-    <button role="tab" class="sidebar-menu-item" id="tab-op-TRANSFER" onclick="switchTab('OP_TRANSFER')"><i class="bi bi-arrow-left-right fs-5 text-warning"></i> <span>TRANSFER</span></button>
     <button role="tab" class="sidebar-menu-item" id="tab-op-LOAD" onclick="switchTab('OP_LOAD')"><i class="bi bi-truck fs-5 text-secondary"></i> <span>LOAD</span></button>
-    <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')"><i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY</span></button>
+    </div>
+    </section>
+
+    <section class="sidebar-group" data-sidebar-group="other-operations">
+    <button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-other-operations" onclick="toggleSidebarGroup('other-operations')"><span>งานคลังอื่น ๆ</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+    <div class="sidebar-group-items" id="sidebar-group-other-operations">
+    <button role="tab" class="sidebar-menu-item" id="tab-op-TRANSFER" onclick="switchTab('OP_TRANSFER')"><i class="bi bi-arrow-left-right fs-5 text-warning"></i> <span>TRANSFER</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-CYCLECOUNT" onclick="switchTab('OP_CYCLECOUNT')"><i class="bi bi-clipboard2-check-fill fs-5 text-primary"></i> <span>CYCLECOUNT</span></button>
+    </div>
+    </section>
+
+    <section class="sidebar-group" data-sidebar-group="reports">
+    <button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-reports" onclick="toggleSidebarGroup('reports')"><span>รายงาน</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+    <div class="sidebar-group-items" id="sidebar-group-reports">
     <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')"><i class="bi bi-bar-chart-fill fs-5 text-success"></i> <span>สรุปสต็อก &amp; Export</span></button>
+    </div>
+    </section>
 
-    <div class="sidebar-section-title">ข้อมูลคลังสินค้า</div>
+    <section class="sidebar-group" data-sidebar-group="warehouse">
+    <button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-warehouse" onclick="toggleSidebarGroup('warehouse')"><span>ข้อมูลคลังสินค้า</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+    <div class="sidebar-group-items" id="sidebar-group-warehouse">
     <button role="tab" class="sidebar-menu-item" id="tab-master" onclick="switchTab('master')"><i class="bi bi-box-seam fs-5 text-info"></i> <span>จัดการสินค้า</span></button>
-    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')"><i class="bi bi-geo-alt fs-5 text-danger"></i> <span>จัดการโลเคชั่น</span></button>
-
+    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')"><i class="bi bi-geo-alt fs-5 text-danger"></i> <span>จัดการโลเคชั่น (Master)</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-shortage-reasons" onclick="switchTab('shortage-reasons')"><i class="bi bi-exclamation-diamond-fill fs-5 text-warning"></i> <span>เหตุผลขาดส่ง (Master)</span></button>
+    </div>
+    </section>
   </aside>
   <div class="side-backdrop" onclick="toggleSidebar()"></div>
 
@@ -68,7 +88,15 @@
           <div class="d-flex justify-content-end mt-3"><button class="btn btn-indigo" onclick="saveReceiveOrder()"><i class="bi bi-unlock me-1"></i>สร้างและเปิดให้ Handheld</button></div>
           <div class="small text-muted mt-2">เมื่อเปิดใบรับแล้ว Handheld จะรับได้เฉพาะสินค้าที่อยู่ใน PO และรับเกินจำนวนสั่งไม่ได้</div>
         </div>
-        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบรับ</th><th>PO</th><th>Supplier</th><th>รายการ / รับแล้ว</th><th>สถานะ</th><th>ผู้สร้าง / เวลา</th><th>ดู</th></tr></thead><tbody id="receiveOrdersTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบรับ</th><th>PO</th><th>Supplier</th><th>รายการ / รับแล้ว</th><th>สถานะ</th><th>ผู้สร้าง / เวลา</th><th>จัดการ</th></tr></thead><tbody id="receiveOrdersTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+      <div class="card-wms p-4 mt-3">
+        <div class="page-head"><div><h5>⚠️ รายการขาดส่งรอออก CN</h5><div class="sub">ข้อมูลจาก Handheld · ตรวจสอบและยืนยันก่อนออกเอกสาร</div></div></div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>PO / ใบรับ</th><th>สินค้า</th><th>จำนวนขาด</th><th>เหตุผล</th><th>ผู้บันทึก / เวลา</th><th>จัดการ</th></tr></thead><tbody id="receiveShortagesBody"><tr><td colspan="6" class="text-center py-3 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+      <div class="card-wms p-4 mt-3">
+        <div class="page-head"><div><h5>🧾 ประวัติ CN ที่ออกแล้ว</h5><div class="sub">เลข CN ภายในระบบและมูลค่าตามราคาที่ผู้ดำเนินการบันทึก</div></div></div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลข CN</th><th>PO</th><th>สินค้า / จำนวน</th><th>ก่อนภาษี</th><th>ภาษี</th><th>รวม</th><th>ผู้ออก / เวลา</th></tr></thead><tbody id="creditNotesBody"><tr><td colspan="7" class="text-center py-3 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -107,6 +135,21 @@
       </div>
     </div>
 
+    <div id="pane-putaway" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head"><div><h5>📦 PUTAWAY · วางแผนงานจัดเก็บ</h5><div class="sub">ย้ายจาก RCV จุดรับสินค้าไปยังช่องจัดเก็บ A/B · ตรวจปริมาตรรวมเทียบกับความจุช่องก่อนเปิดใบงาน Handheld</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadPutawayManager()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button><button class="btn btn-indigo" onclick="openPutawayForm()"><i class="bi bi-plus-circle me-1"></i>สร้างใบงาน</button></div></div>
+        <div id="putawayTaskForm" class="card-wms p-3 mb-3" style="display:none">
+          <div class="d-flex justify-content-between align-items-center mb-3"><strong>สร้างใบงาน PUTAWAY</strong><button class="btn btn-sm btn-outline-secondary" onclick="closePutawayForm()">ปิด</button></div>
+          <div id="putawaySourceInfo" class="alert alert-info py-2 d-none" role="status"></div>
+          <label class="form-label-wms" for="putawayTaskNote">หมายเหตุใบงาน</label><input id="putawayTaskNote" class="form-control form-control-wms mb-3" maxlength="300" placeholder="เช่น จัดเก็บสินค้า Receive รอบเช้า">
+          <div class="table-responsive"><table class="table table-wms align-middle"><thead><tr><th>Barcode</th><th>ต้นทาง</th><th>ปลายทาง</th><th>จำนวน</th><th></th></tr></thead><tbody id="putawayDraftLines"></tbody></table></div>
+          <div class="d-flex justify-content-between gap-2"><button class="btn btn-outline-primary" onclick="addPutawayDraftLine()"><i class="bi bi-plus-lg me-1"></i>เพิ่มรายการ</button><button class="btn btn-indigo" onclick="savePutawayTask()"><i class="bi bi-unlock me-1"></i>สร้างและเปิด Handheld</button></div>
+          <div class="small text-muted mt-2">ระบบตรวจและจองยอดคงเหลือ ณ ต้นทาง เพื่อป้องกันการวางแผนซ้ำ ใบงานยกเลิกได้ก่อนเริ่มเท่านั้น</div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบงาน</th><th>จำนวนรายการ / ความคืบหน้า</th><th>สถานะ</th><th>หมายเหตุ</th><th>ผู้สร้าง / เวลา</th><th>รายละเอียด</th><th>จัดการ</th></tr></thead><tbody id="putawayTaskTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
     <!-- สรุปสต็อก -->
     <div id="pane-stock" style="display:none">
       <div class="card-wms p-4">
@@ -133,7 +176,7 @@
             <button class="btn btn-indigo" onclick="openAddProduct()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสินค้า</button>
           </div>
         </div>
-        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จัดการ</th></tr></thead><tbody id="productTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>ขนาด / ปริมาตรต่อหน่วย</th><th>จัดการ</th></tr></thead><tbody id="productTableBody"><tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -141,15 +184,23 @@
     <div id="pane-locations" style="display:none">
       <div class="card-wms p-4">
         <div class="page-head">
-          <div><h5>📍 จัดการโลเคชั่น</h5><div class="sub">ตำแหน่งจัดเก็บสินค้าในคลัง</div></div>
+          <div><h5>📍 จัดการโลเคชั่น</h5><div class="sub">RCV รับเข้า · A/B พื้นที่จัดเก็บพร้อมความจุ · OUT พักรอจ่าย</div></div>
           <div class="d-flex gap-2 flex-wrap">
             <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาโลเคชั่น / โซน" oninput="filterTable('locationsTableBody', this.value)"></div>
             <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่น</button>
           </div>
         </div>
-        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>รหัสโลเคชั่น</th><th>โซน</th><th>คำอธิบาย</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="locationsTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>รหัสโลเคชั่น</th><th>โซน</th><th>ประเภท</th><th>ปริมาตรใช้ / ความจุ</th><th>คำอธิบาย</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="locationsTableBody"><tr><td colspan="8" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
       </div>
     </div>
+
+    <section id="pane-shortage-reasons" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head"><div><h5>⚠️ Master เหตุผลขาดส่ง</h5><div class="sub">จัดการตัวเลือกที่ Handheld ใช้แจ้งขาดส่ง</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadShortageReasonMaster()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button><button class="btn btn-indigo" onclick="addShortageReason()"><i class="bi bi-plus-circle me-1"></i>เพิ่มเหตุผล</button></div></div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>รหัส</th><th>ชื่อเหตุผล</th><th>หมายเหตุ</th><th>ลำดับ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="shortageReasonsTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+        <div class="small text-muted mt-2">การลบเป็นการปิดใช้งานเพื่อรักษาประวัติการแจ้งขาดส่งเดิม</div>
+      </div>
+    </section>
 
     <div id="pane-cyclecount" style="display:none">
       <div class="card-wms p-4">
@@ -167,14 +218,17 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261101-2"></script>
 <script src="/js/admin-stock.js"></script>
-<script src="/js/receiving.js?v=20261101-1"></script>
-<script src="/js/poweruser-products.js?v=20261101-2"></script>
-<script src="/js/admin-locations.js?v=20261101-2"></script>
+<script src="/js/receiving.js?v=20261101-4"></script>
+<script src="/js/poweruser-products.js?v=20261101-5"></script>
+<script src="/js/admin-locations.js?v=20261101-5"></script>
+<script src="/js/shortage-reasons.js?v=20261101-1"></script>
 <script src="/js/cycle-count.js?v=20261101-1"></script>
+<script src="/js/putaway.js?v=20261101-4"></script>
 <script>
 (function () {
   const payload = requireAuth(['ADMIN', 'POWERUSER']);
   if (!payload) return;
+  initSidebarGroups(payload.role);
   const displayName = [payload.fullname, payload.fullName, payload.Fullname, payload.FullName, payload.username, payload.Username].find(value => value != null && String(value).trim() && String(value).trim().toLowerCase() !== 'undefined') || 'ผู้ใช้งาน';
   document.getElementById('userName').textContent = displayName;
   document.getElementById('userRole').textContent = payload.role || 'USER';
@@ -198,22 +252,61 @@
 
 function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
 
+function sidebarGroupKey(role) { return `wmsSidebarGroups:${String(role || 'USER').toUpperCase()}`; }
+
+function setSidebarGroup(groupName, expanded, persist = true) {
+  const group = document.querySelector(`[data-sidebar-group="${groupName}"]`);
+  if (!group) return;
+  const heading = group.querySelector('.sidebar-section-title');
+  const items = group.querySelector('.sidebar-group-items');
+  group.classList.toggle('is-collapsed', !expanded);
+  heading.setAttribute('aria-expanded', String(expanded));
+  items.hidden = !expanded;
+  heading.querySelector('i').className = `bi ${expanded ? 'bi-chevron-down' : 'bi-chevron-right'}`;
+  if (persist) {
+    try {
+      const key = sidebarGroupKey(document.getElementById('userRole')?.textContent);
+      const state = JSON.parse(localStorage.getItem(key) || '{}');
+      state[groupName] = expanded;
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (_) {}
+  }
+}
+
+function toggleSidebarGroup(groupName) {
+  const group = document.querySelector(`[data-sidebar-group="${groupName}"]`);
+  setSidebarGroup(groupName, group.classList.contains('is-collapsed'));
+}
+
+function initSidebarGroups(role) {
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(sidebarGroupKey(role)) || '{}'); } catch (_) {}
+  document.querySelectorAll('.sidebar-group[data-sidebar-group]').forEach(group => {
+    const name = group.dataset.sidebarGroup;
+    setSidebarGroup(name, state[name] !== false, false);
+  });
+}
+
 function switchTab(tab) {
   const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
-  const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : 'scan')) : tab;
-  ['receiving','scan','stock','master','locations','cyclecount'].forEach(t => {
+  const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : (operation === 'PUTAWAY' ? 'putaway' : 'scan'))) : tab;
+  ['receiving','scan','putaway','stock','master','locations','shortage-reasons','cyclecount'].forEach(t => {
     const p = document.getElementById('pane-' + t);
     if (p) p.style.display = t === paneTab ? 'block' : 'none';
   });
   document.querySelectorAll('.admin-sidebar .sidebar-menu-item').forEach(button => button.classList.remove('active'));
   const activeButton = document.getElementById(operation ? 'tab-op-' + operation : 'tab-' + tab);
   if (activeButton) activeButton.classList.add('active');
-  if (operation && !['CYCLECOUNT', 'RECEIVE'].includes(operation)) setDesktopOperation(operation);
+  const activeGroup = activeButton?.closest('.sidebar-group');
+  if (activeGroup?.classList.contains('is-collapsed')) setSidebarGroup(activeGroup.dataset.sidebarGroup, true);
+  if (operation && !['CYCLECOUNT', 'RECEIVE', 'PUTAWAY'].includes(operation)) setDesktopOperation(operation);
   if (tab === 'stock') loadSummaryStock(true);
   if (tab === 'master') loadMasterProducts();
   if (tab === 'locations') loadLocationsMaster();
+  if (tab === 'shortage-reasons') loadShortageReasonMaster();
   if (paneTab === 'cyclecount') loadCycleCounts();
   if (paneTab === 'receiving') loadReceiveOrders();
+  if (paneTab === 'putaway') loadPutawayManager();
   if (paneTab === 'scan') document.getElementById('deskBarcode').focus();
   if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed'); // มือถือ: ปิดเมนูหลังเลือก
 }

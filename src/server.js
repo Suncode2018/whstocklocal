@@ -15,6 +15,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/locations', require('./routes/locations'));
 app.use('/api/receiving', require('./routes/receiving'));
+app.use('/api/putaway', require('./routes/putaway'));
 app.use('/api/cycle-counts', require('./routes/cycle-counts'));
 app.use('/api/stock', require('./routes/stock'));
 app.use('/api/transactions', require('./routes/transactions'));

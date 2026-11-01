@@ -120,6 +120,7 @@ function selectMode(mode) {
     document.getElementById('menuScreen').style.display = 'none';
     document.getElementById('opScreen').style.display = 'none';
     document.getElementById('cycleCountScreen').style.display = 'none';
+    document.getElementById('putawayScreen').style.display = 'none';
     document.getElementById('receiveScreen').style.display = 'block';
     loadHandheldReceiveOrders();
     return;
@@ -128,8 +129,18 @@ function selectMode(mode) {
     document.getElementById('menuScreen').style.display = 'none';
     document.getElementById('opScreen').style.display = 'none';
     document.getElementById('receiveScreen').style.display = 'none';
+    document.getElementById('putawayScreen').style.display = 'none';
     document.getElementById('cycleCountScreen').style.display = 'block';
     loadHandheldCycleCounts();
+    return;
+  }
+  if (mode === 'PUTAWAY') {
+    document.getElementById('menuScreen').style.display = 'none';
+    document.getElementById('opScreen').style.display = 'none';
+    document.getElementById('receiveScreen').style.display = 'none';
+    document.getElementById('cycleCountScreen').style.display = 'none';
+    document.getElementById('putawayScreen').style.display = 'block';
+    loadHandheldPutawayTasks();
     return;
   }
   const cfg = dynamicMenuConfig.find(m => m.key === mode) || { title: mode, sub: '', icon: '📦' };
@@ -137,6 +148,9 @@ function selectMode(mode) {
 
   document.getElementById('menuScreen').style.display = 'none';
   document.getElementById('opScreen').style.display   = 'block';
+  document.getElementById('receiveScreen').style.display = 'none';
+  document.getElementById('cycleCountScreen').style.display = 'none';
+  document.getElementById('putawayScreen').style.display = 'none';
 
   document.getElementById('opIcon').textContent  = cfg.icon;
   document.getElementById('opTitle').textContent = cfg.title;
@@ -159,6 +173,7 @@ function backToMenu() {
   document.getElementById('opScreen').style.display   = 'none';
   document.getElementById('receiveScreen').style.display = 'none';
   document.getElementById('cycleCountScreen').style.display = 'none';
+  document.getElementById('putawayScreen').style.display = 'none';
   document.getElementById('menuScreen').style.display = 'block';
 }
 

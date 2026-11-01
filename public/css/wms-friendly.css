@@ -177,6 +177,8 @@ body.handheld-wrapper .cycle-item-main strong { overflow-wrap: anywhere; line-he
 body.handheld-wrapper .cycle-item-main small { color: var(--ink-3); }
 body.handheld-wrapper .cycle-item-qty { flex: 0 0 auto; display: grid; text-align: right; font-size: .75rem; color: var(--ink-2); }
 body.handheld-wrapper .cycle-item-qty strong { color: var(--ink); font-size: .85rem; }
+body.handheld-wrapper .cycle-item-qty strong.is-complete { color: var(--ok); }
+body.handheld-wrapper .cycle-item-qty strong.is-short { color: var(--warning-ink, #9a6700); }
 
 .op-panel { background: #fff; border-radius: 20px; padding: 1.1rem; box-shadow: var(--shadow); border: 1px solid var(--line); }
 .op-steps { display: flex; gap: .4rem; margin-bottom: 1rem; }
@@ -222,7 +224,11 @@ body.handheld-wrapper .cycle-item-qty strong { color: var(--ink); font-size: .85
 .admin-sidebar { width: var(--side-w); background: #fff; border-right: 1px solid var(--line); padding: 1rem .8rem; flex-shrink: 0; transition: margin .25s ease, opacity .25s; z-index: 1020; }
 .admin-wrapper.sidebar-collapsed .admin-sidebar { margin-left: calc(-1 * var(--side-w)); opacity: 0; pointer-events: none; }
 .admin-content { flex: 1; min-width: 0; padding: 1.5rem; }
-.sidebar-section-title { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: .9rem 1rem .35rem; }
+.sidebar-group { margin-bottom: .55rem; }
+.sidebar-section-title { display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; border: 0; background: transparent; font-family: inherit; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: .9rem 1rem .45rem; text-align: left; cursor: pointer; }
+.sidebar-section-title:hover { color: var(--pri); }
+.sidebar-section-title i { font-size: .8rem; }
+.sidebar-group-items[hidden] { display: none !important; }
 .sidebar-menu-item { display: flex; align-items: center; gap: .8rem; width: 100%; padding: .8rem 1rem; margin-bottom: .2rem; border: 0; background: transparent; border-radius: 12px; color: var(--ink-2); font-weight: 500; text-align: left; min-height: 48px; transition: background .15s, color .15s; }
 .sidebar-menu-item:hover { background: #f1f5f9; color: var(--pri); }
 .sidebar-menu-item.active { background: linear-gradient(135deg, var(--pri), var(--pri-dark)); color: #fff; box-shadow: 0 6px 16px rgba(79,70,229,.28); }

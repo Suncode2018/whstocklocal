@@ -32,7 +32,10 @@ router.post('/execute', authenticateToken, async (req, res) => {
   if (operation === 'RECEIVE') {
     return res.status(400).json({ success: false, message: 'กรุณารับสินค้าผ่านใบรับประจำวันที่อ้างอิง PO' });
   }
-  const supportedOperations = ['PICK', 'CHECK', 'TRANSFER', 'LOAD', 'PUTAWAY'];
+  if (operation === 'PUTAWAY') {
+    return res.status(400).json({ success: false, message: 'กรุณาทำ PUTAWAY ผ่านใบงาน เพื่อควบคุมยอดจองและตรวจสอบความคืบหน้า' });
+  }
+  const supportedOperations = ['PICK', 'CHECK', 'TRANSFER', 'LOAD'];
 
   if (!supportedOperations.includes(operation) || !barcode || !locationCode || !Number.isInteger(qty) || qty < 0 || (operation !== 'CHECK' && qty === 0)) {
     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วนหรือไม่ถูกต้อง' });
@@ -65,7 +68,7 @@ router.post('/execute', authenticateToken, async (req, res) => {
     const location = locRes.recordset[0];
 
     let targetLocation = null;
-    if (['TRANSFER', 'PUTAWAY'].includes(operation)) {
+    if (operation === 'TRANSFER') {
       if (!targetLocationCode) throw new Error('กรุณาระบุตำแหน่งปลายทาง');
       const reqTLoc = new sql.Request(transaction);
       const targetLocRes = await reqTLoc
@@ -88,16 +91,30 @@ router.post('/execute', authenticateToken, async (req, res) => {
     }
 
     // 3. หักสต๊อกจากต้นทางสำหรับเบิก โหลด และย้าย/จัดเก็บ
-    if (['PICK', 'LOAD', 'TRANSFER', 'PUTAWAY'].includes(operation)) {
+    if (['PICK', 'LOAD', 'TRANSFER'].includes(operation)) {
       const reqCheck = new sql.Request(transaction);
       const stockCheck = await reqCheck
         .input('ProdId', sql.Int, product.ProductId)
         .input('LocId', sql.Int, location.LocationId)
-        .query('SELECT Quantity FROM Stock WHERE ProductId = @ProdId AND LocationId = @LocId');
+        .query('SELECT Quantity FROM Stock WITH (UPDLOCK, HOLDLOCK) WHERE ProductId = @ProdId AND LocationId = @LocId');
 
       const currentQty = stockCheck.recordset.length > 0 ? stockCheck.recordset[0].Quantity : 0;
-      if (currentQty < qty) {
-        throw new Error(`สต๊อกไม่พอจ่าย! ที่ ${location.LocationCode} มีเพียง ${currentQty} ชิ้น (ต้องการ ${qty})`);
+      let reservedQty = 0;
+      const putawaySchema = await new sql.Request(transaction).query(`
+        SELECT CASE WHEN OBJECT_ID('dbo.PutawayTaskLines', 'U') IS NOT NULL THEN 1 ELSE 0 END AS IsInstalled
+      `);
+      if (putawaySchema.recordset[0].IsInstalled) {
+        const reserved = await new sql.Request(transaction)
+          .input('ProdId', sql.Int, product.ProductId)
+          .input('LocId', sql.Int, location.LocationId)
+          .query(`SELECT COALESCE(SUM(line.PlannedQuantity - line.MovedQuantity), 0) AS ReservedQuantity
+            FROM dbo.PutawayTaskLines line JOIN dbo.PutawayTasks task ON task.TaskId = line.TaskId
+            WHERE line.ProductId = @ProdId AND line.FromLocationId = @LocId AND task.Status IN ('OPEN','IN_PROGRESS')`);
+        reservedQty = Number(reserved.recordset[0].ReservedQuantity) || 0;
+      }
+      const availableQty = currentQty - reservedQty;
+      if (availableQty < qty) {
+        throw new Error(`สต๊อกใช้ได้ที่ ${location.LocationCode} มี ${Math.max(0, availableQty)} ชิ้น (จอง PUTAWAY ${reservedQty}, ต้องการ ${qty})`);
       }
 
       const reqMinus = new sql.Request(transaction);
@@ -109,7 +126,7 @@ router.post('/execute', authenticateToken, async (req, res) => {
     }
 
     // 4. เพิ่มสต๊อกที่ปลายทาง (รับเข้า หรือย้าย/จัดเก็บ)
-    if (['RECEIVE', 'TRANSFER', 'PUTAWAY'].includes(operation)) {
+    if (['RECEIVE', 'TRANSFER'].includes(operation)) {
       const destLocId = operation === 'RECEIVE' ? location.LocationId : targetLocation.LocationId;
       const reqAdd = new sql.Request(transaction);
       await reqAdd
@@ -134,7 +151,7 @@ router.post('/execute', authenticateToken, async (req, res) => {
       .input('TxType', sql.NVarChar, operation)
       .input('ProdId', sql.Int, product.ProductId)
       .input('FromLocId', sql.Int, operation === 'RECEIVE' ? null : location.LocationId)
-      .input('ToLocId', sql.Int, ['PICK', 'LOAD'].includes(operation) ? null : (['TRANSFER', 'PUTAWAY'].includes(operation) ? targetLocation.LocationId : location.LocationId))
+      .input('ToLocId', sql.Int, operation === 'TRANSFER' ? targetLocation.LocationId : (['PICK', 'LOAD'].includes(operation) ? null : location.LocationId))
       .input('Qty', sql.Int, qty)
       .input('RefNo', sql.NVarChar, referenceNo || '')
       .input('UserId', sql.Int, req.user.id || req.user.userId)

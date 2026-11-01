@@ -132,11 +132,46 @@
       <label class="form-label-wms" for="hhReceiveBarcode">🔲 สแกนบาร์โค้ดตาม PO</label>
       <input id="hhReceiveBarcode" class="form-control form-control-wms mb-2" autocomplete="off" placeholder="สแกนสินค้าที่อยู่ใน PO" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupHandheldReceiveBarcode();}">
       <div id="hhReceiveProductHint" class="small text-muted mb-2" aria-live="polite">เลือกใบรับ แล้วสแกนสินค้า</div>
-      <label class="form-label-wms" for="hhReceiveQty">จำนวนที่รับครั้งนี้</label>
+      <label id="hhReceiveQtyLabel" class="form-label-wms" for="hhReceiveQty">จำนวนที่รับครั้งนี้</label>
       <div class="d-flex gap-2"><input id="hhReceiveQty" type="number" min="1" step="1" inputmode="numeric" value="1" class="form-control form-control-wms" onkeydown="if(event.key==='Enter'){event.preventDefault();submitHandheldReceive();}"><button id="hhReceiveSubmit" class="btn btn-indigo" type="button" onclick="submitHandheldReceive()"><i class="bi bi-check2 me-1"></i>รับเข้า</button></div>
+      <details id="hhReceiveShortageDetails" class="mt-3">
+        <summary class="text-warning-emphasis fw-semibold">สินค้าไม่ครบ? บันทึกยอดขาดส่ง</summary>
+        <div class="pt-3">
+          <label class="form-label-wms" for="hhReceiveShortageReason">เหตุผล</label>
+          <select id="hhReceiveShortageReason" class="form-select form-control-wms mb-2" onchange="updateHandheldShortageNoteRule()"><option value="">กำลังโหลดเหตุผล...</option></select>
+          <label class="form-label-wms" for="hhReceiveShortageNote">หมายเหตุ</label>
+          <input id="hhReceiveShortageNote" maxlength="300" class="form-control form-control-wms mb-2" placeholder="รายละเอียดเพิ่มเติม (บังคับเมื่อเลือกอื่น ๆ)">
+          <button id="hhReceiveShortageSubmit" class="btn btn-outline-warning w-100" type="button" onclick="recordHandheldShortage()"><i class="bi bi-exclamation-triangle me-1"></i>บันทึกจำนวนขาดส่ง</button>
+        </div>
+      </details>
     </div>
     <div id="hhReceiveMessage" aria-live="polite"></div>
     <div id="hhReceiveLines" class="cycle-items"></div>
+  </div>
+</div>
+
+<!-- PUTAWAY task screen: move stock from staging to the planned destination. -->
+<div id="putawayScreen" class="container py-3" style="max-width:650px; display:none">
+  <button class="btn btn-sm btn-outline-secondary mb-3" onclick="backToMenu()"><i class="bi bi-arrow-left me-1"></i>กลับเมนูหลัก</button>
+  <div class="op-panel">
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+      <div><div class="fw-bold" style="font-size:1.1rem">📦 จัดเก็บสินค้า (PUTAWAY)</div><div class="small text-muted">ทำตามใบงานที่ Admin/Power User วางแผนไว้</div></div>
+      <button class="btn btn-outline-secondary btn-sm" type="button" onclick="loadHandheldPutawayTasks(false)" aria-label="รีเฟรชใบงาน"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+    <label class="form-label-wms" for="hhPutawayTask">ใบงาน PUTAWAY</label>
+    <select id="hhPutawayTask" class="form-select form-control-wms mb-3" onchange="selectHandheldPutawayTask()"><option value="">กำลังโหลดใบงาน...</option></select>
+    <div id="hhPutawaySummary" class="cycle-summary mb-3"></div>
+    <div class="cycle-count-entry mb-3">
+      <label class="form-label-wms" for="hhPutawayBarcode">🔲 สแกนบาร์โค้ดสินค้าในใบงาน</label>
+      <input id="hhPutawayBarcode" class="form-control form-control-wms mb-2" autocomplete="off" placeholder="สแกนหรือพิมพ์ Barcode" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupHandheldPutawayBarcode();}">
+      <div id="hhPutawayProductHint" class="small text-muted mb-2" aria-live="polite">เลือกใบงานแล้วสแกนสินค้า</div>
+      <label class="form-label-wms" for="hhPutawayTarget">📍 สแกน/ระบุโลเคชั่นปลายทาง</label>
+      <input id="hhPutawayTarget" class="form-control form-control-wms mb-2" autocomplete="off" autocapitalize="characters" placeholder="ต้องตรงกับโลเคชั่นในใบงาน" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('hhPutawayQty').focus();}">
+      <label class="form-label-wms" for="hhPutawayQty">จำนวนที่จัดเก็บครั้งนี้</label>
+      <div class="d-flex gap-2"><input id="hhPutawayQty" type="number" min="1" step="1" inputmode="numeric" value="1" class="form-control form-control-wms" onkeydown="if(event.key==='Enter'){event.preventDefault();submitHandheldPutaway();}"><button id="hhPutawaySubmit" class="btn btn-indigo" type="button" onclick="submitHandheldPutaway()"><i class="bi bi-box-seam me-1"></i>จัดเก็บ</button></div>
+    </div>
+    <div id="hhPutawayMessage" aria-live="polite"></div>
+    <div id="hhPutawayLines" class="cycle-items"></div>
   </div>
 </div>
 
@@ -186,7 +221,8 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js"></script>
 <script src="/js/handheld-app.js"></script>
-<script src="/js/handheld-receiving.js?v=20261101-1"></script>
+<script src="/js/handheld-receiving.js?v=20261101-8"></script>
+<script src="/js/handheld-putaway.js?v=20261101-1"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     initHandheld();
