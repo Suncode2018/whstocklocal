@@ -7,522 +7,700 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/wms.css">
-  <style>
-    /* ── Layout สำหรับ Sidebar ด้านซ้ายที่เปิด/ปิดได้ ── */
-    .admin-wrapper {
-      display: flex;
-      min-height: calc(100vh - 65px);
-      transition: all 0.3s ease;
-    }
-    .admin-sidebar {
-      width: 260px;
-      background: #ffffff;
-      border-right: 1px solid #e2e8f0;
-      padding: 1.25rem 1rem;
-      flex-shrink: 0;
-      transition: all 0.3s ease;
-      overflow: hidden;
-    }
-    /* คลาสสำหรับพับ/ซ่อน Sidebar */
-    .admin-wrapper.sidebar-collapsed .admin-sidebar {
-      width: 0;
-      padding-left: 0;
-      padding-right: 0;
-      border-right: none;
-      opacity: 0;
-    }
-    .admin-content {
-      flex-grow: 1;
-      padding: 1.5rem;
-      background: #f8fafc;
-      overflow-x: auto;
-      transition: all 0.3s ease;
-    }
-    .sidebar-menu-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      color: #334155;
-      font-weight: 500;
-      border-radius: 10px;
-      margin-bottom: 0.35rem;
-      text-decoration: none;
-      transition: all 0.2s;
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      width: 100%;
-      text-align: left;
-      white-space: nowrap;
-    }
-    .sidebar-menu-item:hover {
-      background: #f1f5f9;
-      color: #4f46e5;
-    }
-    .sidebar-menu-item.active {
-      background: linear-gradient(135deg, #4f46e5, #4338ca);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-    }
-    @media (max-width: 768px) {
-      .admin-wrapper { flex-direction: column; }
-      .admin-sidebar { width: 100% !important; border-right: none; border-bottom: 1px solid #e2e8f0; padding: 0.75rem; }
-      .admin-wrapper.sidebar-collapsed .admin-sidebar { display: none; }
-    }
-  </style>
+  <link rel="stylesheet" href="/css/wms-friendly.css">
 </head>
-<body class="bg-light">
+<body>
 
-<!-- ══════════ NAVBAR (ด้านบนสุด พร้อมปุ่มเปิด/ปิด Sidebar) ══════════ -->
-<nav class="navbar navbar-dark navbar-wms px-3" style="height: 65px;">
+<!-- NAVBAR -->
+<nav class="navbar navbar-dark navbar-wms px-3">
   <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center gap-3">
-      <!-- ปุ่มสำหรับกดเปิด/ปิด เมนูด้านซ้าย -->
-      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()" title="เปิด/ปิด เมนู" aria-label="สลับการแสดงผลเมนู">
-        <i class="bi bi-list fs-4 text-white"></i>
-      </button>
-
+      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()" aria-label="เปิด/ปิดเมนู"><i class="bi bi-list fs-4 text-white"></i></button>
       <div class="logo-icon">📦</div>
       <div>
-        <div class="brand-title">WH Stock System (Admin)</div>
-        <div class="brand-sub d-none d-sm-block">จัดการข้อมูล Master Data และดูยอดสต็อก Real-time</div>
+        <div class="brand-title">WH Stock System</div>
+        <div class="brand-sub d-none d-sm-block">Admin • ระบบจัดการคลังสินค้า</div>
       </div>
     </div>
-
     <div class="d-flex align-items-center gap-2">
-      <span class="session-badge d-none d-sm-flex" id="sessionBadge">
-        <i class="bi bi-clock"></i> <span id="sessionTime">--:--</span>
-      </span>
       <span class="session-badge" style="cursor:default">
-        <i class="bi bi-person-fill"></i>
-        <span id="adminName">-</span>
-        <span class="badge bg-warning text-dark ms-1" id="adminRole">-</span>
+        <i class="bi bi-person-circle text-info"></i> <span id="userName" class="name-txt">-</span>
+        <span class="badge bg-warning text-dark ms-1" id="userRole">ADMIN</span>
       </span>
       <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">ออกจากระบบ</span></button>
     </div>
   </div>
 </nav>
 
-<!-- ══════════ MAIN WRAPPER (SIDEBAR + CONTENT) ══════════ -->
 <div class="admin-wrapper" id="adminWrapper">
-  
-  <!-- ── SIDEBAR (เมนูแนวตั้งด้านซ้าย) ── -->
-  <div class="admin-sidebar" role="tablist">
-    <div class="text-uppercase text-muted fw-bold px-3 mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">เมนูระบบจัดการ</div>
-    
-    <button role="tab" class="sidebar-menu-item active" id="tab-scan" onclick="switchTab('scan')">
-      <i class="bi bi-camera fs-5"></i> <span>สแกนนับสต็อก</span>
-    </button>
-    <button role="tab" class="sidebar-menu-item" id="tab-master" onclick="switchTab('master')">
-      <i class="bi bi-clipboard-data fs-5"></i> <span>จัดการ Master Data</span>
-    </button>
-    <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')">
-      <i class="bi bi-bar-chart-fill fs-5"></i> <span>สรุปสต็อก &amp; Export</span>
-    </button>
-    <button role="tab" class="sidebar-menu-item" id="tab-users" onclick="switchTab('users')">
-      <i class="bi bi-people-fill fs-5"></i> <span>จัดการผู้ใช้งาน</span>
-    </button>
-    <!-- เมนูจัดการสิทธิ์ (Permissions Master) -->
-    <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
-      <i class="bi bi-shield-lock-fill fs-5"></i> <span>จัดการสิทธิ์เมนู</span>
-    </button>
-    <!-- เมนูจัดการโลเคชั่น (Locations Master) -->
-    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')">
-      <i class="bi bi-geo-alt-fill fs-5"></i> <span>จัดการโลเคชั่น</span>
-    </button>
-  </div>
 
-  <!-- ── CONTENT (พื้นที่แสดงผลเนื้อหาหลัก) ── -->
-  <div class="admin-content">
+  <aside class="admin-sidebar" role="tablist">
+    <div class="sidebar-section-title">งานปฏิบัติการ</div>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-CYCLECOUNT" onclick="switchTab('OP_CYCLECOUNT')"><i class="bi bi-clipboard2-check-fill fs-5 text-primary"></i> <span>CYCLECOUNT</span></button>
+    <button role="tab" class="sidebar-menu-item active" id="tab-op-RECEIVE" onclick="switchTab('OP_RECEIVE')"><i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-PICK" onclick="switchTab('OP_PICK')"><i class="bi bi-box-arrow-up fs-5 text-danger"></i> <span>PICK</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-CHECK" onclick="switchTab('OP_CHECK')"><i class="bi bi-clipboard-check fs-5 text-info"></i> <span>CHECK</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-TRANSFER" onclick="switchTab('OP_TRANSFER')"><i class="bi bi-arrow-left-right fs-5 text-warning"></i> <span>TRANSFER</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-LOAD" onclick="switchTab('OP_LOAD')"><i class="bi bi-truck fs-5 text-secondary"></i> <span>LOAD</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')"><i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')"><i class="bi bi-bar-chart-line-fill fs-5 text-success"></i> <span>สรุปสต็อก &amp; Export</span></button>
 
-    <!-- ── Tab: Scan ── -->
-    <div id="pane-scan">
+    <div class="sidebar-section-title">ผู้ใช้งานและสิทธิ์</div>
+    <button role="tab" class="sidebar-menu-item" id="tab-users" onclick="switchTab('users')"><i class="bi bi-people-fill fs-5 text-info"></i> <span>จัดการผู้ใช้งาน</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-roles" onclick="switchTab('roles')"><i class="bi bi-shield-lock-fill fs-5 text-warning"></i> <span>จัดการ Role</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')"><i class="bi bi-sliders fs-5 text-secondary"></i> <span>จัดการสิทธิ์เมนู</span></button>
+
+    <div class="sidebar-section-title">ข้อมูลคลังสินค้า</div>
+    <button role="tab" class="sidebar-menu-item" id="tab-master" onclick="switchTab('master')"><i class="bi bi-box-seam-fill fs-5" style="color:#6366f1"></i> <span>จัดการสินค้า (Master)</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')"><i class="bi bi-geo-alt-fill fs-5 text-danger"></i> <span>จัดการโลเคชั่น</span></button>
+
+  </aside>
+  <div class="side-backdrop" onclick="toggleSidebar()"></div>
+
+  <main class="admin-content">
+
+    <section id="pane-receiving" role="tabpanel">
       <div class="card-wms p-4">
-        <h5 class="fw-bold mb-1">🖥️ สแกนนับสต็อก (Desktop)</h5>
-        <p class="text-muted small mb-4">บันทึกรับ/เบิก/ย้ายสินค้าจากคอมพิวเตอร์</p>
-        <div class="row g-3" style="max-width:600px">
-          <div class="col-12">
-            <label class="form-label-wms">โหมด</label>
-            <select id="deskMode" class="form-select form-control-wms">
-              <option value="RECEIVE">📦 รับสินค้า (Receive)</option>
-              <option value="PICK">🚀 เบิกจ่าย (Pick)</option>
-              <option value="TRANSFER">↔️ ย้ายตำแหน่ง (Transfer)</option>
-            </select>
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">บาร์โค้ด</label>
-            <input id="deskBarcode" type="text" class="form-control form-control-wms" placeholder="สแกนหรือพิมพ์บาร์โค้ด... (กด Enter เพื่อบันทึก)" autocomplete="off">
-          </div>
-          <div class="col-6">
-            <label class="form-label-wms">จำนวน</label>
-            <input id="deskQty" type="number" class="form-control form-control-wms" value="1" min="1">
-          </div>
-          <div class="col-6">
-            <label class="form-label-wms">ตำแหน่ง</label>
-            <input id="deskLocation" type="text" class="form-control form-control-wms" placeholder="A-01">
-          </div>
-          <div class="col-12">
-            <button class="btn btn-indigo px-4" onclick="submitDesktopScan()"><i class="bi bi-check2-circle me-2"></i>บันทึก</button>
+        <div class="page-head">
+          <div><h5>📥 รับสินค้าตาม PO (RECEIVE)</h5><div class="sub">สร้างใบรับประจำวันตาม PO ก่อน แล้ว Handheld จึงจะรับสินค้าได้</div></div>
+          <div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadReceiveOrders()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button><button class="btn btn-indigo" onclick="openReceiveOrderForm()"><i class="bi bi-plus-circle me-1"></i>สร้างใบรับ PO</button></div>
+        </div>
+        <div id="receiveOrderForm" class="card-wms p-3 mb-3" style="display:none">
+          <div class="d-flex justify-content-between align-items-center mb-3"><strong>เตรียมใบรับสินค้าประจำวัน</strong><button class="btn btn-sm btn-outline-secondary" onclick="closeReceiveOrderForm()">ยกเลิก</button></div>
+          <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label-wms" for="receivePONumber">เลขที่ PO</label><input id="receivePONumber" class="form-control form-control-wms" maxlength="60" placeholder="เช่น PO-2026-001"></div><div class="col-md-6"><label class="form-label-wms" for="receiveSupplier">Supplier</label><input id="receiveSupplier" class="form-control form-control-wms" maxlength="150" placeholder="ชื่อผู้จำหน่าย (ถ้ามี)"></div></div>
+          <div class="row g-2 align-items-end"><div class="col-md-6"><label class="form-label-wms" for="receiveProductBarcode">บาร์โค้ดสินค้าใน PO</label><input id="receiveProductBarcode" class="form-control form-control-wms" list="receiveProductsList" placeholder="สแกนหรือพิมพ์บาร์โค้ด"><datalist id="receiveProductsList"></datalist></div><div class="col-md-3"><label class="form-label-wms" for="receiveOrderedQty">จำนวนตาม PO</label><input id="receiveOrderedQty" type="number" min="1" step="1" value="1" class="form-control form-control-wms"></div><div class="col-md-3 d-grid"><button class="btn btn-outline-primary" onclick="addReceiveDraftLine()"><i class="bi bi-plus-lg me-1"></i>เพิ่มสินค้า</button></div></div>
+          <div class="table-scroll mt-3"><table class="table table-wms mb-0"><thead><tr><th>Barcode</th><th>สินค้า</th><th>จำนวนตาม PO</th><th>จัดการ</th></tr></thead><tbody id="receiveDraftLines"><tr><td colspan="4" class="text-center text-muted py-3">ยังไม่มีสินค้าในใบรับ</td></tr></tbody></table></div>
+          <div class="d-flex justify-content-end mt-3"><button class="btn btn-indigo" onclick="saveReceiveOrder()"><i class="bi bi-unlock me-1"></i>สร้างและเปิดให้ Handheld</button></div>
+          <div class="small text-muted mt-2">เมื่อเปิดใบรับแล้ว Handheld จะรับได้เฉพาะสินค้าที่อยู่ใน PO และรับเกินจำนวนสั่งไม่ได้</div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบรับ</th><th>PO</th><th>Supplier</th><th>รายการ / รับแล้ว</th><th>สถานะ</th><th>ผู้สร้าง / เวลา</th><th>ดู</th></tr></thead><tbody id="receiveOrdersTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- สแกน -->
+    <section id="pane-scan" role="tabpanel" style="display:none">
+      <div class="card-wms p-4" style="max-width:640px">
+        <div class="page-head"><div><h5 id="deskPageTitle">PICK · เบิกจ่าย</h5><div class="sub" id="deskPageSub">สแกนบาร์โค้ด ระบุจำนวนและโลเคชั่น แล้วบันทึก</div></div></div>
+        <div class="row g-3">
+          <input id="deskMode" type="hidden" value="PICK">
+          <div class="col-12"><label class="form-label-wms" for="deskBarcode">บาร์โค้ด</label><input id="deskBarcode" type="text" class="form-control form-control-wms" placeholder="สแกนหรือพิมพ์บาร์โค้ด แล้วกด Enter" autocomplete="off" style="height:56px;font-size:1.15rem;font-weight:600"></div>
+          <div class="col-6"><label class="form-label-wms" id="deskQtyLabel" for="deskQty">จำนวน</label><input id="deskQty" type="number" class="form-control form-control-wms" value="1" min="1"></div>
+          <div class="col-6" id="deskLocationCol"><label class="form-label-wms" id="deskLocationLabel" for="deskLocation">โลเคชั่นต้นทาง</label><input id="deskLocation" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01" autocomplete="off"></div>
+          <div class="col-6 d-none" id="deskTargetRow" style="display:none"><label class="form-label-wms" for="deskTargetLocation">โลเคชั่นปลายทาง</label><input id="deskTargetLocation" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01" autocomplete="off"></div>
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-indigo px-4 flex-grow-1" style="min-height:52px" onclick="submitDesktopScan()"><i class="bi bi-check2-circle me-1"></i><span id="deskSubmitLabel">บันทึกเบิกจ่าย</span></button>
+            <button class="btn btn-outline-secondary" style="min-height:52px" onclick="clearDesk()" title="ล้างฟอร์ม"><i class="bi bi-arrow-counterclockwise"></i></button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ── Tab: Master Data ── -->
-    <div id="pane-master" style="display:none">
+    <!-- สรุปสต็อก -->
+    <section id="pane-stock" role="tabpanel" style="display:none">
       <div class="card-wms p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div class="page-head">
+          <div><h5>📊 รายงานสรุปการตรวจนับสต็อก</h5><div class="sub">ค้นหาได้ทุกคอลัมน์ และ Export เป็น Excel</div></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาบาร์โค้ด / ชื่อสินค้า / ตำแหน่ง" oninput="filterTable('stockTableBody', this.value)"></div>
+            <button class="btn btn-outline-secondary" onclick="loadSummaryStock(true)" title="รีเฟรช"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-success" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</button>
+          </div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่ง</th><th>ยอดนับ</th><th>เวลา</th></tr></thead><tbody id="stockTableBody"><tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- จัดการผู้ใช้งาน -->
+    <section id="pane-users" role="tabpanel" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
           <div>
-            <h5 class="fw-bold mb-0">📋 จัดการสินค้า (Master Data)</h5>
-            <p class="text-muted small mb-0">เพิ่ม / แก้ไข / ลบ ข้อมูลสินค้า · <span id="productCount">0 รายการ</span></p>
+            <h5>👥 จัดการผู้ใช้งาน</h5>
+            <div class="sub">เพิ่ม แก้ไข และจัดการสถานะ / สิทธิ์พนักงานในระบบ (อิงจากตาราง Users)</div>
           </div>
           <div class="d-flex gap-2 flex-wrap">
-            <input id="productSearch" type="search" class="form-control form-control-wms table-search" placeholder="🔎 ค้นหา บาร์โค้ด / รหัส / ชื่อ" autocomplete="off">
-            <button class="btn btn-indigo" onclick="openAddProduct()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสินค้า</button>
+            <div class="search-box">
+              <i class="bi bi-search"></i>
+              <input type="search" class="form-control form-control-wms" placeholder="ค้นหา Username / ชื่อ / สิทธิ์" oninput="filterTable('usersTableBody', this.value)">
+            </div>
+            <button class="btn btn-outline-secondary" onclick="loadSystemData()" title="รีเฟรช"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-indigo" onclick="openAddUserModal()">
+              <i class="bi bi-person-plus me-1"></i>เพิ่มผู้ใช้งาน
+            </button>
           </div>
         </div>
-        <div class="table-responsive">
-          <table class="table table-wms">
-            <thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จัดการ</th></tr></thead>
-            <tbody id="productTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Tab: Stock Summary ── -->
-    <div id="pane-stock" style="display:none">
-      <div class="card-wms p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0">📊 รายงานสรุปการตรวจนับสต็อก (Real-time Live)</h5>
-            <p class="text-muted small mb-0">รีเฟรชอัตโนมัติทุก 15 วินาที · <span id="stockUpdated">-</span> · <span id="stockCount">0 รายการ</span></p>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <input id="stockSearch" type="search" class="form-control form-control-wms table-search" placeholder="🔎 ค้นหา บาร์โค้ด / รหัส / ชื่อ / ตำแหน่ง" autocomplete="off">
-            <button class="btn btn-outline-secondary" onclick="loadSummaryStock()" title="รีเฟรช" aria-label="รีเฟรชยอดสต็อก"><i class="bi bi-arrow-clockwise"></i></button>
-            <button class="btn btn-success" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>Export สรุปสต็อก (.xlsx)</button>
-            <button class="btn btn-outline-danger" onclick="clearCurrentRound()"><i class="bi bi-trash me-1"></i>ล้างยอดนับรอบนี้</button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-wms">
-            <thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่ง</th><th>ยอดนับสต็อก</th><th>เวลานับล่าสุด</th></tr></thead>
-            <tbody id="stockTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Tab: Users ── -->
-    <div id="pane-users" style="display:none">
-      <div class="card-wms p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0">👥 จัดการผู้ใช้งานระบบ (User Management)</h5>
-            <p class="text-muted small mb-0">เพิ่ม ลบ แก้ไขสิทธิ์ และกำหนดเมนูให้ผู้ใช้งาน Handheld</p>
-          </div>
-          <button class="btn btn-indigo" onclick="openAddUser()"><i class="bi bi-person-plus me-1"></i>เพิ่มผู้ใช้งานใหม่</button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-wms">
-            <thead><tr><th>#</th><th>ชื่อผู้ใช้ (Username)</th><th>ชื่อ-นามสกุล</th><th>สิทธิ์หลัก</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-            <tbody id="usersTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Tab: Permissions Master ── -->
-    <div id="pane-permissions" style="display:none">
-      <div class="card-wms p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0">🛡️ จัดการสิทธิ์เมนู (Permissions Master)</h5>
-            <p class="text-muted small mb-0">จัดการรายการเมนูและสิทธิ์สำหรับโปรแกรมบน Handheld (ตาราง Permissions)</p>
-          </div>
-          <button class="btn btn-indigo" onclick="openAddPermission()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสิทธิ์เมนูใหม่</button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-wms">
+        <div class="table-scroll">
+          <table class="table table-wms align-middle mb-0">
             <thead>
               <tr>
-                <th>#</th>
-                <th>รหัสสิทธิ์ (PermissionCode)</th>
-                <th>ชื่อเมนู (PermissionName)</th>
-                <th>คำอธิบาย (Description)</th>
-                <th>สถานะ (IsActive)</th>
-                <th>จัดการ</th>
+                <th style="width:60px">ID</th>
+                <th>Username</th>
+                <th>ชื่อ-นามสกุล (FullName)</th>
+                <th>Role</th>
+                <th>Permissions</th>
+                <th>สถานะ</th>
+                <th class="text-end" style="width:140px">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                  <span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดข้อมูลผู้ใช้...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Role -->
+    <section id="pane-roles" role="tabpanel" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>🛡️ จัดการ Role ผู้ใช้งาน</h5><div class="sub">กำหนดกลุ่มสิทธิ์ตามบทบาทหน้าที่ในคลังสินค้า (นับจำนวนคนจากฐานข้อมูลจริง)</div></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหา Role" oninput="filterTable('rolesTableBody', this.value)"></div>
+            <button class="btn btn-indigo" onclick="openAddRoleModal()"><i class="bi bi-shield-plus me-1"></i>เพิ่ม Role ใหม่</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="table table-wms align-middle mb-0">
+            <thead><tr><th style="width:60px">#</th><th>Role (Key)</th><th>ชื่อแสดงผล</th><th>คำอธิบาย</th><th>ผู้ใช้ (คำนวณจาก DB)</th><th class="text-end" style="width:130px">จัดการ</th></tr></thead>
+            <tbody id="rolesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- จัดการสิทธิ์เข้าถึงเมนู (Permissions Master) -->
+    <section id="pane-permissions" role="tabpanel" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div>
+            <h5>🔐 จัดการสิทธิ์เข้าถึงเมนู (Permissions)</h5>
+            <div class="sub">กำหนดและจัดการรายการสิทธิ์ที่ใช้งานภายในระบบคลังสินค้า[cite: 14]</div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box">
+              <i class="bi bi-search"></i>
+              <input type="search" class="form-control form-control-wms" placeholder="ค้นหารหัสสิทธิ์ / ชื่อสิทธิ์" oninput="filterTable('permissionsTableBody', this.value)">
+            </div>
+            <button class="btn btn-outline-secondary" onclick="loadPermissionsMaster()" title="รีเฟรช"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-indigo" onclick="openAddPermission()">
+              <i class="bi bi-plus-circle me-1"></i>เพิ่มสิทธิ์ใหม่
+            </button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="table table-wms align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width:60px">#</th>
+                <th>รหัสสิทธิ์ (Code)</th>
+                <th>ชื่อสิทธิ์เมนู</th>
+                <th>คำอธิบาย</th>
+                <th>สถานะ</th>
+                <th class="text-end" style="width:130px">จัดการ</th>
               </tr>
             </thead>
             <tbody id="permissionsTableBody">
-              <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดข้อมูลสิทธิ์...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Tab: Locations Master ── -->
-    <div id="pane-locations" style="display:none">
-      <div class="card-wms p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0">📍 จัดการโลเคชั่น (Locations Master)</h5>
-            <p class="text-muted small mb-0">เพิ่ม / แก้ไข / ลบ ข้อมูลตำแหน่งจัดเก็บในคลังสินค้า (ตาราง Locations)</p>
-          </div>
-          <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่นใหม่</button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-wms">
-            <thead>
               <tr>
-                <th>#</th>
-                <th>รหัสโลเคชั่น (LocationCode)</th>
-                <th>โซน (Zone)</th>
-                <th>คำอธิบาย (Description)</th>
-                <th>สถานะ (IsActive)</th>
-                <th>จัดการ</th>
+                <td colspan="6" class="text-center py-4 text-muted">
+                  <span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดข้อมูลสิทธิ์...
+                </td>
               </tr>
-            </thead>
-            <tbody id="locationsTableBody">
-              <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดโลเคชั่น...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
 
-  </div><!-- /admin-content -->
-</div><!-- /admin-wrapper -->
-
-<!-- ══════════ MODAL: User (ดึงสิทธิ์ Dynamic จากฐานข้อมูล) ══════════ -->
-<div class="modal fade" id="userModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header-wms d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label-wms">ชื่อผู้ใช้ (Username) <span class="text-danger">*</span></label>
-            <input id="modalUsername" type="text" class="form-control form-control-wms" placeholder="กรอก username">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label-wms">ชื่อ-นามสกุล (Full Name)</label>
-            <input id="modalFullname" type="text" class="form-control form-control-wms" placeholder="กรอกชื่อ-นามสกุล">
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">รหัสผ่าน (Password)</label>
-            <input id="modalPassword" type="password" class="form-control form-control-wms" placeholder="กรอกรหัสผ่าน (เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label-wms">สิทธิ์หลัก (Role)</label>
-            <select id="modalRole" class="form-select form-control-wms" onchange="syncPermVisibility()">
-              <option value="OPERATOR">OPERATOR (แฮนด์เฮลด์)</option>
-              <option value="ADMIN">ADMIN (ผู้ดูแลระบบ)</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label-wms">สถานะ</label>
-            <select id="modalStatus" class="form-select form-control-wms">
-              <option value="1">ใช้งานปกติ (Active)</option>
-              <option value="0">ระงับใช้งาน (Inactive)</option>
-            </select>
-          </div>
-          
-          <!-- พื้นที่แสดงผล Checkbox สิทธิ์เมนู ที่โหลดสดจากฐานข้อมูล DB -->
-          <div class="col-12" id="permSection">
-            <label class="form-label-wms">🎛️ กำหนดเมนูที่เปิดให้ใช้งานบน Handheld</label>
-            <div class="p-3 border rounded bg-white" id="permissionsContainer">
-              <div class="text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดรายการสิทธิ์...</div>
-            </div>
+    <!-- สินค้า -->
+    <section id="pane-master" role="tabpanel" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>📋 จัดการสินค้า (Master Data)</h5></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาสินค้า" oninput="filterTable('productTableBody', this.value)"></div>
+            <button class="btn btn-indigo" onclick="openAddProduct()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสินค้า</button>
           </div>
         </div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จัดการ</th></tr></thead><tbody id="productTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
       </div>
-      <div class="modal-footer border-0 pb-4 px-4">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button class="btn btn-indigo px-4" onclick="saveUser()"><i class="bi bi-floppy me-1"></i>บันทึกข้อมูล</button>
+    </section>
+
+    <!-- โลเคชั่น -->
+    <section id="pane-locations" role="tabpanel" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>📍 จัดการโลเคชั่น</h5></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาโลเคชั่น / โซน" oninput="filterTable('locationsTableBody', this.value)"></div>
+            <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่น</button>
+          </div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>รหัสโลเคชั่น</th><th>โซน</th><th>คำอธิบาย</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="locationsTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="pane-cyclecount" role="tabpanel" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>🔄 ตรวจนับประจำรอบ (Cycle Count)</h5><div class="sub">สร้างรอบตามโซนหรือโลเคชั่น ระบุยอดนับสินค้า รอบหมดอายุใน 24 ชั่วโมง</div></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-secondary" onclick="loadCycleCounts()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            <button class="btn btn-indigo" onclick="openCycleCountSession()"><i class="bi bi-plus-circle me-1"></i>เริ่มรอบตรวจนับ</button>
+          </div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่รอบ</th><th>รอบตรวจนับ</th><th>โซน / โลเคชั่น</th><th>ความคืบหน้า</th><th>ผลต่าง</th><th>สถานะ</th><th>หมดอายุ</th><th>ผู้สร้าง</th><th>จัดการ</th></tr></thead><tbody id="cycleCountTableBody"><tr><td colspan="9" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Modal เพิ่ม/แก้ไข สิทธิ์เมนู -->
+<div class="modal fade" id="permModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:12px; border:none;">
+      <div class="modal-header" style="background:#4f46e5; color:#fff;">
+        <h5 class="modal-title" id="permModalTitle">เพิ่มสิทธิ์เมนูใหม่</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+      </div>
+      <div class="modal-content-body p-4">
+        <div class="mb-3 text-start">
+          <label class="form-label-wms" for="modalPermCode">รหัสสิทธิ์ (Permission Code)</label>
+          <input type="text" id="modalPermCode" class="form-control form-control-wms" placeholder="เช่น RECEIVE, PUTAWAY" autocomplete="off">
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label-wms" for="modalPermName">ชื่อสิทธิ์เมนู</label>
+          <input type="text" id="modalPermName" class="form-control form-control-wms" placeholder="เช่น สิทธิ์รับสินค้าเข้าคลัง" autocomplete="off">
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label-wms" for="modalPermDesc">คำอธิบาย</label>
+          <textarea id="modalPermDesc" class="form-control form-control-wms" rows="2" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label-wms" for="modalPermStatus">สถานะ</label>
+          <select id="modalPermStatus" class="form-select form-control-wms">
+            <option value="1">เปิดใช้งาน</option>
+            <option value="0">ปิดใช้งาน</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-indigo px-4" onclick="savePermission()">บันทึก</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════ MODAL: Permission Master ══════════ -->
-<div class="modal fade" id="permModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header-wms d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold" id="permModalTitle">เพิ่มสิทธิ์เมนูใหม่</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label-wms">รหัสสิทธิ์ (Permission Code) <span class="text-danger">*</span></label>
-            <input id="modalPermCode" type="text" class="form-control form-control-wms" placeholder="เช่น LOAD, PUTAWAY, CYCLE_COUNT">
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">ชื่อเมนู (Permission Name) <span class="text-danger">*</span></label>
-            <input id="modalPermName" type="text" class="form-control form-control-wms" placeholder="เช่น ตรวจนับสินค้าประจำรอบ (Cycle Count)">
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">คำอธิบาย (Description)</label>
-            <textarea id="modalPermDesc" class="form-control form-control-wms" rows="2" placeholder="คำอธิบายรายละเอียดสิทธิ์เมนู"></textarea>
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">สถานะ</label>
-            <select id="modalPermStatus" class="form-select form-control-wms">
-              <option value="1">เปิดใช้งาน (Active)</option>
-              <option value="0">ปิดใช้งาน (Inactive)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pb-4 px-4">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button class="btn btn-indigo px-4" onclick="savePermission()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ MODAL: Location Master ══════════ -->
-<div class="modal fade" id="locationModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header-wms d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold" id="locModalTitle">เพิ่มโลเคชั่นใหม่</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label-wms">รหัสโลเคชั่น (Location Code) <span class="text-danger">*</span></label>
-            <input id="modalLocCode" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01, RCV-01">
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">โซน (Zone)</label>
-            <input id="modalLocZone" type="text" class="form-control form-control-wms" placeholder="เช่น ZONE-A, RECEIVING">
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">คำอธิบาย (Description)</label>
-            <textarea id="modalLocDesc" class="form-control form-control-wms" rows="2" placeholder="รายละเอียดตำแหน่งจัดเก็บ"></textarea>
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">สถานะ</label>
-            <select id="modalLocStatus" class="form-select form-control-wms">
-              <option value="1">เปิดใช้งาน (Active)</option>
-              <option value="0">ปิดใช้งาน (Inactive)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pb-4 px-4">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button class="btn btn-indigo px-4" onclick="saveLocation()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ MODAL: Product ══════════ -->
-<div class="modal fade" id="productModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header-wms d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold" id="productModalTitle">เพิ่มสินค้าใหม่</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label-wms">บาร์โค้ด</label>
-            <input id="prodBarcode" type="text" class="form-control form-control-wms" placeholder="บาร์โค้ดสินค้า">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label-wms">รหัสสินค้า <span class="text-danger">*</span></label>
-            <input id="prodCode" type="text" class="form-control form-control-wms" placeholder="ITM001">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label-wms">หน่วย</label>
-            <input id="prodUnit" type="text" class="form-control form-control-wms" placeholder="ชิ้น / กล่อง">
-          </div>
-          <div class="col-12">
-            <label class="form-label-wms">ชื่อสินค้า <span class="text-danger">*</span></label>
-            <input id="prodName" type="text" class="form-control form-control-wms" placeholder="ชื่อสินค้า">
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pb-4 px-4">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button class="btn btn-indigo px-4" onclick="saveProduct()"><i class="bi bi-floppy me-1"></i>บันทึก</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ SCRIPTS ══════════ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="/js/common.js"></script>
-<script src="/js/admin-users.js"></script>
+<script src="/js/common.js?v=20261101-2"></script>
 <script src="/js/admin-stock.js"></script>
-<script src="/js/admin-products.js"></script>
+<script src="/js/receiving.js?v=20261101-1"></script>
+<script src="/js/admin-products.js?v=20261101-2"></script>
+<script src="/js/admin-locations.js?v=20261101-2"></script>
+<script src="/js/cycle-count.js?v=20261101-1"></script>
 <script src="/js/admin-permissions.js"></script>
-<script src="/js/admin-locations.js"></script>
 <script>
-/* ── Init ── */
-(function () {
-  const payload = requireAuth(['ADMIN']);
-  if (!payload) return;
-  document.getElementById('adminName').textContent = payload.fullname || payload.username;
-  document.getElementById('adminRole').textContent = payload.role;
-  startSessionCountdown();
-  loadSummaryStock();        // preload
-  loadUsers();               // preload
-  loadMasterProducts();      // preload
-  loadPermissionsMaster();   // preload
-  loadLocationsMaster();     // preload
-})();
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* ── ฟังก์ชันสำหรับเปิด/ปิด Sidebar ── */
-function toggleSidebar() {
-  const wrapper = document.getElementById('adminWrapper');
-  wrapper.classList.toggle('sidebar-collapsed');
-}
+  /* ---------- จัดการผู้ใช้งานและ Role จากฐานข้อมูลจริง ---------- */
+  let usersList = [];
+  let rolesList = [
+    { key: 'ADMIN', badge: 'bg-danger', name: 'ผู้ดูแลระบบสูงสุด', desc: 'เข้าถึงและจัดการได้ทุกเมนูในระบบ', locked: true },
+    { key: 'POWERUSER', badge: 'bg-success', name: 'Power User', desc: 'จัดการสต็อกและข้อมูลสินค้า', locked: false },
+    { key: 'OPERATOR', badge: 'bg-warning text-dark', name: 'เจ้าหน้าที่คลังสินค้า / Picker', desc: 'สแกนรับ/เบิกสินค้า', locked: false }
+  ];
 
-/* ── Tab switching ── */
-function switchTab(tab) {
-  ['scan','master','stock','users','permissions','locations'].forEach(t => {
-    document.getElementById('pane-' + t).style.display = t === tab ? 'block' : 'none';
-    const btn = document.getElementById('tab-' + t);
-    if (btn) {
-      btn.classList.toggle('active', t === tab);
-      btn.setAttribute('aria-selected', t === tab);
+  async function loadSystemData() {
+    try {
+      const res = await fetch('/api/users', { headers: authHeaders() });
+      if (!res.ok) throw new Error('โหลดข้อมูลผู้ใช้ไม่สำเร็จ');
+      const rows = await res.json();
+      usersList = (Array.isArray(rows) ? rows : (rows.data || [])).map(u => ({
+        ...u,
+        UserId: u.UserId ?? u.userId ?? u.id,
+        Username: u.Username ?? u.username ?? '',
+        FullName: [u.FullName, u.Fullname, u.fullname, u.fullName, u.Username, u.username].find(value => value != null && String(value).trim() && String(value).trim().toLowerCase() !== 'undefined') || '',
+        Role: u.Role ?? u.role ?? '',
+        IsActive: u.IsActive ?? u.isActive ?? u.active ?? false,
+        Permissions: u.Permissions ?? u.permissions ?? ''
+      }));
+      renderUsers();
+      renderRoles();
+    } catch (err) {
+      console.error('Load System Data Error:', err);
+      const tbody = document.getElementById('usersTableBody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">${esc(err.message)}</td></tr>`;
     }
-  });
+  }
 
-  if (tab === 'stock') { loadSummaryStock(true); startStockAutoRefresh(); }
-  else                 { stopStockAutoRefresh(); }
-  if (tab === 'master')      loadMasterProducts();
-  if (tab === 'users')       loadUsers();
-  if (tab === 'permissions') loadPermissionsMaster();
-  if (tab === 'locations')   loadLocationsMaster();
-  if (tab === 'scan')        document.getElementById('deskBarcode')?.focus();
-}
+  function renderUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
 
-/* ── Logout ── */
-function doLogout() {
-  Swal.fire({
-    title:'ออกจากระบบ?', icon:'question', showCancelButton:true,
-    confirmButtonColor:'#ef4444', cancelButtonColor:'#6b7280',
-    confirmButtonText:'ออกจากระบบ', cancelButtonText:'ยกเลิก'
-  }).then(r => { if (r.isConfirmed) logout(); });
-}
+    if (usersList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลผู้ใช้งาน</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = usersList.map((u) => {
+      const roleBadge = u.Role === 'ADMIN' ? 'bg-danger'
+                      : u.Role === 'POWERUSER' ? 'bg-success'
+                      : u.Role === 'OPERATOR' ? 'bg-warning text-dark'
+                      : 'bg-info text-dark';
+
+      const statusBadge = u.IsActive
+        ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle me-1"></i>Active</span>'
+        : '<span class="badge bg-secondary-subtle text-secondary border border-secondary"><i class="bi bi-dash-circle me-1"></i>Inactive</span>';
+
+      const isAdminUser = u.Role === 'ADMIN' || u.Username.toLowerCase() === 'admin';
+      const statusActionBtn = isAdminUser
+        ? `<button class="btn btn-sm btn-outline-secondary" disabled title="ไม่อนุญาตให้ระงับบัญชีผู้ดูแลระบบสูงสุด" aria-label="ระงับไม่ได้"><i class="bi bi-shield-lock"></i></button>`
+        : `<button class="btn btn-sm ${u.IsActive ? 'btn-outline-warning' : 'btn-outline-success'}" onclick="toggleUserStatus(${u.UserId})" title="${u.IsActive ? 'ระงับการใช้งาน' : 'เปิดใช้งาน'}" aria-label="เปลี่ยนสถานะ">
+             <i class="bi ${u.IsActive ? 'bi-person-slash' : 'bi-person-check'}"></i>
+           </button>`;
+
+      return `
+        <tr>
+          <td>${u.UserId}</td>
+          <td class="fw-bold">${esc(u.Username)}</td>
+          <td>${esc(u.FullName)}</td>
+          <td><span class="badge ${roleBadge}">${esc(u.Role)}</span></td>
+          <td><code>${esc(u.Permissions)}</code></td>
+          <td>${statusBadge}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUserModal(${u.UserId})" title="แก้ไข" aria-label="แก้ไข"><i class="bi bi-pencil"></i></button>
+            ${statusActionBtn}
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function renderRoles() {
+    const tbody = document.getElementById('rolesTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = rolesList.map((r, i) => {
+      const countUsers = usersList.filter(u => u.Role === r.key).length;
+      const isLockedAdmin = r.key === 'ADMIN' || r.locked;
+
+      return `
+        <tr>
+          <td>${i + 1}</td>
+          <td><span class="badge ${r.badge}">${esc(r.key)}</span></td>
+          <td class="fw-medium">${esc(r.name)}</td>
+          <td>${esc(r.desc)}</td>
+          <td><span class="badge bg-light text-dark border">${countUsers} คน</span></td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="editRole('${esc(r.key)}')" title="แก้ไข" aria-label="แก้ไข"><i class="bi bi-pencil"></i></button>
+            ${
+              isLockedAdmin
+                ? `<button class="btn btn-sm btn-outline-secondary" disabled title="ไม่อนุญาตให้ลบ Role นี้" aria-label="ลบไม่ได้"><i class="bi bi-shield-lock"></i></button>`
+                : `<button class="btn btn-sm btn-outline-danger" onclick="deleteRole('${esc(r.key)}')" title="ลบ" aria-label="ลบ"><i class="bi bi-trash"></i></button>`
+            }
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function openAddUserModal() {
+    Swal.fire({
+      title: 'เพิ่มผู้ใช้งานใหม่',
+      html: `
+        <div class="text-start mb-3">
+          <label class="form-label-wms">Username</label>
+          <input id="swal-username" class="form-control" placeholder="เช่น picker03">
+        </div>
+        <div class="text-start mb-3">
+          <label class="form-label-wms">Full Name (ชื่อ-นามสกุล)</label>
+          <input id="swal-fullname" class="form-control" placeholder="เช่น สมชาย คลังสินค้า">
+        </div>
+        <div class="text-start mb-3">
+          <label class="form-label-wms">Password</label>
+          <input id="swal-password" type="password" class="form-control" placeholder="รหัสผ่าน...">
+        </div>
+        <div class="mb-3 text-start">
+            <label class="form-label-wms">Role</label>
+            <select id="swal-role" class="form-select">
+              <option value="OPERATOR">OPERATOR</option>
+              <option value="POWERUSER">POWERUSER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label-wms">สิทธิ์เมนู</label>
+          <div id="swal-permissions" class="d-flex flex-wrap gap-2"><span class="text-muted small">กำลังโหลดสิทธิ์...</span></div>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึก',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#4f46e5',
+      didOpen: () => loadPermissionChoices(''),
+      preConfirm: () => {
+        const Username = document.getElementById('swal-username').value.trim();
+        const FullName = document.getElementById('swal-fullname').value.trim();
+        const Password = document.getElementById('swal-password').value;
+        const Role = document.getElementById('swal-role').value;
+        const Permissions = getSelectedPermissions();
+
+        if (!Username || !FullName || !Password) {
+          return Swal.showValidationMessage('กรุณากรอก Username, FullName และ Password ให้ครบถ้วน');
+        }
+        return { Username, FullName, Password, Role, Permissions };
+      }
+    }).then(async res => {
+      if (!res.isConfirmed) return;
+      try {
+        const response = await fetch('/api/users', { method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ username: res.value.Username, fullname: res.value.FullName, password: res.value.Password, role: res.value.Role, permissions: res.value.Permissions }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'เพิ่มผู้ใช้ไม่สำเร็จ');
+        await loadSystemData();
+        Swal.fire({ icon: 'success', title: 'เพิ่มผู้ใช้งานสำเร็จ', timer: 1400, showConfirmButton: false });
+      } catch (err) { Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message }); }
+    });
+  }
+
+  function openEditUserModal(userId) {
+    const u = usersList.find(x => x.UserId === userId);
+    if (!u) return;
+
+    Swal.fire({
+      title: 'แก้ไขผู้ใช้งาน: ' + u.Username,
+      html: `
+        <div class="text-start mb-3">
+          <label class="form-label-wms">Full Name (ชื่อ-นามสกุล)</label>
+          <input id="swal-fullname" class="form-control" value="${esc(u.FullName)}">
+        </div>
+        <div class="text-start mb-3">
+          <label class="form-label-wms">New Password (เว้นว่างไว้ถ้าไม่เปลี่ยน)</label>
+          <input id="swal-password" type="password" class="form-control" placeholder="รหัสผ่านใหม่...">
+        </div>
+        <div class="mb-3 text-start">
+            <label class="form-label-wms">Role</label>
+            <select id="swal-role" class="form-select" ${u.Username.toLowerCase() === 'admin' ? 'disabled' : ''}>
+              <option value="OPERATOR" ${u.Role === 'OPERATOR' ? 'selected' : ''}>OPERATOR</option>
+              <option value="POWERUSER" ${u.Role === 'POWERUSER' ? 'selected' : ''}>POWERUSER</option>
+              <option value="ADMIN" ${u.Role === 'ADMIN' ? 'selected' : ''}>ADMIN</option>
+            </select>
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label-wms">สิทธิ์เมนู</label>
+          <div id="swal-permissions" class="d-flex flex-wrap gap-2"><span class="text-muted small">กำลังโหลดสิทธิ์...</span></div>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึก',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#4f46e5',
+      didOpen: () => loadPermissionChoices(u.Permissions || ''),
+      preConfirm: () => {
+        const FullName = document.getElementById('swal-fullname').value.trim();
+        const RoleSelect = document.getElementById('swal-role');
+        const Role = RoleSelect.disabled ? u.Role : RoleSelect.value;
+        if (!FullName) return Swal.showValidationMessage('กรุณากรอกชื่อ-นามสกุล');
+        return {
+          FullName,
+          Password: document.getElementById('swal-password').value,
+          Role,
+          Permissions: getSelectedPermissions()
+        };
+      }
+    }).then(async res => {
+      if (!res.isConfirmed) return;
+      try {
+        const response = await fetch(`/api/users/${u.UserId}`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ fullname: res.value.FullName, password: res.value.Password, role: res.value.Role, permissions: res.value.Permissions, isActive: u.IsActive }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'อัปเดตผู้ใช้ไม่สำเร็จ');
+        await loadSystemData();
+        Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลสำเร็จ', timer: 1200, showConfirmButton: false });
+      } catch (err) { Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message }); }
+    });
+  }
+
+  function toggleUserStatus(userId) {
+    const u = usersList.find(x => x.UserId === userId);
+    if (!u) return;
+
+    if (u.Role === 'ADMIN' || u.Username.toLowerCase() === 'admin') {
+      Swal.fire({ icon: 'error', title: 'ไม่สามารถระงับบัญชีนี้ได้', text: 'ไม่อนุญาตให้ระงับบัญชีผู้ดูแลระบบสูงสุด (ADMIN)', confirmButtonColor: '#4f46e5' });
+      return;
+    }
+
+    const actionText = u.IsActive ? 'ระงับการใช้งาน' : 'เปิดใช้งาน';
+    Swal.fire({
+      title: `${actionText} ${u.Username}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: u.IsActive ? '#f59e0b' : '#10b981',
+      confirmButtonText: actionText,
+      cancelButtonText: 'ยกเลิก'
+    }).then(async res => {
+      if (res.isConfirmed) {
+        try {
+          const response = await fetch(`/api/users/${u.UserId}`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ fullname: u.FullName, role: u.Role, permissions: u.Permissions || '', isActive: !u.IsActive }) });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'เปลี่ยนสถานะไม่สำเร็จ');
+          await loadSystemData();
+          Swal.fire({ icon: 'success', title: 'เปลี่ยนสถานะเรียบร้อย', timer: 1200, showConfirmButton: false });
+        } catch (err) { Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message }); }
+      }
+    });
+  }
+
+  let permissionMasterCache = [];
+  async function loadPermissionChoices(selectedCsv) {
+    const container = document.getElementById('swal-permissions');
+    if (!container) return;
+    try {
+      const res = await fetch('/api/permissions', { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'โหลดรายการสิทธิ์ไม่สำเร็จ');
+      permissionMasterCache = data.data || [];
+      const selected = new Set(String(selectedCsv || '').split(',').map(v => v.trim().toUpperCase()).filter(Boolean));
+      container.innerHTML = permissionMasterCache.map(p => {
+        const code = String(p.PermissionCode || '').toUpperCase();
+        const active = p.IsActive == 1 || p.IsActive === true;
+        return `<label class="border rounded px-2 py-1 ${active ? '' : 'text-muted'}"><input class="form-check-input me-1 permission-choice" type="checkbox" value="${esc(code)}" ${selected.has(code) ? 'checked' : ''} ${active ? '' : 'disabled'}>${esc(code)} <small>${esc(p.PermissionName)}${active ? '' : ' (ปิดใช้งาน)'}</small></label>`;
+      }).join('') || '<span class="text-muted small">ไม่มีสิทธิ์ในระบบ</span>';
+    } catch (err) { container.innerHTML = `<span class="text-danger small">${esc(err.message)}</span>`; }
+  }
+
+  function getSelectedPermissions() {
+    return Array.from(document.querySelectorAll('#swal-permissions .permission-choice:checked')).map(el => el.value).join(',');
+  }
+
+  function openAddRoleModal() {
+    Swal.fire({
+      title: 'เพิ่ม Role ใหม่',
+      html: `
+        <div class="text-start mb-3"><label class="form-label-wms">Role Key</label><input id="swal-role-key" class="form-control" placeholder="เช่น MANAGER"></div>
+        <div class="text-start mb-3"><label class="form-label-wms">ชื่อแสดงผล</label><input id="swal-role-name" class="form-control" placeholder="เช่น ผู้จัดการ"></div>
+        <div class="text-start"><label class="form-label-wms">คำอธิบาย</label><textarea id="swal-role-desc" class="form-control" rows="2"></textarea></div>`,
+      showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#4f46e5',
+      preConfirm: () => {
+        const key = document.getElementById('swal-role-key').value.trim().toUpperCase();
+        const name = document.getElementById('swal-role-name').value.trim();
+        const desc = document.getElementById('swal-role-desc').value.trim();
+        if (!key || !name) return Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบ');
+        return { key, name, desc };
+      }
+    }).then(res => {
+      if (!res.isConfirmed) return;
+      rolesList.push({ key: res.value.key, badge: 'bg-secondary', name: res.value.name, desc: res.value.desc || '-' });
+      renderRoles();
+      Swal.fire({ icon: 'success', title: 'เพิ่ม Role แล้ว', timer: 1400, showConfirmButton: false });
+    });
+  }
+
+  function editRole(key) {
+    const r = rolesList.find(x => x.key === key); if (!r) return;
+    Swal.fire({
+      title: 'แก้ไข Role: ' + key,
+      html: `
+        <div class="text-start mb-3"><label class="form-label-wms">ชื่อแสดงผล</label><input id="swal-role-name" class="form-control" value="${esc(r.name)}"></div>
+        <div class="text-start"><label class="form-label-wms">คำอธิบาย</label><textarea id="swal-role-desc" class="form-control" rows="2">${esc(r.desc)}</textarea></div>`,
+      showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#4f46e5',
+      preConfirm: () => ({ name: document.getElementById('swal-role-name').value.trim(), desc: document.getElementById('swal-role-desc').value.trim() })
+    }).then(res => {
+      if (!res.isConfirmed) return;
+      r.name = res.value.name; r.desc = res.value.desc || '-';
+      renderRoles();
+      Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', timer: 1200, showConfirmButton: false });
+    });
+  }
+
+  function deleteRole(key) {
+    const r = rolesList.find(x => x.key === key); if (!r) return;
+
+    if (r.locked || r.key === 'ADMIN') {
+      Swal.fire({ icon: 'error', title: 'ไม่สามารถลบได้', text: 'ไม่อนุญาตให้ลบ Role ผู้ดูแลระบบสูงสุด (ADMIN)', confirmButtonColor: '#4f46e5' });
+      return;
+    }
+
+    const countUsers = usersList.filter(u => u.Role === key).length;
+    if (countUsers > 0) {
+      Swal.fire({ icon: 'warning', title: 'ลบไม่ได้', text: `ยังมีผู้ใช้ ${countUsers} คนอยู่ใน Role นี้ กรุณาย้ายผู้ใช้ไป Role อื่นก่อน`, confirmButtonColor: '#4f46e5' });
+      return;
+    }
+
+    Swal.fire({ title: `ลบ Role ${key}?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก' })
+      .then(res => { if (res.isConfirmed) { rolesList.splice(rolesList.indexOf(r), 1); renderRoles(); } });
+  }
+
+  /* ---------- โครงหน้าและการทำงานเริ่มต้น ---------- */
+  (function () {
+    const payload = requireAuth(['ADMIN']);
+    if (!payload) return;
+    const displayName = [payload.fullname, payload.fullName, payload.Fullname, payload.FullName, payload.username, payload.Username].find(value => value != null && String(value).trim() && String(value).trim().toLowerCase() !== 'undefined') || 'ผู้ใช้งาน';
+    document.getElementById('userName').textContent = displayName;
+    document.getElementById('userRole').textContent = payload.role || 'USER';
+    if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed');
+
+    loadSystemData();
+    loadSummaryStock();
+    loadMasterProducts();
+    loadLocationsMaster();
+    loadPermissionsMaster(); // โหลดข้อมูลสิทธิ์เมนู
+    loadReceiveOrders();
+
+    const bc = document.getElementById('deskBarcode'), q = document.getElementById('deskQty'), lc = document.getElementById('deskLocation'), target = document.getElementById('deskTargetLocation');
+    bc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); q.focus(); q.select(); } });
+    q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); lc.focus(); } });
+    lc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('deskTargetRow').classList.contains('d-none') ? submitDesktopScan() : target.focus(); } });
+    target.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitDesktopScan(); } });
+    lc.addEventListener('input', () => lc.value = lc.value.toUpperCase());
+    target.addEventListener('input', () => target.value = target.value.toUpperCase());
+    bc.focus();
+  })();
+
+  function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
+
+  function switchTab(tab) {
+    const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
+    const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : 'scan')) : tab;
+    ['receiving','scan','stock','users','roles','permissions','master','locations','cyclecount'].forEach(t => {
+      const pane = document.getElementById('pane-' + t);
+      if (pane) pane.style.display = t === paneTab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.admin-sidebar .sidebar-menu-item').forEach(button => button.classList.remove('active'));
+    const activeButton = document.getElementById(operation ? 'tab-op-' + operation : 'tab-' + tab);
+    if (activeButton) activeButton.classList.add('active');
+    if (operation && !['CYCLECOUNT', 'RECEIVE'].includes(operation)) setDesktopOperation(operation);
+    if (tab === 'users' || tab === 'roles') loadSystemData();
+    if (tab === 'permissions') loadPermissionsMaster();
+    if (tab === 'stock') loadSummaryStock(true);
+    if (tab === 'master') loadMasterProducts();
+    if (tab === 'locations') loadLocationsMaster();
+    if (paneTab === 'cyclecount') loadCycleCounts();
+    if (paneTab === 'receiving') loadReceiveOrders();
+    if (paneTab === 'scan') document.getElementById('deskBarcode').focus();
+    if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed');
+  }
+
+  function clearDesk() {
+    document.getElementById('deskBarcode').value = '';
+    document.getElementById('deskQty').value = 1;
+    document.getElementById('deskLocation').value = '';
+    document.getElementById('deskTargetLocation').value = '';
+    document.getElementById('deskBarcode').focus();
+  }
+
+  function filterTable(tbodyId, q) {
+    q = (q || '').trim().toLowerCase();
+    document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr => {
+      tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function doLogout() {
+    Swal.fire({ title: 'ออกจากระบบ?', text: 'ต้องการออกจากระบบใช่หรือไม่', icon: 'question', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'อยู่ต่อ' })
+      .then(r => { if (r.isConfirmed) logout(); });
+  }
 </script>
 </body>
 </html>

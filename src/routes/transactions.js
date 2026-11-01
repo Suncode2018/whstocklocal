@@ -27,9 +27,14 @@ function authenticateToken(req, res, next) {
 // POST /api/transactions/execute (รับเข้า, เบิกจ่าย, โอนย้าย)
 router.post('/execute', authenticateToken, async (req, res) => {
   const { type, barcode, locationCode, targetLocationCode, quantity, referenceNo } = req.body;
-  const qty = parseInt(quantity);
+  const operation = String(type || '').trim().toUpperCase();
+  const qty = Number.parseInt(quantity, 10);
+  if (operation === 'RECEIVE') {
+    return res.status(400).json({ success: false, message: 'กรุณารับสินค้าผ่านใบรับประจำวันที่อ้างอิง PO' });
+  }
+  const supportedOperations = ['PICK', 'CHECK', 'TRANSFER', 'LOAD', 'PUTAWAY'];
 
-  if (!type || !barcode || !locationCode || isNaN(qty) || qty <= 0) {
+  if (!supportedOperations.includes(operation) || !barcode || !locationCode || !Number.isInteger(qty) || qty < 0 || (operation !== 'CHECK' && qty === 0)) {
     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วนหรือไม่ถูกต้อง' });
   }
 
@@ -60,7 +65,7 @@ router.post('/execute', authenticateToken, async (req, res) => {
     const location = locRes.recordset[0];
 
     let targetLocation = null;
-    if (type === 'TRANSFER') {
+    if (['TRANSFER', 'PUTAWAY'].includes(operation)) {
       if (!targetLocationCode) throw new Error('กรุณาระบุตำแหน่งปลายทาง');
       const reqTLoc = new sql.Request(transaction);
       const targetLocRes = await reqTLoc
@@ -70,10 +75,20 @@ router.post('/execute', authenticateToken, async (req, res) => {
         throw new Error(`ไม่พบตำแหน่งปลายทาง: ${targetLocationCode}`);
       }
       targetLocation = targetLocRes.recordset[0];
+      if (targetLocation.LocationId === location.LocationId) throw new Error('โลเคชั่นต้นทางและปลายทางต้องไม่ซ้ำกัน');
     }
 
-    // 3. หักสต๊อกต้นทาง (PICK / TRANSFER)
-    if (type === 'PICK' || type === 'TRANSFER') {
+    let stockQuantity = null;
+    if (operation === 'CHECK') {
+      const stockResult = await new sql.Request(transaction)
+        .input('ProdId', sql.Int, product.ProductId)
+        .input('LocId', sql.Int, location.LocationId)
+        .query('SELECT Quantity FROM Stock WHERE ProductId = @ProdId AND LocationId = @LocId');
+      stockQuantity = stockResult.recordset[0]?.Quantity || 0;
+    }
+
+    // 3. หักสต๊อกจากต้นทางสำหรับเบิก โหลด และย้าย/จัดเก็บ
+    if (['PICK', 'LOAD', 'TRANSFER', 'PUTAWAY'].includes(operation)) {
       const reqCheck = new sql.Request(transaction);
       const stockCheck = await reqCheck
         .input('ProdId', sql.Int, product.ProductId)
@@ -93,9 +108,9 @@ router.post('/execute', authenticateToken, async (req, res) => {
         .query('UPDATE Stock SET Quantity = Quantity - @QtyMinus, LastUpdated = GETDATE() WHERE ProductId = @ProdId AND LocationId = @LocId');
     }
 
-    // 4. เพิ่มสต๊อกปลายทาง (RECEIVE / TRANSFER)
-    if (type === 'RECEIVE' || type === 'TRANSFER') {
-      const destLocId = type === 'RECEIVE' ? location.LocationId : targetLocation.LocationId;
+    // 4. เพิ่มสต๊อกที่ปลายทาง (รับเข้า หรือย้าย/จัดเก็บ)
+    if (['RECEIVE', 'TRANSFER', 'PUTAWAY'].includes(operation)) {
+      const destLocId = operation === 'RECEIVE' ? location.LocationId : targetLocation.LocationId;
       const reqAdd = new sql.Request(transaction);
       await reqAdd
         .input('ProdId', sql.Int, product.ProductId)
@@ -116,13 +131,13 @@ router.post('/execute', authenticateToken, async (req, res) => {
     // 5. บันทึก Transaction Log
     const reqLog = new sql.Request(transaction);
     await reqLog
-      .input('TxType', sql.NVarChar, type)
+      .input('TxType', sql.NVarChar, operation)
       .input('ProdId', sql.Int, product.ProductId)
-      .input('FromLocId', sql.Int, type === 'RECEIVE' ? null : location.LocationId)
-      .input('ToLocId', sql.Int, type === 'PICK' ? null : (type === 'TRANSFER' ? targetLocation.LocationId : location.LocationId))
+      .input('FromLocId', sql.Int, operation === 'RECEIVE' ? null : location.LocationId)
+      .input('ToLocId', sql.Int, ['PICK', 'LOAD'].includes(operation) ? null : (['TRANSFER', 'PUTAWAY'].includes(operation) ? targetLocation.LocationId : location.LocationId))
       .input('Qty', sql.Int, qty)
       .input('RefNo', sql.NVarChar, referenceNo || '')
-      .input('UserId', sql.Int, req.user.userId)
+      .input('UserId', sql.Int, req.user.id || req.user.userId)
       .query(`
         INSERT INTO StockTransactions (TransactionType, ProductId, FromLocationId, ToLocationId, Quantity, ReferenceNo, UserId)
         VALUES (@TxType, @ProdId, @FromLocId, @ToLocId, @Qty, @RefNo, @UserId)
@@ -132,7 +147,8 @@ router.post('/execute', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: `บันทึกรายการสำเร็จ! [${product.ItemCode}] จำนวน ${qty} ที่ ${location.LocationCode}`,
-      item: product
+      item: product,
+      stockQuantity
     });
 
   } catch (err) {

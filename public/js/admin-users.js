@@ -1,276 +1,344 @@
-/* ============================================================
-   admin-users.js — User Management & Dynamic Permissions Checkbox
-   ============================================================ */
+/* ==========================================================
+   admin-users.js — หน้า "จัดการผู้ใช้งาน" (เฉพาะ ADMIN)
+   ปรับปรุงให้รองรับโครงสร้างฐานข้อมูลจริง (UserId, FullName, IsActive, Permissions)
+   ========================================================== */
+(function () {
+  const API = '/api/users';
+  const FALLBACK_ROLES = [
+    { key: 'ADMIN',     badge: 'bg-danger',            name: 'ผู้ดูแลระบบสูงสุด' },
+    { key: 'POWERUSER', badge: 'bg-success',           name: 'Power User' },
+    { key: 'OPERATOR',  badge: 'bg-warning text-dark', name: 'เจ้าหน้าที่คลังสินค้า / Picker' }
+  ];
 
-let currentEditingUserId = null;
+  let users = [];
+  let demo = false;
+  let loaded = false;
+  const filt = { q: '', role: '', status: 'all' };
 
-// 1. โหลด รายการผู้ใช้งาน ทั้งหมดมาแสดงในตาราง
-// 1. โหลด รายการผู้ใช้งาน ทั้งหมดมาแสดงในตาราง
-async function loadUsers() {
-  const tbody = document.getElementById('usersTableBody');
-  if (!tbody) return;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const attr = v => esc(JSON.stringify(v));
+  const roleList = () => (typeof roles !== 'undefined' && Array.isArray(roles) && roles.length) ? roles : FALLBACK_ROLES;
+  const roleInfo = key => roleList().find(r => r.key === key) || { key, badge: 'bg-secondary', name: key };
+  const me = () => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) { return {}; } };
+  const isSelf = u => { const m = me(); return (m.id != null && String(m.id) === String(u.id)) || (m.userId != null && String(m.userId) === String(u.id)) || (m.username && m.username === u.username); };
+  const activeAdmins = () => users.filter(u => u.role === 'ADMIN' && u.active).length;
 
-  tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดข้อมูลผู้ใช้งาน...</td></tr>`;
+  const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2200, timerProgressBar: true });
 
-  try {
-    const res = await fetch('/api/users', { headers: authHeaders() });
-    const data = await res.json();
-    const list = Array.isArray(data) ? data : (data.data || []);
-
-    if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลผู้ใช้งานในระบบ</td></tr>`;
-      return;
+  /* ---------- API ---------- */
+  async function api(method, path, body) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(API + path, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) {
+      const err = new Error((data && (data.error || data.message)) || ('เกิดข้อผิดพลาด (' + res.status + ')'));
+      err.status = res.status;
+      throw err;
     }
-
-    tbody.innerHTML = list.map((u, i) => {
-      const roleBadge = u.Role === 'ADMIN' 
-        ? '<span class="badge bg-danger">ADMIN</span>' 
-        : '<span class="badge bg-secondary">OPERATOR</span>';
-
-      const statusBadge = u.IsActive 
-        ? '<span class="badge bg-success">ใช้งานปกติ</span>' 
-        : '<span class="badge bg-danger">ระงับใช้งาน</span>';
-
-      const isMasterAdmin = (u.Username || '').toLowerCase() === 'admin';
-      const fullNameText = u.FullName || u.Fullname || u.fullname || '-';
-
-      return `
-        <tr>
-          <td>${i + 1}</td>
-          <td><strong>${u.Username}</strong></td>
-          <td>${fullNameText}</td>
-          <td>${roleBadge}</td>
-          <td>${statusBadge}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUser('${u.UserId}')" title="แก้ไข"><i class="bi bi-pencil"></i></button>
-            ${!isMasterAdmin ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.UserId}')" title="ลบ"><i class="bi bi-trash"></i></button>` : '<span class="text-muted ms-2">-</span>'}
-          </td>
-        </tr>`;
-    }).join('');
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้งาน</td></tr>`;
-    console.error('loadUsers Error:', err);
+    return data;
   }
-}
 
-// 2. ดึงสิทธิ์ทั้งหมดจากตาราง Permissions (SQL Server) มาสร้าง Checkbox ใน Modal แบบ Dynamic
-async function loadPermissionsCheckboxes(assignedPerms = []) {
-  const container = document.getElementById('permissionsContainer');
-  if (!container) return;
+  function norm(u) {
+    const active = u.active ?? u.is_active ?? u.IsActive ?? (u.status ? String(u.status).toUpperCase() === 'ACTIVE' : true);
+    return {
+      id: u.UserId ?? u.user_id ?? u.id ?? u.username,
+      username: u.username ?? u.Username,
+      fullname: u.FullName ?? u.fullname ?? u.full_name ?? u.name ?? '',
+      role: String(u.role || u.Role || '').toUpperCase(),
+      active: !!(active === true || active === 1 || active === '1' || active === 'True'),
+      last_login: u.last_login ?? u.lastLogin ?? u.CreatedAt ?? null,
+      permissions: u.permissions ?? u.Permissions ?? 'RECEIVE,PUTAWAY'
+    };
+  }
 
-  container.innerHTML = `<div class="text-muted small py-2"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดรายการสิทธิ์จากฐานข้อมูล...</div>`;
+  function sample() {
+    return [
+      { UserId: 3, Username: 'admin', FullName: 'ผู้ดูแลระบบ', Role: 'ADMIN', IsActive: true, CreatedAt: '2026-10-30T10:00:00', Permissions: 'ALL' },
+      { UserId: 4, Username: 'picker01', FullName: 'picker01', Role: 'OPERATOR', IsActive: true, CreatedAt: '2026-10-30T10:30:00', Permissions: 'RECEIVE,PUTAWAY' },
+      { UserId: 6, Username: 'picker02', FullName: 'picker02', Role: 'OPERATOR', IsActive: true, CreatedAt: '2026-10-30T20:15:00', Permissions: 'PUTAWAY' },
+      { UserId: 10, Username: 'poweruser', FullName: 'poweruser01', Role: 'POWERUSER', IsActive: true, CreatedAt: '2026-11-01T08:00:00', Permissions: 'ALL' }
+    ].map(norm);
+  }
 
-  try {
-    // 💡 ยิง API ไปดึงข้อมูลสดจากตาราง Permissions
-    const res = await fetch('/api/permissions/all', { headers: authHeaders() });
-    const data = await res.json();
-    const allMenus = Array.isArray(data) ? data : (data.data || []);
-
-    if (!allMenus.length) {
-      container.innerHTML = `<div class="text-danger small">ไม่พบข้อมูลสิทธิ์ในระบบ</div>`;
-      return;
+  /* ---------- โหลด / วาด ---------- */
+  async function loadUsers(force) {
+    fillRoleFilter();
+    if (loaded && !force) { render(); return; }
+    $('usersTableBody').innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr>';
+    try {
+      const d = await api('GET', '');
+      users = (Array.isArray(d) ? d : (d.users || d.data || [])).map(norm);
+      demo = false;
+    } catch (e) {
+      if (e.status === 401 && typeof logout === 'function') { logout(); return; }
+      if (e.status === 404 || e instanceof TypeError) {
+        demo = true; users = sample();
+      } else {
+        $('usersTableBody').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-danger mb-2">โหลดข้อมูลไม่สำเร็จ: ${esc(e.message)}</div><button class="btn btn-sm btn-outline-primary" onclick="loadUsers(true)">ลองอีกครั้ง</button></td></tr>`;
+        return;
+      }
     }
+    loaded = true;
+    render();
+  }
 
-    // แปลงสิทธิ์เดิมของผู้ใช้ให้อยู่ในรูปแบบ Array
-    let assignedList = [];
-    if (typeof assignedPerms === 'string') {
-      assignedList = assignedPerms.split(',').map(s => s.trim().toUpperCase());
-    } else if (Array.isArray(assignedPerms)) {
-      assignedList = assignedPerms.map(s => s.trim().toUpperCase());
+  function fillRoleFilter() {
+    const sel = $('userRoleFilter');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">ทุก Role</option>' + roleList().map(r => `<option value="${esc(r.key)}">${esc(r.key)}</option>`).join('');
+    sel.value = cur;
+  }
+
+  function syncRoleCounts() {
+    if (typeof roles !== 'undefined' && Array.isArray(roles)) {
+      roles.forEach(r => { r.users = users.filter(u => u.role === r.key).length; });
+      if (typeof renderRoles === 'function') renderRoles();
     }
-
-    // สร้าง Checkbox 2 คอลัมน์ แบบไดนามิกตามจำนวนสิทธิ์ในฐานข้อมูลจริง (RECEIVE, PICK, CHECK, TRANSFER, LOAD, PUTAWAY ฯลฯ)
-    container.innerHTML = `
-      <div class="row g-2">
-        ${allMenus.map(menu => {
-          const code = (menu.PermissionCode || '').trim().toUpperCase();
-          const name = menu.PermissionName || code;
-          
-          // ตรวจสอบว่าผู้ใช้มีสิทธิ์นี้อยู่แล้วหรือไม่ เพื่อติ๊ก Checked
-          const isChecked = assignedList.includes(code) || assignedList.includes(name.toUpperCase()) ? 'checked' : '';
-          
-          return `
-            <div class="col-md-6">
-              <div class="form-check">
-                <input class="form-check-input perm-checkbox" type="checkbox" value="${code}" id="perm_${code}" ${isChecked}>
-                <label class="form-check-label fw-semibold" for="perm_${code}" style="cursor: pointer;">
-                  ${name}
-                </label>
-              </div>
-            </div>`;
-        }).join('')}
-      </div>`;
-  } catch (err) {
-    container.innerHTML = `<div class="text-danger small">เกิดข้อผิดพลาดในการโหลดสิทธิ์จากเซิร์ฟเวอร์</div>`;
-    console.error('loadPermissionsCheckboxes Error:', err);
-  }
-}
-
-// 3. ควบคุมการซ่อน/แสดง ส่วนกำหนดสิทธิ์ Handheld ตามบทบาท (ADMIN ให้ซ่อน, OPERATOR ให้แสดง)
-function syncPermVisibility() {
-  const roleSelect = document.getElementById('modalRole');
-  const permSection = document.getElementById('permSection');
-  if (roleSelect && permSection) {
-    permSection.style.display = roleSelect.value === 'OPERATOR' ? 'block' : 'none';
-  }
-}
-
-// 4. เปิด Modal เพิ่มผู้ใช้งานใหม่
-function openAddUser() {
-  currentEditingUserId = null;
-  document.getElementById('userModalTitle').textContent = 'เพิ่มผู้ใช้งานใหม่';
-  
-  const usernameInput = document.getElementById('modalUsername');
-  usernameInput.value = '';
-  usernameInput.disabled = false;
-  
-  document.getElementById('modalFullname').value = '';
-  document.getElementById('modalPassword').value = '';
-  document.getElementById('modalRole').value = 'OPERATOR';
-  document.getElementById('modalStatus').value = '1';
-  
-  syncPermVisibility();
-  loadPermissionsCheckboxes([]); // โหลด Checkbox เปล่า
-
-  const modal = new bootstrap.Modal(document.getElementById('userModal'));
-  modal.show();
-}
-
-// 5. เปิด Modal แก้ไขผู้ใช้งานเดิม
-async function openEditUser(id) {
-  currentEditingUserId = id;
-  document.getElementById('userModalTitle').textContent = 'แก้ไขข้อมูลผู้ใช้งาน';
-  
-  const usernameInput = document.getElementById('modalUsername');
-  usernameInput.disabled = true;
-
-  try {
-    const res = await fetch(`/api/users/${id}`, { headers: authHeaders() });
-    const json = await res.json();
-    
-    // 💡 แก้ไขจุดสำคัญ: ดึง json.user ตามที่ routes/users.js ส่งมา
-    const user = json.user || json.data || json;
-
-    if (!user) {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'ไม่พบข้อมูลผู้ใช้งานนี้ในระบบ' });
-      return;
-    }
-
-    // เติมข้อมูลลงฟอร์ม
-    usernameInput.value = user.Username || user.username || '';
-    document.getElementById('modalFullname').value = user.Fullname || user.FullName || user.fullname || '';
-    document.getElementById('modalPassword').value = ''; 
-    document.getElementById('modalRole').value = user.Role || user.role || 'OPERATOR';
-    
-    const statusValue = (user.Status !== undefined) ? user.Status : (user.IsActive ? 1 : 0);
-    document.getElementById('modalStatus').value = String(statusValue);
-
-    syncPermVisibility();
-    
-    // ดึงสิทธิ์เดิมของผู้ใช้ส่งให้ Checkbox (รองรับทั้ง Array และ String)
-    const userPerms = user.Permissions || user.permissions || [];
-    loadPermissionsCheckboxes(userPerms);
-
-    const modal = new bootstrap.Modal(document.getElementById('userModal'));
-    modal.show();
-  } catch (err) {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้' });
-    console.error('openEditUser Error:', err);
-  }
-}
-
-// 6. บันทึกข้อมูลผู้ใช้งาน (Create / Update)
-async function saveUser() {
-  const username = document.getElementById('modalUsername').value.trim();
-  const fullname = document.getElementById('modalFullname').value.trim();
-  const password = document.getElementById('modalPassword').value.trim();
-  const role = document.getElementById('modalRole').value;
-  const isActive = document.getElementById('modalStatus').value === '1';
-
-  if (!username && !currentEditingUserId) {
-    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณากรอกชื่อผู้ใช้ (Username)' });
-    return;
   }
 
-  // รวบรวมสิทธิ์ที่ถูกเลือกจาก Checkbox
-  let permissions = [];
-  if (role === 'OPERATOR') {
-    const checkboxes = document.querySelectorAll('.perm-checkbox:checked');
-    checkboxes.forEach(cb => permissions.push(cb.value));
-  } else {
-    permissions = ['ALL']; // สำหรับ ADMIN
-  }
-
-  const payload = {
-    username,
-    fullname,
-    role,
-    isActive,
-    permissions: permissions.join(',') // แปลง Array เป็น Comma-separated String
+  const COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+  const colorOf = s => COLORS[[...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
+  const fmtTime = t => {
+    if (!t) return '<span class="text-muted">ยังไม่เคยเข้าใช้</span>';
+    const d = new Date(t);
+    return isNaN(d) ? esc(t) : d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
   };
 
-  if (password) payload.password = password;
+  function render() {
+    const banner = $('demoBanner');
+    if (banner) banner.classList.toggle('d-none', !demo);
 
-  try {
-    const url = currentEditingUserId ? `/api/users/${currentEditingUserId}` : '/api/users';
-    const method = currentEditingUserId ? 'PUT' : 'POST';
+    const total = users.length, on = users.filter(u => u.active).length;
+    const chipContainer = $('userChips');
+    if (chipContainer) {
+      const chip = (k, label, n) => `<button type="button" class="chip ${filt.status === k ? 'on' : ''}" onclick="userSetStatus('${k}')">${label}<b>${n}</b></button>`;
+      chipContainer.innerHTML = chip('all', 'ทั้งหมด', total) + chip('active', 'ใช้งานอยู่', on) + chip('off', 'ถูกระงับ', total - on);
+    }
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    const q = filt.q.trim().toLowerCase();
+    const list = users.filter(u =>
+      (!filt.role || u.role === filt.role) &&
+      (filt.status === 'all' || (filt.status === 'active') === u.active) &&
+      (!q || (u.username + ' ' + u.fullname + ' ' + u.role).toLowerCase().includes(q))
+    );
 
-    if (!res.ok) {
-      Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: data.message || 'เกิดข้อผิดพลาดในการบันทึก' });
+    if (!list.length) {
+      $('usersTableBody').innerHTML = `<tr><td colspan="7"><div class="empty-state"><div style="font-size:2.5rem">🔍</div>
+        <div class="fw-semibold mt-1">${total ? 'ไม่พบผู้ใช้ที่ตรงกับตัวกรอง' : 'ยังไม่มีผู้ใช้งาน'}</div>
+        <div class="small text-muted mb-2">${total ? 'ลองล้างตัวกรองหรือเปลี่ยนคำค้นหา' : 'เริ่มจากกด "เพิ่มผู้ใช้"'}</div>
+        ${total ? '<button class="btn btn-sm btn-outline-secondary" onclick="userClearFilters()">ล้างตัวกรอง</button>' : '<button class="btn btn-indigo btn-sm" onclick="openAddUser()">เพิ่มผู้ใช้</button>'}
+      </div></td></tr>`;
       return;
     }
 
-    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'บันทึกข้อมูลผู้ใช้งานเรียบร้อย', timer: 1500, showConfirmButton: false });
-    
-    const modalEl = document.getElementById('userModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if (modal) modal.hide();
+    $('usersTableBody').innerHTML = list.map(u => {
+      const r = roleInfo(u.role), self = isSelf(u);
+      const ini = (u.fullname || u.username || '?').trim().charAt(0).toUpperCase();
+      const isAdminUser = u.role === 'ADMIN' || u.username.toLowerCase() === 'admin';
 
-    loadUsers();
-  } catch (err) {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์' });
-    console.error('saveUser Error:', err);
+      const statusActionBtn = isAdminUser
+        ? `<button class="btn btn-sm btn-outline-secondary" disabled title="ไม่อนุญาตให้ระงับบัญชีผู้ดูแลระบบสูงสุด" aria-label="ระงับไม่ได้"><i class="bi bi-shield-lock"></i></button>`
+        : `<div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+             <input class="form-check-input" type="checkbox" role="switch" style="width:2.6em;height:1.4em" ${u.active ? 'checked' : ''} ${self ? 'disabled title="ไม่สามารถระงับบัญชีของตัวเอง"' : ''}
+               onchange="userToggle(${attr(u.id)}, this.checked)" aria-label="เปิด/ระงับบัญชี">
+             <span class="small ${u.active ? 'text-success' : 'text-muted'}">${u.active ? 'Active' : 'Inactive'}</span>
+           </div>`;
+
+      return `<tr class="${u.active ? '' : 'row-off'}">
+        <td>${u.id}</td>
+        <td><div class="user-cell">
+          <div class="avatar" style="background:${colorOf(u.username)}">${esc(ini)}</div>
+          <div><div class="fw-semibold">${esc(u.fullname || u.username)}${self ? ' <span class="badge bg-light text-dark border ms-1">คุณ</span>' : ''}</div>
+          <div class="text-muted small">@${esc(u.username)}</div></div></div></td>
+        <td><span class="badge ${esc(r.badge)}">${esc(u.role)}</span><div class="text-muted small d-none d-md-block">${esc(r.name || '')}</div></td>
+        <td><code>${esc(u.permissions || '-')}</code></td>
+        <td>${statusActionBtn}</td>
+        <td class="small">${fmtTime(u.last_login)}</td>
+        <td class="text-end text-nowrap">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick="userEdit(${attr(u.id)})" title="แก้ไข" aria-label="แก้ไข"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-warning" onclick="userReset(${attr(u.id)})" title="รีเซ็ตรหัสผ่าน" aria-label="รีเซ็ตรหัสผ่าน"><i class="bi bi-key"></i></button>
+        </td></tr>`;
+    }).join('');
+
+    syncRoleCounts();
   }
-}
 
-// 7. ลบผู้ใช้งาน
-async function deleteUser(id) {
-  const result = await Swal.fire({
-    title: 'ยืนยันการลบผู้ใช้งาน?',
-    text: 'เมื่อลบแล้วจะไม่สามารถกู้คืนข้อมูลผู้ใช้คนนี้ได้',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'ลบข้อมูล',
-    cancelButtonText: 'ยกเลิก'
-  });
+  /* ---------- ตัวกรอง ---------- */
+  window.userFilter = (k, v) => { filt[k] = v; render(); };
+  window.userSetStatus = s => { filt.status = s; render(); };
+  window.userClearFilters = () => {
+    filt.q = ''; filt.role = ''; filt.status = 'all';
+    const s1 = $('userSearch'), s2 = $('userRoleFilter');
+    if (s1) s1.value = ''; if (s2) s2.value = '';
+    render();
+  };
 
-  if (!result.isConfirmed) return;
+  /* ---------- สร้างรหัสผ่านสุ่ม ---------- */
+  function genPassword(len = 10) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    const a = new Uint32Array(len); crypto.getRandomValues(a);
+    return [...a].map(n => chars[n % chars.length]).join('');
+  }
 
-  try {
-    const res = await fetch(`/api/users/${id}`, {
-      method: 'DELETE',
-      headers: authHeaders()
+  /* ---------- ฟอร์มเพิ่ม/แก้ไข ---------- */
+  function formHtml(u) {
+    const edit = !!u;
+    const opts = roleList().map(r => `<option value="${esc(r.key)}" ${u && u.role === r.key ? 'selected' : ''}>${esc(r.key)} — ${esc(r.name || '')}</option>`).join('');
+    const self = edit && isSelf(u);
+    return `
+      <div class="text-start">
+        <div class="mb-3">
+          <label class="form-label-wms" for="uf-username">ชื่อผู้ใช้ (Username)</label>
+          <input id="uf-username" class="form-control" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="เช่น picker03" value="${esc(u ? u.username : '')}" ${edit ? 'disabled' : ''}>
+          <div class="hint">${edit ? 'ชื่อผู้ใช้เปลี่ยนไม่ได้' : 'a-z, 0-9, จุด ขีดกลาง หรือขีดล่าง • 3–20 ตัว'}</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label-wms" for="uf-fullname">ชื่อ-นามสกุล (Full Name)</label>
+          <input id="uf-fullname" class="form-control" autocomplete="off" placeholder="เช่น สมชาย ใจดี" value="${esc(u ? u.fullname : '')}">
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label-wms" for="uf-role">Role (สิทธิ์)</label>
+            <select id="uf-role" class="form-select" ${self ? 'disabled' : ''}>${opts}</select>
+          </div>
+          <div class="col-6">
+            <label class="form-label-wms" for="uf-permissions">Permissions</label>
+            <input id="uf-permissions" class="form-control" placeholder="เช่น RECEIVE,PUTAWAY" value="${esc(u ? u.permissions : 'RECEIVE,PUTAWAY')}">
+          </div>
+        </div>
+        ${edit ? '' : `
+        <div class="mb-1">
+          <label class="form-label-wms" for="uf-pass">รหัสผ่านเริ่มต้น (Password)</label>
+          <div class="input-group">
+            <input id="uf-pass" type="text" class="form-control" autocomplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+            <button type="button" class="btn btn-outline-secondary" id="uf-gen" title="สุ่มรหัสผ่านให้"><i class="bi bi-magic me-1"></i>สุ่มให้</button>
+          </div>
+          <div class="hint">แจ้งรหัสนี้ให้พนักงาน แล้วแนะนำให้เปลี่ยนหลังเข้าใช้ครั้งแรก</div>
+        </div>`}
+      </div>`;
+  }
+
+  function openForm(u) {
+    const edit = !!u;
+    Swal.fire({
+      title: edit ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่',
+      html: formHtml(u),
+      showCancelButton: true, confirmButtonText: edit ? 'บันทึก' : 'เพิ่มผู้ใช้', cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#4f46e5', focusConfirm: false, showLoaderOnConfirm: true,
+      didOpen: () => {
+        const g = $('uf-gen');
+        if (g) g.onclick = () => { $('uf-pass').value = genPassword(); };
+        const f = edit ? $('uf-fullname') : $('uf-username'); f && f.focus();
+        Swal.getHtmlContainer().querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Swal.clickConfirm(); } }));
+      },
+      preConfirm: async () => {
+        const username = edit ? u.username : $('uf-username').value.trim().toLowerCase();
+        const fullname = $('uf-fullname').value.trim();
+        const role = edit && isSelf(u) ? u.role : $('uf-role').value;
+        const permissions = $('uf-permissions').value.trim();
+        const password = edit ? null : $('uf-pass').value;
+
+        if (!edit) {
+          if (!/^[a-z0-9._-]{3,20}$/.test(username)) return Swal.showValidationMessage('ชื่อผู้ใช้ต้องเป็น a-z 0-9 . _ - ยาว 3–20 ตัว');
+          if (users.some(x => x.username.toLowerCase() === username)) return Swal.showValidationMessage('ชื่อผู้ใช้นี้มีอยู่แล้ว');
+        }
+        if (!fullname) return Swal.showValidationMessage('กรุณากรอกชื่อ-นามสกุล');
+        if (!edit && (!password || password.length < 6)) return Swal.showValidationMessage('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+        if (edit && u.role === 'ADMIN' && role !== 'ADMIN' && u.active && activeAdmins() <= 1)
+          return Swal.showValidationMessage('ต้องมีผู้ดูแลระบบ (ADMIN) ที่ใช้งานอยู่อย่างน้อย 1 คน');
+
+        try {
+          if (edit) {
+            if (!demo) await api('PUT', '/' + encodeURIComponent(u.id), { fullname, role, permissions });
+            u.fullname = fullname; u.role = role; u.permissions = permissions;
+          } else {
+            let created = null;
+            if (!demo) created = await api('POST', '', { username, fullname, role, password, permissions });
+            users.unshift(norm({ ...(created && typeof created === 'object' ? created : {}), UserId: (created && (created.UserId || created.id)) ?? Date.now(), Username: username, FullName: fullname, Role: role, IsActive: true, Permissions: permissions }));
+          }
+        } catch (e) {
+          return Swal.showValidationMessage(e.message);
+        }
+        return true;
+      }
+    }).then(r => {
+      if (r.isConfirmed) { Toast.fire({ icon: 'success', title: edit ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มผู้ใช้เรียบร้อย' }); render(); }
     });
-    const data = await res.json();
+  }
 
-    if (!res.ok) {
-      Swal.fire({ icon: 'error', title: 'ลบไม่สำเร็จ', text: data.message || 'เกิดข้อผิดพลาด' });
+  window.openAddUser = () => openForm(null);
+  window.userEdit = id => { const u = users.find(x => String(x.id) === String(id)); if (u) openForm(u); };
+
+  /* ---------- เปิด/ระงับบัญชี ---------- */
+  window.userToggle = async (id, active) => {
+    const u = users.find(x => String(x.id) === String(id));
+    if (!u) return;
+    if (isSelf(u)) { render(); return; }
+    if (u.role === 'ADMIN' || u.username.toLowerCase() === 'admin') {
+      render();
+      Swal.fire({ icon: 'error', title: 'ไม่สามารถระงับบัญชีนี้ได้', text: 'ไม่อนุญาตให้ระงับบัญชีผู้ดูแลระบบสูงสุด (ADMIN)', confirmButtonColor: '#4f46e5' });
       return;
     }
+    if (!active && u.role === 'ADMIN' && activeAdmins() <= 1) {
+      render();
+      Swal.fire({ icon: 'warning', title: 'ระงับไม่ได้', text: 'ต้องมีผู้ดูแลระบบ (ADMIN) ที่ใช้งานอยู่อย่างน้อย 1 คน', confirmButtonColor: '#4f46e5' });
+      return;
+    }
+    if (!active) {
+      const r = await Swal.fire({
+        icon: 'question', title: `ระงับบัญชี @${u.username}?`,
+        text: 'ผู้ใช้จะเข้าสู่ระบบไม่ได้ แต่ประวัติการสแกนยังอยู่ครบ และเปิดใช้งานใหม่ได้ทุกเมื่อ',
+        showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ระงับบัญชี', cancelButtonText: 'ยกเลิก'
+      });
+      if (!r.isConfirmed) { render(); return; }
+    }
+    try {
+      if (!demo) await api('PATCH', '/' + encodeURIComponent(u.id) + '/status', { active });
+      u.active = active;
+      Toast.fire({ icon: 'success', title: active ? 'เปิดใช้งานบัญชีแล้ว' : 'ระงับบัญชีแล้ว' });
+    } catch (e) {
+      Swal.fire({ icon: 'error', title: 'ทำรายการไม่สำเร็จ', text: e.message, confirmButtonColor: '#4f46e5' });
+    }
+    render();
+  };
 
-    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ลบผู้ใช้งานเรียบร้อย', timer: 1500, showConfirmButton: false });
-    loadUsers();
-  } catch (err) {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
-    console.error('deleteUser Error:', err);
-  }
-}
+  /* ---------- รีเซ็ตรหัสผ่าน ---------- */
+  window.userReset = async id => {
+    const u = users.find(x => String(x.id) === String(id));
+    if (!u) return;
+    const c = await Swal.fire({
+      icon: 'question', title: `รีเซ็ตรหัสผ่าน @${u.username}?`,
+      text: 'ระบบจะสร้างรหัสผ่านชั่วคราวใหม่ให้ รหัสเดิมจะใช้ไม่ได้ทันที',
+      showCancelButton: true, confirmButtonColor: '#d97706', confirmButtonText: 'รีเซ็ตรหัสผ่าน', cancelButtonText: 'ยกเลิก',
+      showLoaderOnConfirm: true,
+      preConfirm: async () => {
+        const pw = genPassword();
+        try { if (!demo) await api('POST', '/' + encodeURIComponent(u.id) + '/reset-password', { password: pw }); return pw; }
+        catch (e) { Swal.showValidationMessage(e.message); return false; }
+      }
+    });
+    if (!c.isConfirmed) return;
+    const pw = c.value;
+    await Swal.fire({
+      icon: 'success', title: 'รีเซ็ตรหัสผ่านแล้ว',
+      html: `<div class="small text-muted mb-2">รหัสผ่านชั่วคราวของ <b>@${esc(u.username)}</b><br>แสดงครั้งเดียว กรุณาคัดลอกและแจ้งผู้ใช้</div>
+             <div class="copy-box" id="pwBox">${esc(pw)}</div>`,
+      showCancelButton: true, confirmButtonText: '<i class="bi bi-clipboard me-1"></i>คัดลอก', cancelButtonText: 'ปิด',
+      confirmButtonColor: '#4f46e5', allowOutsideClick: false,
+      preConfirm: async () => {
+        try { await navigator.clipboard.writeText(pw); Toast.fire({ icon: 'success', title: 'คัดลอกแล้ว' }); }
+        catch (_) { const r = document.createRange(); r.selectNode($('pwBox')); getSelection().removeAllRanges(); getSelection().addRange(r); Toast.fire({ icon: 'info', title: 'เลือกข้อความแล้ว กด Ctrl+C' }); }
+        return false;
+      }
+    });
+  };
+
+  window.loadUsers = loadUsers;
+})();

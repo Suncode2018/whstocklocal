@@ -5,21 +5,32 @@ const { poolPromise, sql } = require('../config/db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_local_warehouse_jwt_key_2026';
 
-function requireAdmin(req, res, next) {
+function authenticate(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'กรุณาเข้าสู่ระบบ' });
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ success: false, message: 'เซสชันหมดอายุ' });
-    if (user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'เฉพาะ ADMIN เท่านั้น' });
     req.user = user;
     next();
   });
 }
 
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'เฉพาะ ADMIN เท่านั้น' });
+  next();
+}
+
+function requireAdminOrPowerUser(req, res, next) {
+  if (!['ADMIN', 'POWERUSER'].includes(req.user?.role)) {
+    return res.status(403).json({ success: false, message: 'เฉพาะ ADMIN หรือ POWERUSER เท่านั้น' });
+  }
+  next();
+}
+
 // GET /api/locations (ดึงรายการโลเคชั่นทั้งหมด)
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', authenticate, requireAdminOrPowerUser, async (req, res) => {
   try {
     const pool = await poolPromise;
     const result = await pool.request().query(`
@@ -34,8 +45,11 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 // POST /api/locations (เพิ่มโลเคชั่นใหม่)
-router.post('/', requireAdmin, async (req, res) => {
-  const { code, zone, desc, isActive } = req.body;
+router.post('/', authenticate, requireAdminOrPowerUser, async (req, res) => {
+  const code = req.body.locationCode || req.body.code;
+  const zone = req.body.zone;
+  const desc = req.body.description || req.body.desc;
+  const { isActive } = req.body;
   if (!code) return res.status(400).json({ success: false, message: 'กรุณากรอกรหัสโลเคชั่น' });
 
   const activeVal = (isActive !== undefined) ? (isActive ? 1 : 0) : 1;
@@ -67,9 +81,10 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/locations/:id (แก้ไขโลเคชั่น)
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', authenticate, requireAdminOrPowerUser, async (req, res) => {
   const locId = parseInt(req.params.id);
-  const { zone, desc, isActive } = req.body;
+  const { zone, isActive } = req.body;
+  const desc = req.body.description || req.body.desc;
   const activeVal = (isActive !== undefined) ? (isActive ? 1 : 0) : 1;
 
   if (isNaN(locId)) return res.status(400).json({ success: false, message: 'รหัสโลเคชั่นไม่ถูกต้อง' });
@@ -94,7 +109,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/locations/:id (ลบโลเคชั่น)
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   const locId = parseInt(req.params.id);
   if (isNaN(locId)) return res.status(400).json({ success: false, message: 'รหัสโลเคชั่นไม่ถูกต้อง' });
 

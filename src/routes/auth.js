@@ -1,81 +1,80 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { poolPromise, sql } = require('../config/db');
+const sql = require('mssql');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken'); // หรือระบบจัดการ Session ที่คุณใช้
+
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_DATABASE,
+  port: parseInt(process.env.DB_PORT) || 1433,
+  options: {
+    encrypt: process.env.DB_ENCRYPT === 'true' || false,
+    enableArithAbort: true,
+    trustServerCertificate: true
+  }
+};
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_local_warehouse_jwt_key_2026';
 
-// POST /api/auth/login
+// API Login
 router.post('/login', async (req, res) => {
-  const username = (req.body.username || '').trim();
-  const password = req.body.password || '';
-
-  if (!username || !password) {
-    return res.status(400).json({ success: false, message: 'กรุณากรอก Username และ Password' });
-  }
-
   try {
-    const pool = await poolPromise;
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
+    }
+
+    const pool = await sql.connect(dbConfig);
     const result = await pool.request()
-      .input('Username', sql.NVarChar, username)
-      .query('SELECT * FROM Users WHERE LOWER(Username) = LOWER(@Username)');
+      .input('Username', sql.VarChar, username)
+      .query("SELECT UserId, Username, PasswordHash, FullName = COALESCE(NULLIF(LTRIM(RTRIM(FullName)), N''), Username), Role, IsActive, Permissions FROM Users WHERE Username = @Username");
 
     if (result.recordset.length === 0) {
-      return res.status(401).json({ success: false, message: 'ไม่พบบัญชีผู้ใช้นี้ในระบบ' });
+      return res.status(401).json({ error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
     }
 
     const user = result.recordset[0];
-    if (user.IsActive === false || user.IsActive === 0) {
-      return res.status(403).json({ success: false, message: 'บัญชีผู้ใช้นี้ถูกระงับการใช้งาน' });
+
+    if (!user.IsActive) {
+      return res.status(403).json({ error: 'บัญชีนี้ถูกปิดใช้งาน' });
     }
 
-    let isMatch = false;
-    try {
-      if (user.PasswordHash) {
-        isMatch = await bcrypt.compare(password, user.PasswordHash);
-      }
-    } catch (e) {
-      isMatch = false;
+    // ตรวจสอบรหัสผ่าน (เทียบกับ PasswordHash ในฐานข้อมูล)
+    const match = await bcrypt.compare(password, user.PasswordHash);
+    if (!match) {
+      return res.status(401).json({ error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
     }
 
-    if (!isMatch && (password === 'admin123' || user.PasswordHash === password)) {
-      isMatch = true;
-    }
+    // สร้าง Token หรือ Payload สำหรับส่งกลับไป
+    const tokenPayload = {
+      id: user.UserId,
+      username: user.Username,
+      fullname: user.Fullname,
+      role: user.Role,
+      permissions: user.Permissions || ''
+    };
 
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'รหัสผ่านไม่ถูกต้อง' });
-    }
-
-    const roleName = (user.Role || user.role || 'OPERATOR').toUpperCase();
-    const permissions = user.Permissions || 'RECEIVE,PICK,TRANSFER,LOOKUP';
-    const NINE_HOURS_IN_SECONDS = 9 * 60 * 60; // 32400 วินาที
-
-    const token = jwt.sign(
-      { 
-        userId: user.UserId || user.userId, 
-        username: user.Username || user.username, 
-        role: roleName, 
-        fullName: user.FullName || user.fullName || user.Username,
-        permissions: permissions
-      },
-      JWT_SECRET,
-      { expiresIn: NINE_HOURS_IN_SECONDS }
-    );
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '8h' });
 
     res.json({
       success: true,
-      token,
+      token: token,
       user: {
-        userId: user.UserId || user.userId,
-        username: user.Username || user.username,
-        fullName: user.FullName || user.fullName,
-        role: roleName,
-        permissions: permissions
+        id: user.UserId,
+        username: user.Username,
+        fullname: user.Fullname,
+        role: user.Role,
+        permissions: user.Permissions || ''
       }
     });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์: ' + err.message });
+    console.error('API Login Error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
   }
 });
 

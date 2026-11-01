@@ -3,168 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เข้าสู่ระบบ - ระบบสต็อกสินค้า</title>
+  <title>WH Stock System - เข้าสู่ระบบ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/wms.css">
-  <style>
-    body {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 50%, #3730a3 100%);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .login-card {
-      width: 100%; max-width: 420px;
-      background: #fff; border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-      overflow: hidden;
-    }
-    .login-header {
-      background: linear-gradient(135deg, #4f46e5, #4338ca);
-      padding: 2rem; text-align: center;
-    }
-    .login-body { padding: 2rem; }
-    .login-logo {
-      width: 64px; height: 64px;
-      background: linear-gradient(135deg, #fbbf24, #f59e0b);
-      border-radius: 16px;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 2rem; margin-bottom: 1rem;
-      box-shadow: 0 4px 15px rgba(251,191,36,.4);
-    }
-    .input-group-wms {
-      position: relative; margin-bottom: 1rem;
-    }
-    .input-group-wms .field-icon {
-      position: absolute; left: .9rem; top: 50%; transform: translateY(-50%);
-      color: #9ca3af; font-size: 1rem; z-index: 5;
-    }
-    .input-group-wms input {
-      padding-left: 2.5rem;
-      border: 1.5px solid #d1d5db;
-      border-radius: 10px;
-      font-size: .95rem;
-      height: 46px;
-      transition: border-color .2s, box-shadow .2s;
-    }
-    .input-group-wms input:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99,102,241,.15);
-      outline: none;
-    }
-    .btn-login {
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
-      color: #fff; border: none; border-radius: 10px;
-      height: 48px; font-size: 1rem; font-weight: 600;
-      width: 100%; transition: all .2s;
-    }
-    .btn-login:hover:not(:disabled) {
-      background: linear-gradient(135deg, #4f46e5, #4338ca);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(79,70,229,.4);
-    }
-    .btn-login:disabled { opacity: .7; cursor: not-allowed; }
-    .alert-login {
-      border-radius: 10px; font-size: .88rem; padding: .75rem 1rem;
-      display: none; margin-bottom: 1rem;
-    }
-    .msg-banner {
-      background: rgba(255,255,255,.15); border-radius: 8px;
-      color: #fff; font-size: .82rem; padding: .4rem .9rem;
-      margin-top: .5rem; display: none;
-    }
-  </style>
+  <link rel="stylesheet" href="/css/wms-friendly.css">
 </head>
-<body>
+<body class="login-body">
 
 <div class="login-card">
+  <div class="login-logo">📦</div>
+  <h3 class="fw-bold text-center mb-1">WH Stock System</h3>
+  <p class="text-muted text-center small mb-4">ระบบบริหารสต็อกคลังสินค้า</p>
 
-  <!-- Header -->
-  <div class="login-header">
-    <div class="login-logo">📦</div>
-    <h4 class="text-white fw-bold mb-1">WH Stock System</h4>
-    <p class="text-white mb-0" style="opacity:.8; font-size:.85rem">ระบบบริหารสต็อกคลังสินค้า</p>
-    <div class="msg-banner" id="msgBanner"></div>
+  <!-- แจ้งเตือนกรณีถูกดีดกลับ -->
+  <div id="alertBox" class="alert alert-warning py-2 small text-center d-none" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="alertText">ไม่มีสิทธิ์เข้าถึงหน้านี้</span>
   </div>
 
-  <!-- Body -->
-  <div class="login-body">
-    <p class="text-muted text-center mb-4" style="font-size:.9rem">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</p>
-
-    <!-- Alert error -->
-    <div class="alert alert-danger alert-login" id="errorAlert" role="alert">
-      <i class="bi bi-exclamation-circle me-2"></i>
-      <span id="errorMsg">Username หรือรหัสผ่านไม่ถูกต้อง</span>
+  <form onsubmit="handleLogin(event)" novalidate>
+    <div class="mb-3">
+      <label class="form-label-wms" for="username">ชื่อผู้ใช้</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-person"></i></span>
+        <input type="text" id="username" class="form-control form-control-wms" placeholder="กรอกชื่อผู้ใช้"
+               required autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" autofocus>
+      </div>
     </div>
 
-    <!-- Form -->
-    <form id="loginForm" onsubmit="handleLogin(event)">
-
-      <div class="input-group-wms">
-        <i class="bi bi-person field-icon"></i>
-        <input type="text" id="username" class="form-control" placeholder="Username" 
-               autocomplete="username" required autofocus>
+    <div class="mb-2">
+      <label class="form-label-wms" for="password">รหัสผ่าน</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+        <input type="password" id="password" class="form-control form-control-wms" placeholder="กรอกรหัสผ่าน"
+               required autocomplete="current-password">
+        <button type="button" class="btn pw-toggle" id="pwToggle" aria-label="แสดง/ซ่อนรหัสผ่าน" onclick="togglePw()">
+          <i class="bi bi-eye" id="pwIcon"></i>
+        </button>
       </div>
+      <div class="caps-warn" id="capsWarn"><i class="bi bi-exclamation-circle me-1"></i>ตัวอักษรใหญ่ (Caps Lock) เปิดอยู่</div>
+    </div>
 
-      <div class="input-group-wms">
-        <i class="bi bi-lock field-icon"></i>
-        <input type="password" id="password" class="form-control" placeholder="Password"
-               autocomplete="current-password" required>
-      </div>
+    <div class="form-check mb-4 mt-3">
+      <input class="form-check-input" type="checkbox" id="rememberMe">
+      <label class="form-check-label small text-muted" for="rememberMe">จำชื่อผู้ใช้ไว้ในเครื่องนี้</label>
+    </div>
 
-      <button type="submit" class="btn-login mt-2" id="btnLogin">
-        <span id="btnText"><i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ</span>
-        <span id="btnLoading" style="display:none">
-          <span class="spinner-border spinner-border-sm me-2"></span>กำลังตรวจสอบ...
-        </span>
-      </button>
+    <button type="submit" id="loginBtn" class="btn btn-indigo w-100 py-2 fw-bold" style="min-height:52px;font-size:1.05rem">
+      <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
+    </button>
+  </form>
 
-    </form>
-
-    <p class="text-center text-muted mt-4 mb-0" style="font-size:.78rem">
-      <i class="bi bi-shield-lock me-1"></i>ระบบนี้สำหรับพนักงานที่ได้รับอนุญาตเท่านั้น
-    </p>
+  <div class="text-center mt-4">
+    <small class="text-muted">ระบบนี้สำหรับพนักงานที่ได้รับอนุญาตเท่านั้น<br>ลืมรหัสผ่าน? แจ้งผู้ดูแลระบบ</small>
   </div>
-
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-  /* ── Show message from redirect (e.g. session expired) ── */
-  (function () {
-    const params = new URLSearchParams(window.location.search);
-    const msg = params.get('msg');
+  window.addEventListener('DOMContentLoaded', () => {
+    const msg = new URLSearchParams(location.search).get('msg');
     if (msg) {
-      const el = document.getElementById('msgBanner');
-      el.textContent = '⚠️ ' + decodeURIComponent(msg);
-      el.style.display = 'block';
+      document.getElementById('alertText').textContent = msg;
+      document.getElementById('alertBox').classList.remove('d-none');
     }
-    // If already logged in, redirect
-    const token = localStorage.getItem('token');
-    if (token) {
-      const role = localStorage.getItem('role');
-      window.location.href = role === 'ADMIN' ? '/admin.html' : '/handheld.html';
-    }
-  })();
+    try {
+      const saved = localStorage.getItem('wms_last_username');
+      if (saved) {
+        document.getElementById('username').value = saved;
+        document.getElementById('rememberMe').checked = true;
+        document.getElementById('password').focus();
+      }
+    } catch (_) {}
+    document.getElementById('password').addEventListener('keyup', e => {
+      document.getElementById('capsWarn').style.display =
+        (e.getModifierState && e.getModifierState('CapsLock')) ? 'block' : 'none';
+    });
+  });
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  function togglePw() {
+    const p = document.getElementById('password');
+    const show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    document.getElementById('pwIcon').className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+  }
 
+  function setLoading(on) {
+    const b = document.getElementById('loginBtn');
+    b.disabled = on;
+    b.innerHTML = on
+      ? '<span class="spinner-border spinner-border-sm me-2"></span>กำลังเข้าสู่ระบบ...'
+      : '<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ';
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
-    const errAlert = document.getElementById('errorAlert');
-    const errMsg   = document.getElementById('errorMsg');
-    const btnLogin = document.getElementById('btnLogin');
-    const btnText  = document.getElementById('btnText');
-    const btnLoad  = document.getElementById('btnLoading');
 
-    // Loading state
-    errAlert.style.display = 'none';
-    btnLogin.disabled = true;
-    btnText.style.display = 'none';
-    btnLoad.style.display  = 'inline';
+    if (!username || !password) {
+      Swal.fire({ icon: 'info', title: 'กรอกข้อมูลให้ครบ', text: 'กรุณากรอกทั้งชื่อผู้ใช้และรหัสผ่าน', confirmButtonColor: '#4f46e5' });
+      return;
+    }
 
+    setLoading(true);
     try {
-      const res  = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -172,41 +117,34 @@
       const data = await res.json();
 
       if (!res.ok) {
-        errMsg.textContent = data.error || 'Username หรือรหัสผ่านไม่ถูกต้อง';
-        errAlert.style.display = 'block';
+        setLoading(false);
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+        Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', confirmButtonColor: '#4f46e5', confirmButtonText: 'ลองอีกครั้ง' });
         return;
       }
 
-      /* ── Save session ── */
-      // ✅ แก้ใหม่ (อ่านจาก data.user ให้ตรงกับ API response)
-      const u = data.user || {};
-      localStorage.setItem('token',       data.token);
-      localStorage.setItem('role',        u.role        || '');
-      localStorage.setItem('username',    u.username    || username);
-      localStorage.setItem('fullname',    u.fullName    || '');
-      localStorage.setItem('permissions', u.permissions || '');
+      try {
+        if (document.getElementById('rememberMe').checked) localStorage.setItem('wms_last_username', username);
+        else localStorage.removeItem('wms_last_username');
+      } catch (_) {}
 
-      if ((u.role || '').toUpperCase() === 'ADMIN') {
-        window.location.href = '/admin.html';
-      } else {
-        window.location.href = '/handheld.html';
-      }
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      const role = data.user.role;
+      document.getElementById('loginBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>สำเร็จ กำลังเข้าสู่หน้าหลัก...';
+
+      if (role === 'ADMIN') location.href = '/admin.html';
+      else if (role === 'POWERUSER') location.href = '/poweruser.html';
+      else location.href = '/handheld.html';
 
     } catch (err) {
-      console.error('Login error:', err);
-      errMsg.textContent = 'ไม่สามารถเชื่อมต่อ server ได้ กรุณาลองใหม่';
-      errAlert.style.display = 'block';
-    } finally {
-      btnLogin.disabled = false;
-      btnText.style.display = 'inline';
-      btnLoad.style.display  = 'none';
+      console.error('Login Error:', err);
+      setLoading(false);
+      Swal.fire({ icon: 'error', title: 'เชื่อมต่อไม่ได้', text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', confirmButtonColor: '#4f46e5' });
     }
   }
-
-  /* ── Enter key support ── */
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('loginForm').requestSubmit();
-  });
 </script>
 </body>
 </html>

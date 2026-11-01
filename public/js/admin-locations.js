@@ -1,91 +1,99 @@
 /* ============================================================
-   admin-locations.js — Locations Master Management
+   admin-locations.js — จัดการข้อมูลโลเคชั่น (Locations Master)
    ============================================================ */
 
-let locationsList = [];
 let editingLocationId = null;
 
 async function loadLocationsMaster() {
   const tbody = document.getElementById('locationsTableBody');
   if (!tbody) return;
+
   tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr>`;
 
   try {
     const res = await fetch('/api/locations', { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'โหลดข้อมูลไม่สำเร็จ');
+    if (!res.ok) throw new Error('Failed to fetch locations');
+    const payload = await res.json();
+    const locations = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
 
-    locationsList = data.data || [];
-    renderLocationsTable(locationsList);
+    if (!Array.isArray(locations) || locations.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลโลเคชั่นในระบบ</td></tr>`;
+      return;
+    }
+
+    // ตรวจสอบสิทธิ์: เฉพาะ ADMIN เท่านั้นที่จะแสดงปุ่มลบ
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAdmin = currentUser.role === 'ADMIN';
+
+    tbody.innerHTML = locations.map((loc, index) => {
+      const locId = loc.LocationId || loc.Id;
+      const locationCode = loc.LocationCode || loc.Code || '';
+      const description = loc.Description || loc.Desc || '-';
+      const statusBadge = loc.IsActive !== false && loc.IsActive !== 0
+        ? '<span class="badge bg-success">Active</span>'
+        : '<span class="badge bg-secondary">Inactive</span>';
+
+      const deleteButton = isAdmin
+        ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteLocation(${locId})"><i class="bi bi-trash"></i></button>`
+        : '';
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td><strong class="text-dark">${locationCode}</strong></td>
+          <td>${loc.Zone || '-'}</td>
+          <td>${description}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick='openEditLocation(${JSON.stringify(loc)})'><i class="bi bi-pencil"></i></button>
+            ${deleteButton}
+          </td>
+        </tr>
+      `;
+    }).join('');
   } catch (err) {
-    console.error(err);
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">โหลดข้อมูลโลเคชั่นไม่สำเร็จ</td></tr>`;
+    console.error('loadLocationsMaster Error:', err);
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">โหลดข้อมูลไม่สำเร็จ</td></tr>`;
   }
-}
-
-function renderLocationsTable(items) {
-  const tbody = document.getElementById('locationsTableBody');
-  if (!tbody) return;
-
-  // ✅ แก้ไขให้ตรวจสอบ items.length ให้ถูกต้อง
-  if (!items || items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลโลเคชั่น</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = items.map((loc, idx) => `
-    <tr>
-      <td>${idx + 1}</td>
-      <td><strong>${loc.LocationCode}</strong></td>
-      <td><span class="badge bg-secondary">${loc.Zone || '-'}</span></td>
-      <td>${loc.Description || '-'}</td>
-      <td>
-        <span class="badge bg-${loc.IsActive ? 'success' : 'danger'}">
-          ${loc.IsActive ? 'Active' : 'Inactive'}
-        </span>
-      </td>
-      <td>
-        <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditLocation(${loc.LocationId})"><i class="bi bi-pencil"></i></button>
-        <button class="btn btn-sm btn-outline-danger" onclick="deleteLocation(${loc.LocationId}, '${loc.LocationCode}')"><i class="bi bi-trash"></i></button>
-      </td>
-    </tr>
-  `).join('');
 }
 
 function openAddLocation() {
   editingLocationId = null;
-  document.getElementById('locModalTitle').textContent = 'เพิ่มโลเคชั่นใหม่';
-  document.getElementById('modalLocCode').value = '';
-  document.getElementById('modalLocCode').disabled = false;
-  document.getElementById('modalLocZone').value = '';
-  document.getElementById('modalLocDesc').value = '';
-  document.getElementById('modalLocStatus').value = '1';
+  let modalEl = document.getElementById('locationModal');
+  if (!modalEl) { createLocationModalDOM(); modalEl = document.getElementById('locationModal'); }
 
-  new bootstrap.Modal(document.getElementById('locationModal')).show();
+  document.getElementById('locationModalTitle').textContent = 'เพิ่มโลเคชั่นใหม่';
+  document.getElementById('modalLocationCode').value = '';
+  document.getElementById('modalLocationCode').disabled = false;
+  document.getElementById('modalLocationZone').value = '';
+  document.getElementById('modalLocationDesc').value = '';
+  document.getElementById('modalLocationStatus').value = '1';
+
+  new bootstrap.Modal(modalEl).show();
 }
 
-async function openEditLocation(id) {
-  const loc = locationsList.find(l => l.LocationId === id);
-  if (!loc) return;
+function openEditLocation(loc) {
+  editingLocationId = loc.LocationId || loc.Id;
+  let modalEl = document.getElementById('locationModal');
+  if (!modalEl) { createLocationModalDOM(); modalEl = document.getElementById('locationModal'); }
 
-  editingLocationId = id;
-  document.getElementById('locModalTitle').textContent = 'แก้ไขโลเคชั่น';
-  document.getElementById('modalLocCode').value = loc.LocationCode;
-  document.getElementById('modalLocCode').disabled = true; // ห้ามแก้รหัสหลัก
-  document.getElementById('modalLocZone').value = loc.Zone || '';
-  document.getElementById('modalLocDesc').value = loc.Description || '';
-  document.getElementById('modalLocStatus').value = loc.IsActive ? '1' : '0';
+  document.getElementById('locationModalTitle').textContent = 'แก้ไขโลเคชั่น: ' + (loc.LocationCode || loc.Code);
+  document.getElementById('modalLocationCode').value = loc.LocationCode || loc.Code || '';
+  document.getElementById('modalLocationCode').disabled = true;
+  document.getElementById('modalLocationZone').value = loc.Zone || '';
+  document.getElementById('modalLocationDesc').value = loc.Description || '';
+  document.getElementById('modalLocationStatus').value = (loc.IsActive !== false && loc.IsActive !== 0) ? '1' : '0';
 
-  new bootstrap.Modal(document.getElementById('locationModal')).show();
+  new bootstrap.Modal(modalEl).show();
 }
 
 async function saveLocation() {
-  const code = document.getElementById('modalLocCode').value.trim();
-  const zone = document.getElementById('modalLocZone').value.trim();
-  const desc = document.getElementById('modalLocDesc').value.trim();
-  const isActive = document.getElementById('modalLocStatus').value === '1';
+  const code = document.getElementById('modalLocationCode').value.trim();
+  const zone = document.getElementById('modalLocationZone').value.trim();
+  const description = document.getElementById('modalLocationDesc').value.trim();
+  const isActive = document.getElementById('modalLocationStatus').value === '1';
 
-  if (!code && !editingLocationId) {
+  if (!code) {
     Swal.fire('แจ้งเตือน', 'กรุณากรอกรหัสโลเคชั่น', 'warning');
     return;
   }
@@ -96,30 +104,42 @@ async function saveLocation() {
   try {
     const res = await fetch(url, {
       method: method,
-      headers: authHeaders(),
-      body: JSON.stringify({ code, zone, desc, isActive })
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ locationCode: code, zone, description, desc: description, isActive })
     });
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+    if (!res.ok) {
+      Swal.fire('ผิดพลาด', data.error || 'บันทึกไม่สำเร็จ', 'error');
+      return;
+    }
 
-    Swal.fire({ title: 'สำเร็จ', text: data.message, icon: 'success', timer: 1500, showConfirmButton: false });
-    bootstrap.Modal.getInstance(document.getElementById('locationModal')).hide();
+    const modalEl = document.getElementById('locationModal');
+    if (modalEl) {
+      const modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (modalInstance) modalInstance.hide();
+    }
+
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
     loadLocationsMaster();
   } catch (err) {
-    Swal.fire('Error', err.message, 'error');
+    console.error('saveLocation Error:', err);
+    Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 }
 
-async function deleteLocation(id, code) {
+async function deleteLocation(id) {
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  if (currentUser.role !== 'ADMIN') {
+    Swal.fire('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถลบข้อมูลได้', 'warning');
+    return;
+  }
+
   const r = await Swal.fire({
-    title: `ลบโลเคชั่น [${code}]?`,
-    text: 'การกระทำนี้ไม่สามารถย้อนกลับได้',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ลบ',
-    cancelButtonText: 'ยกเลิก'
+    title: 'ยืนยันการลบ?', text: 'คุณต้องการลบโลเคชั่นนี้ใช่หรือไม่',
+    icon: 'warning', showCancelButton: true,
+    confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280',
+    confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก'
   });
 
   if (!r.isConfirmed) return;
@@ -127,11 +147,54 @@ async function deleteLocation(id, code) {
   try {
     const res = await fetch(`/api/locations/${id}`, { method: 'DELETE', headers: authHeaders() });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'ลบไม่สำเร็จ');
+    if (!res.ok) { Swal.fire('ผิดพลาด', data.error || 'ลบไม่สำเร็จ', 'error'); return; }
 
-    Swal.fire({ title: 'สำเร็จ', text: data.message, icon: 'success', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500, showConfirmButton: false });
     loadLocationsMaster();
   } catch (err) {
-    Swal.fire('Error', err.message, 'error');
+    console.error('deleteLocation Error:', err);
+    Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
+}
+
+function createLocationModalDOM() {
+  if (document.getElementById('locationModal')) return;
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div class="modal fade" id="locationModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-indigo text-white">
+            <h5 class="modal-title" id="locationModalTitle">จัดการโลเคชั่น</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">รหัสโลเคชั่น (Location Code) *</label>
+              <input type="text" id="modalLocationCode" class="form-control" placeholder="เช่น A-01-01">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">โซน (Zone)</label>
+              <input type="text" id="modalLocationZone" class="form-control" placeholder="เช่น ZONE-A">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">คำอธิบาย (Description)</label>
+              <textarea id="modalLocationDesc" class="form-control" rows="2" placeholder="รายละเอียดตำแหน่ง..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">สถานะ</label>
+              <select id="modalLocationStatus" class="form-select">
+                <option value="1">Active (ใช้งาน)</option>
+                <option value="0">Inactive (ปิดใช้งาน)</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-indigo" onclick="saveLocation()">บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
 }

@@ -4,6 +4,36 @@
 
 let stockAutoRefreshTimer = null;
 
+const DESKTOP_OPERATIONS = {
+  PICK:      { title: 'PICK · เบิกจ่าย', hint: 'ตัดสินค้าออกจากโลเคชั่นต้นทาง', location: 'โลเคชั่นต้นทาง', submit: 'บันทึกเบิกจ่าย' },
+  CHECK:     { title: 'CHECK · ตรวจสต็อก', hint: 'บันทึกยอดที่ตรวจพบ โดยไม่ปรับยอดคงเหลือ', location: 'โลเคชั่นที่ตรวจ', qty: 'ยอดที่ตรวจพบ', submit: 'บันทึกผลตรวจ' },
+  TRANSFER:  { title: 'TRANSFER · โอนย้าย', hint: 'ย้ายสินค้าออกจากต้นทางไปยังปลายทาง', location: 'โลเคชั่นต้นทาง', target: true, submit: 'บันทึกโอนย้าย' },
+  LOAD:      { title: 'LOAD · โหลดสินค้า', hint: 'ตัดสินค้าจากโลเคชั่นต้นทางเพื่อโหลดขึ้นรถ', location: 'โลเคชั่นต้นทาง', submit: 'บันทึกโหลดสินค้า' },
+  PUTAWAY:   { title: 'PUTAWAY · จัดเก็บ', hint: 'ย้ายสินค้าจากจุดพักไปยังโลเคชั่นจัดเก็บ', location: 'โลเคชั่นต้นทาง', target: true, submit: 'บันทึกจัดเก็บ' }
+};
+
+function setDesktopOperation(type) {
+  const operation = DESKTOP_OPERATIONS[type];
+  if (!operation) return;
+  document.getElementById('deskMode').value = type;
+  document.getElementById('deskPageTitle').textContent = operation.title;
+  document.getElementById('deskPageSub').textContent = `${operation.hint} · สแกนบาร์โค้ดและระบุจำนวนเพื่อบันทึก`;
+  document.getElementById('deskLocationLabel').textContent = operation.location;
+  document.getElementById('deskQtyLabel').textContent = operation.qty || 'จำนวน';
+  document.getElementById('deskSubmitLabel').textContent = operation.submit;
+  document.getElementById('deskTargetRow').style.display = operation.target ? 'block' : 'none';
+  document.getElementById('deskTargetRow').classList.toggle('d-none', !operation.target);
+  document.getElementById('deskTargetLocation').required = Boolean(operation.target);
+  document.getElementById('deskBarcode').value = '';
+  document.getElementById('deskQty').value = '1';
+  document.getElementById('deskLocation').value = '';
+  document.getElementById('deskTargetLocation').value = '';
+  document.getElementById('deskQty').min = type === 'CHECK' ? '0' : '1';
+  document.getElementById('deskQty').placeholder = type === 'CHECK' ? 'ใส่ 0 ได้' : '';
+  document.getElementById('deskLocation').placeholder = operation.target ? 'เช่น RCV-01' : (type === 'RECEIVE' ? 'เช่น RCV-01' : 'เช่น A-01-01');
+  document.getElementById('deskBarcode').focus();
+}
+
 async function loadSummaryStock(isSilent = false) {
   const tbody = document.getElementById('stockTableBody');
   const countEl = document.getElementById('stockCount');
@@ -150,23 +180,29 @@ async function clearCurrentRound() {
 /* ── Desktop scan (tab สแกนนับสต็อก บน Admin) ── */
 async function submitDesktopScan() {
   const barcode      = document.getElementById('deskBarcode')?.value.trim();
-  const qty          = parseInt(document.getElementById('deskQty')?.value) || 0;
+  const qtyText      = document.getElementById('deskQty')?.value;
+  const qty          = Number.parseInt(qtyText, 10);
   const locationCode = document.getElementById('deskLocation')?.value.trim();
-  const type         = document.getElementById('deskMode')?.value || 'RECEIVE';
+  const targetLocationCode = document.getElementById('deskTargetLocation')?.value.trim();
+  const type         = document.getElementById('deskMode')?.value || 'PICK';
 
   if (!barcode) { toast('warning', 'กรุณาสแกนหรือกรอกบาร์โค้ด'); return; }
-  if (qty <= 0) { toast('warning', 'จำนวนต้องมากกว่า 0'); return; }
+  if (!Number.isInteger(qty) || qty < 0 || (type !== 'CHECK' && qty === 0)) { toast('warning', type === 'CHECK' ? 'จำนวนต้องเป็น 0 หรือมากกว่า' : 'จำนวนต้องมากกว่า 0'); return; }
   if (!locationCode) { toast('warning', 'กรุณาระบุตำแหน่งจัดเก็บ'); return; }
+  if (['TRANSFER', 'PUTAWAY'].includes(type) && !targetLocationCode) { toast('warning', 'กรุณาระบุโลเคชั่นปลายทาง'); return; }
 
   try {
     const res  = await fetch('/api/transactions/execute', {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ barcode, quantity: qty, locationCode, type })
+      body: JSON.stringify({ barcode, quantity: qty, locationCode, targetLocationCode, type })
     });
     const data = await res.json();
     if (!res.ok) { toast('error', data.message || 'บันทึกไม่สำเร็จ'); return; }
     beepOK();
-    toast('success', `${type} สำเร็จ — ${data.item?.ItemName || barcode} x${qty}`);
+    const summary = type === 'CHECK'
+      ? `${type} สำเร็จ — ${data.item?.ItemName || barcode}: ตรวจพบ ${qty}, ในระบบ ${data.stockQuantity ?? 0}`
+      : `${type} สำเร็จ — ${data.item?.ItemName || barcode} x${qty}`;
+    toast('success', summary);
     document.getElementById('deskBarcode').value = '';
     document.getElementById('deskQty').value = '1';
     document.getElementById('deskBarcode').focus();

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WH Stock System - Power User Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
+  <link rel="stylesheet" href="/css/wms-friendly.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-dark navbar-wms px-3">
+  <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()" aria-label="เปิด/ปิดเมนู"><i class="bi bi-list fs-4 text-white"></i></button>
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="brand-title">WH Stock System</div>
+        <div class="brand-sub d-none d-sm-block">Power User • จัดการสต็อกและข้อมูลคลัง</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="session-badge" style="cursor:default">
+        <i class="bi bi-person-fill"></i> <span id="userName" class="name-txt">-</span>
+        <span class="badge bg-success ms-1" id="userRole">POWERUSER</span>
+      </span>
+      <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">ออกจากระบบ</span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN WRAPPER -->
+<div class="admin-wrapper" id="adminWrapper">
+  <aside class="admin-sidebar" role="tablist">
+    <div class="sidebar-section-title">งานปฏิบัติการ</div>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-CYCLECOUNT" onclick="switchTab('OP_CYCLECOUNT')"><i class="bi bi-clipboard2-check-fill fs-5 text-primary"></i> <span>CYCLECOUNT</span></button>
+    <button role="tab" class="sidebar-menu-item active" id="tab-op-RECEIVE" onclick="switchTab('OP_RECEIVE')"><i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-PICK" onclick="switchTab('OP_PICK')"><i class="bi bi-box-arrow-up fs-5 text-danger"></i> <span>PICK</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-CHECK" onclick="switchTab('OP_CHECK')"><i class="bi bi-clipboard-check fs-5 text-info"></i> <span>CHECK</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-TRANSFER" onclick="switchTab('OP_TRANSFER')"><i class="bi bi-arrow-left-right fs-5 text-warning"></i> <span>TRANSFER</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-LOAD" onclick="switchTab('OP_LOAD')"><i class="bi bi-truck fs-5 text-secondary"></i> <span>LOAD</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')"><i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')"><i class="bi bi-bar-chart-fill fs-5 text-success"></i> <span>สรุปสต็อก &amp; Export</span></button>
+
+    <div class="sidebar-section-title">ข้อมูลคลังสินค้า</div>
+    <button role="tab" class="sidebar-menu-item" id="tab-master" onclick="switchTab('master')"><i class="bi bi-box-seam fs-5 text-info"></i> <span>จัดการสินค้า</span></button>
+    <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')"><i class="bi bi-geo-alt fs-5 text-danger"></i> <span>จัดการโลเคชั่น</span></button>
+
+  </aside>
+  <div class="side-backdrop" onclick="toggleSidebar()"></div>
+
+  <main class="admin-content">
+
+    <div id="pane-receiving">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>📥 รับสินค้าตาม PO (RECEIVE)</h5><div class="sub">สร้างใบรับประจำวันตาม PO ก่อน แล้ว Handheld จึงจะรับสินค้าได้</div></div>
+          <div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadReceiveOrders()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button><button class="btn btn-indigo" onclick="openReceiveOrderForm()"><i class="bi bi-plus-circle me-1"></i>สร้างใบรับ PO</button></div>
+        </div>
+        <div id="receiveOrderForm" class="card-wms p-3 mb-3" style="display:none">
+          <div class="d-flex justify-content-between align-items-center mb-3"><strong>เตรียมใบรับสินค้าประจำวัน</strong><button class="btn btn-sm btn-outline-secondary" onclick="closeReceiveOrderForm()">ยกเลิก</button></div>
+          <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label-wms" for="receivePONumber">เลขที่ PO</label><input id="receivePONumber" class="form-control form-control-wms" maxlength="60" placeholder="เช่น PO-2026-001"></div><div class="col-md-6"><label class="form-label-wms" for="receiveSupplier">Supplier</label><input id="receiveSupplier" class="form-control form-control-wms" maxlength="150" placeholder="ชื่อผู้จำหน่าย (ถ้ามี)"></div></div>
+          <div class="row g-2 align-items-end"><div class="col-md-6"><label class="form-label-wms" for="receiveProductBarcode">บาร์โค้ดสินค้าใน PO</label><input id="receiveProductBarcode" class="form-control form-control-wms" list="receiveProductsList" placeholder="สแกนหรือพิมพ์บาร์โค้ด"><datalist id="receiveProductsList"></datalist></div><div class="col-md-3"><label class="form-label-wms" for="receiveOrderedQty">จำนวนตาม PO</label><input id="receiveOrderedQty" type="number" min="1" step="1" value="1" class="form-control form-control-wms"></div><div class="col-md-3 d-grid"><button class="btn btn-outline-primary" onclick="addReceiveDraftLine()"><i class="bi bi-plus-lg me-1"></i>เพิ่มสินค้า</button></div></div>
+          <div class="table-scroll mt-3"><table class="table table-wms mb-0"><thead><tr><th>Barcode</th><th>สินค้า</th><th>จำนวนตาม PO</th><th>จัดการ</th></tr></thead><tbody id="receiveDraftLines"><tr><td colspan="4" class="text-center text-muted py-3">ยังไม่มีสินค้าในใบรับ</td></tr></tbody></table></div>
+          <div class="d-flex justify-content-end mt-3"><button class="btn btn-indigo" onclick="saveReceiveOrder()"><i class="bi bi-unlock me-1"></i>สร้างและเปิดให้ Handheld</button></div>
+          <div class="small text-muted mt-2">เมื่อเปิดใบรับแล้ว Handheld จะรับได้เฉพาะสินค้าที่อยู่ใน PO และรับเกินจำนวนสั่งไม่ได้</div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบรับ</th><th>PO</th><th>Supplier</th><th>รายการ / รับแล้ว</th><th>สถานะ</th><th>ผู้สร้าง / เวลา</th><th>ดู</th></tr></thead><tbody id="receiveOrdersTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- สแกน -->
+    <div id="pane-scan" style="display:none">
+      <div class="card-wms p-4" style="max-width:640px">
+        <div class="page-head">
+          <div>
+            <h5 id="deskPageTitle">PICK · เบิกจ่าย</h5>
+            <div class="sub" id="deskPageSub">สแกนบาร์โค้ด ระบุจำนวนและโลเคชั่น แล้วบันทึก</div>
+          </div>
+        </div>
+        <div class="row g-3">
+          <input id="deskMode" type="hidden" value="PICK">
+          <div class="col-12">
+            <label class="form-label-wms" for="deskBarcode">บาร์โค้ด</label>
+            <input id="deskBarcode" type="text" class="form-control form-control-wms" placeholder="สแกนหรือพิมพ์บาร์โค้ด แล้วกด Enter" autocomplete="off" style="height:56px;font-size:1.15rem;font-weight:600">
+          </div>
+          <div class="col-6">
+            <label class="form-label-wms" id="deskQtyLabel" for="deskQty">จำนวน</label>
+            <input id="deskQty" type="number" class="form-control form-control-wms" value="1" min="1">
+          </div>
+          <div class="col-6" id="deskLocationCol">
+            <label class="form-label-wms" id="deskLocationLabel" for="deskLocation">โลเคชั่นต้นทาง</label>
+            <input id="deskLocation" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01" autocomplete="off">
+          </div>
+          <div class="col-6 d-none" id="deskTargetRow" style="display:none">
+            <label class="form-label-wms" for="deskTargetLocation">โลเคชั่นปลายทาง</label>
+            <input id="deskTargetLocation" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01" autocomplete="off">
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-indigo px-4 flex-grow-1" style="min-height:52px" onclick="submitDesktopScan()"><i class="bi bi-check2-circle me-1"></i><span id="deskSubmitLabel">บันทึกเบิกจ่าย</span></button>
+            <button class="btn btn-outline-secondary" style="min-height:52px" onclick="clearDesk()" title="ล้างฟอร์ม"><i class="bi bi-arrow-counterclockwise"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สรุปสต็อก -->
+    <div id="pane-stock" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>📊 รายงานสรุปการตรวจนับสต็อก</h5><div class="sub">ข้อมูลล่าสุดจากการสแกน • ค้นหาได้ทุกคอลัมน์</div></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาบาร์โค้ด / ชื่อสินค้า / ตำแหน่ง" oninput="filterTable('stockTableBody', this.value)"></div>
+            <button class="btn btn-outline-secondary" onclick="loadSummaryStock(true)" title="รีเฟรช"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-success" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</button>
+          </div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่ง</th><th>ยอดนับ</th><th>เวลา</th></tr></thead><tbody id="stockTableBody"><tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+        <div class="hint mt-2" id="stockCount"></div>
+      </div>
+    </div>
+
+    <!-- สินค้า -->
+    <div id="pane-master" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>📋 จัดการสินค้า</h5><div class="sub">เพิ่มและแก้ไขข้อมูลสินค้า (ไม่สามารถลบได้ในสิทธิ์นี้)</div></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาสินค้า" oninput="filterTable('productTableBody', this.value)"></div>
+            <button class="btn btn-indigo" onclick="openAddProduct()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสินค้า</button>
+          </div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จัดการ</th></tr></thead><tbody id="productTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- โลเคชั่น -->
+    <div id="pane-locations" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head">
+          <div><h5>📍 จัดการโลเคชั่น</h5><div class="sub">ตำแหน่งจัดเก็บสินค้าในคลัง</div></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="search-box"><i class="bi bi-search"></i><input type="search" class="form-control form-control-wms" placeholder="ค้นหาโลเคชั่น / โซน" oninput="filterTable('locationsTableBody', this.value)"></div>
+            <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่น</button>
+          </div>
+        </div>
+        <div class="table-scroll"><table class="table table-wms mb-0"><thead><tr><th>#</th><th>รหัสโลเคชั่น</th><th>โซน</th><th>คำอธิบาย</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="locationsTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <div id="pane-cyclecount" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head"><div><h5>🔄 ตรวจนับประจำรอบ</h5><div class="sub">สร้างรอบตามโซนหรือโลเคชั่น อายุ 24 ชั่วโมง แล้วสแกนสินค้าเพื่อตรวจนับยอดจริง</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadCycleCounts()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button><button class="btn btn-indigo" onclick="openCycleCountSession()"><i class="bi bi-plus-circle me-1"></i>สร้างรอบตรวจนับ</button></div></div>
+        <div id="cycleCountWorkArea" class="mb-3"></div>
+        <div class="table-scroll"><table class="table table-wms align-middle mb-0"><thead><tr><th>บาร์โค้ด</th><th>สินค้า</th><th>โลเคชั่น</th><th>ยอดคาดหมาย</th><th>ยอดตรวจนับ</th><th>ผลต่าง</th><th>ผู้ตรวจ / เวลา</th></tr></thead><tbody id="cycleCountTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/common.js?v=20261101-2"></script>
+<script src="/js/admin-stock.js"></script>
+<script src="/js/receiving.js?v=20261101-1"></script>
+<script src="/js/poweruser-products.js?v=20261101-2"></script>
+<script src="/js/admin-locations.js?v=20261101-2"></script>
+<script src="/js/cycle-count.js?v=20261101-1"></script>
+<script>
+(function () {
+  const payload = requireAuth(['ADMIN', 'POWERUSER']);
+  if (!payload) return;
+  const displayName = [payload.fullname, payload.fullName, payload.Fullname, payload.FullName, payload.username, payload.Username].find(value => value != null && String(value).trim() && String(value).trim().toLowerCase() !== 'undefined') || 'ผู้ใช้งาน';
+  document.getElementById('userName').textContent = displayName;
+  document.getElementById('userRole').textContent = payload.role || 'USER';
+  if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed');
+  loadSummaryStock();
+  loadMasterProducts();
+  loadLocationsMaster();
+  loadReceiveOrders();
+
+  // segmented control ↔ select เดิม
+  // ลำดับการกด Enter: บาร์โค้ด → จำนวน → ตำแหน่ง → บันทึก
+  const bc = document.getElementById('deskBarcode'), q = document.getElementById('deskQty'), lc = document.getElementById('deskLocation'), target = document.getElementById('deskTargetLocation');
+  bc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); q.focus(); q.select(); } });
+  q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); lc.focus(); } });
+  lc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('deskTargetRow').classList.contains('d-none') ? submitDesktopScan() : target.focus(); } });
+  target.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitDesktopScan(); } });
+  lc.addEventListener('input', () => lc.value = lc.value.toUpperCase());
+  target.addEventListener('input', () => target.value = target.value.toUpperCase());
+  bc.focus();
+})();
+
+function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
+
+function switchTab(tab) {
+  const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
+  const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : 'scan')) : tab;
+  ['receiving','scan','stock','master','locations','cyclecount'].forEach(t => {
+    const p = document.getElementById('pane-' + t);
+    if (p) p.style.display = t === paneTab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.admin-sidebar .sidebar-menu-item').forEach(button => button.classList.remove('active'));
+  const activeButton = document.getElementById(operation ? 'tab-op-' + operation : 'tab-' + tab);
+  if (activeButton) activeButton.classList.add('active');
+  if (operation && !['CYCLECOUNT', 'RECEIVE'].includes(operation)) setDesktopOperation(operation);
+  if (tab === 'stock') loadSummaryStock(true);
+  if (tab === 'master') loadMasterProducts();
+  if (tab === 'locations') loadLocationsMaster();
+  if (paneTab === 'cyclecount') loadCycleCounts();
+  if (paneTab === 'receiving') loadReceiveOrders();
+  if (paneTab === 'scan') document.getElementById('deskBarcode').focus();
+  if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed'); // มือถือ: ปิดเมนูหลังเลือก
+}
+
+function clearDesk() {
+  document.getElementById('deskBarcode').value = '';
+  document.getElementById('deskQty').value = 1;
+  document.getElementById('deskLocation').value = '';
+  document.getElementById('deskTargetLocation').value = '';
+  document.getElementById('deskBarcode').focus();
+}
+
+// ค้นหาในตารางทันทีโดยไม่ต้องเรียก API
+function filterTable(tbodyId, q) {
+  q = (q || '').trim().toLowerCase();
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr => {
+    tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function doLogout() {
+  Swal.fire({ title:'ออกจากระบบ?', text:'ต้องการออกจากระบบใช่หรือไม่', icon:'question', showCancelButton:true, confirmButtonColor:'#ef4444', confirmButtonText:'ออกจากระบบ', cancelButtonText:'อยู่ต่อ' }).then(r => { if (r.isConfirmed) logout(); });
+}
+</script>
+</body>
+</html>
