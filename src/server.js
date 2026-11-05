@@ -22,6 +22,11 @@ app.use('/api/master', require('./routes/masterdata'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/warehouses', require('./routes/warehouses'));
 app.use('/api/stock', require('./routes/stock'));
+app.use('/api/inbound', require('./routes/inbound'));
+app.use('/api/storage-planner', require('./routes/storage-planner'));
+app.use('/api/picking', require('./routes/picking'));
+app.use('/api/suppliers', require('./routes/suppliers'));
+app.use('/api/deliveries', require('./routes/deliveries'));
 
 // 3. เส้นทางลัด (Shortcuts & Redirects)
 // ไปหน้า Handheld
@@ -63,3 +68,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔑 Login Page URL:      http://${HOST}:${PORT}/index.html`);
   console.log(`====================================================`);
 });
+
+
+
+

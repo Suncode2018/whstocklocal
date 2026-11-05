@@ -199,6 +199,7 @@
         <button role="tab" class="sidebar-menu-item active" id="tab-master" onclick="switchTab('master')">
           <i class="bi bi-box-seam fs-5 text-info"></i> <span>จัดการสินค้า (Master)</span>
         </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-suppliers" onclick="switchTab('suppliers')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้จำหน่าย (Supplier)</span></button>
         <button role="tab" class="sidebar-menu-item" id="tab-warehouses" onclick="switchTab('warehouses')">
           <i class="bi bi-buildings fs-5 text-warning"></i> <span>จัดการคลัง (Warehouses)</span>
         </button>
@@ -328,7 +329,11 @@
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 2: WAREHOUSES (จัดการคลังสินค้า tblWH) -->
     <!-- ------------------------------------------------------------- -->
-    <div id="pane-warehouses" style="display:none">
+    <div id="pane-suppliers" style="display:none"><section class="panel-modern"><div class="d-flex flex-wrap justify-content-between gap-2 mb-3"><div><h5 class="fw-bold">ผู้จำหน่าย (Supplier Master)</h5><div class="small text-muted">จัดการผู้ส่งสินค้าและรหัสสินค้าของผู้ขาย โดยคงประวัติใบรับเดิม</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadSuppliers()">รีเฟรช</button><button class="btn btn-primary" onclick="openSupplierForm()">เพิ่ม Supplier</button></div></div><div id="supplierNotice" role="status" aria-live="polite" class="small mb-3"></div>
+<form id="supplierForm" class="border rounded-3 p-3 mb-3 bg-light" hidden onsubmit="saveSupplier(event)"><h6 id="supplierFormTitle" class="fw-bold">เพิ่ม Supplier</h6><fieldset id="supplierFields"><div class="row g-2"><div class="col-md-6"><label for="sup-supplierCode" class="form-label small">รหัส Supplier *</label><input id="sup-supplierCode" class="form-control" maxlength="30" required ></div><div class="col-md-6"><label for="sup-supplierName" class="form-label small">ชื่อบริษัท / ผู้จำหน่าย *</label><input id="sup-supplierName" class="form-control" maxlength="150" required ></div><div class="col-md-6"><label for="sup-taxId" class="form-label small">เลขผู้เสียภาษี (13 หลัก)</label><input id="sup-taxId" class="form-control" maxlength="13"  ></div><div class="col-md-6"><label for="sup-branchCode" class="form-label small">รหัสสาขา (สำนักงานใหญ่ 00000)</label><input id="sup-branchCode" class="form-control" maxlength="5"  ></div><div class="col-md-6"><label for="sup-contactName" class="form-label small">ผู้ติดต่อ</label><input id="sup-contactName" class="form-control" maxlength="100"  ></div><div class="col-md-6"><label for="sup-phone" class="form-label small">โทรศัพท์</label><input id="sup-phone" class="form-control" maxlength="50"  ></div><div class="col-md-6"><label for="sup-email" class="form-label small">อีเมล</label><input id="sup-email" class="form-control" maxlength="150"  type="email"></div><div class="col-12"><label for="sup-address" class="form-label small">ที่อยู่</label><textarea id="sup-address" class="form-control" rows="2" maxlength="500"></textarea></div><div class="col-12"><span class="small d-block mb-2">ประเภทสินค้าที่ส่ง *</span><label class="me-3 small"><input type="checkbox" class="form-check-input me-1" id="sup-type-RM">วัตถุดิบ</label><label class="me-3 small"><input type="checkbox" class="form-check-input me-1" id="sup-type-PKG">Pack</label><label class="me-3 small"><input type="checkbox" class="form-check-input me-1" id="sup-type-SEMI">Semi</label><label class="me-3 small"><input type="checkbox" class="form-check-input me-1" id="sup-type-FG">FG</label><label class="ms-md-4 small"><input id="sup-active" type="checkbox" class="form-check-input me-1" checked>เปิดใช้งาน</label></div></div></fieldset><div class="d-flex justify-content-end gap-2 mt-3"><button type="button" class="btn btn-outline-secondary" onclick="closeSupplierForm()">ยกเลิก</button><button id="supplierSave" class="btn btn-primary" type="submit">บันทึก Supplier</button></div></form>
+<div class="row g-2 mb-3"><div class="col-md-9"><input id="supplierSearch" type="search" class="form-control" aria-label="ค้นหา Supplier" placeholder="ค้นหารหัส ชื่อ เลขผู้เสียภาษี หรือผู้ติดต่อ" oninput="renderSuppliers()"></div><div class="col-md-3"><select id="supplierStatus" class="form-select" aria-label="สถานะ Supplier" onchange="renderSuppliers()"><option value="">ทุกสถานะ</option><option value="active">เปิดใช้งาน</option><option value="inactive">ปิดใช้งาน</option></select></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>รหัส / ชื่อ Supplier</th><th>เลขผู้เสียภาษี / สาขา</th><th>ผู้ติดต่อ</th><th>กลุ่มสินค้า</th><th>สถานะ</th><th></th></tr></thead><tbody id="supplierBody"></tbody></table></div><div id="supplierCount" class="small text-muted"></div></section>
+<section id="supplierMappingsPanel" class="panel-modern mt-3" hidden><div class="d-flex justify-content-between"><h5 id="supplierMappingTitle" class="fw-bold">จับคู่รหัสสินค้า</h5><button type="button" class="btn-close" onclick="document.getElementById('supplierMappingsPanel').hidden=true" aria-label="ปิด"></button></div><div class="small text-muted mb-3">รหัสผู้ขายต้องไม่ซ้ำภายใน Supplier เดียวกัน · ผู้ขายต่างรายใช้รหัสเดียวกันได้</div><form onsubmit="saveSupplierMapping(event)"><fieldset id="supplierMappingFields"><div class="row g-2 align-items-end"><div class="col-md-3"><label for="supplierMapCode" class="form-label small">รหัสสินค้าผู้ขาย *</label><input id="supplierMapCode" class="form-control" maxlength="60" required></div><div class="col-md-5"><label for="supplierMapProduct" class="form-label small">สินค้าในระบบ *</label><input id="supplierMapProduct" class="form-control" list="supplierProductOptions" required placeholder="เลือกรหัสสินค้า"><datalist id="supplierProductOptions"></datalist></div><div class="col-md-2"><label class="small"><input id="supplierMapActive" type="checkbox" class="form-check-input me-1" checked>ใช้งาน</label></div><div class="col-md-2"><button class="btn btn-primary w-100" type="submit">บันทึกคู่รหัส</button></div></div></fieldset><button type="button" class="btn btn-link btn-sm mt-1" onclick="clearSupplierMapping()">ล้างฟอร์ม / เพิ่มคู่รหัสใหม่</button></form><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>รหัสผู้ขาย</th><th>สินค้าในระบบ</th><th>สถานะ</th><th></th></tr></thead><tbody id="supplierMappingBody"></tbody></table></div></section></div>
+<div id="pane-warehouses" style="display:none">
       <div class="card-wms p-4">
         <div class="page-head mb-3">
           <div>
@@ -829,6 +834,7 @@
 <script src="/js/admin-users.js"></script>
 <script src="/js/admin-permissions.js"></script>
 <script src="/js/admin-roles.js?v=20261105-02"></script>
+<script src="/js/admin-suppliers.js?v=20261105-1"></script>
 <script src="/js/admin-warehouses.js?v=20261105-01"></script>
 
 <script>
@@ -890,7 +896,7 @@ function switchTab(tab) {
   const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
   const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : (operation === 'PUTAWAY' ? 'putaway' : 'scan'))) : tab;
   
-  const allPanes = ['receiving','scan','putaway','stock','master','locations','shortage-reasons','cyclecount','users','permissions','roles','warehouses'];
+  const allPanes = ['receiving','scan','putaway','stock','master','locations','shortage-reasons','cyclecount','users','permissions','roles','warehouses','suppliers'];
   allPanes.forEach(t => {
     const p = document.getElementById('pane-' + t);
     if (p) p.style.display = (t === paneTab) ? 'block' : 'none';
@@ -908,6 +914,7 @@ function switchTab(tab) {
   if (tab === 'stock') loadSummaryStock();
   if (tab === 'master') loadMasterProducts();
   if (tab === 'locations') loadLocationsMaster();
+  if (tab === 'suppliers') loadSuppliers();
   if (tab === 'warehouses' && typeof loadWarehouses === 'function') loadWarehouses();
   if (tab === 'shortage-reasons') loadShortageReasonMaster();
   if (tab === 'users' && typeof loadUsers === 'function') loadUsers();
