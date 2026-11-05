@@ -1,0 +1,51 @@
+<aside class="admin-sidebar" role="tablist">
+  
+  <!-- 1. ข้อมูลคลังสินค้า (Master) -->
+  <section class="sidebar-group" data-sidebar-group="warehouse">
+    <button type="button" class="sidebar-section-title" onclick="toggleSidebarGroup('warehouse')">
+      <span>ข้อมูลคลังสินค้า</span><i class="bi bi-chevron-down"></i>
+    </button>
+    <div class="sidebar-group-items" id="sidebar-group-warehouse">
+      <a href="/poweruser/products.html" class="sidebar-menu-item" id="menu-pw-products">
+        <i class="bi bi-box-seam fs-5 text-info"></i> <span>จัดการสินค้า (Master)</span>
+      </a>
+      <a href="/poweruser/locations.html" class="sidebar-menu-item" id="menu-pw-locations">
+        <i class="bi bi-geo-alt fs-5 text-danger"></i> <span>จัดการโลเคชั่น (Master)</span>
+      </a>
+      <a href="/poweruser/shortage-reasons.html" class="sidebar-menu-item" id="menu-pw-shortage">
+        <i class="bi bi-exclamation-diamond-fill fs-5 text-warning"></i> <span>เหตุผลขาดส่ง (Master)</span>
+      </a>
+      <a href="/poweruser/permissions.html" class="sidebar-menu-item" id="menu-pw-permissions">
+        <i class="bi bi-shield-lock-fill fs-5 text-warning"></i> <span>ตรวจสอบสิทธิ์เมนู</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- 2. กระบวนการปฏิบัติงาน -->
+  <section class="sidebar-group" data-sidebar-group="main-process">
+    <button type="button" class="sidebar-section-title" onclick="toggleSidebarGroup('main-process')">
+      <span>กระบวนการหลัก</span><i class="bi bi-chevron-down"></i>
+    </button>
+    <div class="sidebar-group-items" id="sidebar-group-main-process">
+      <a href="/poweruser/receive.html" class="sidebar-menu-item" id="menu-pw-receive">
+        <i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE (รับสินค้า)</span>
+      </a>
+      <a href="/poweruser/putaway.html" class="sidebar-menu-item" id="menu-pw-putaway">
+        <i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY (จัดเก็บ)</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- 3. รายงาน -->
+  <section class="sidebar-group" data-sidebar-group="reports">
+    <button type="button" class="sidebar-section-title" onclick="toggleSidebarGroup('reports')">
+      <span>รายงาน</span><i class="bi bi-chevron-down"></i>
+    </button>
+    <div class="sidebar-group-items" id="sidebar-group-reports">
+      <a href="/poweruser/stock.html" class="sidebar-menu-item" id="menu-pw-stock">
+        <i class="bi bi-bar-chart-fill fs-5 text-success"></i> <span>สรุปสต็อก &amp; Export</span>
+      </a>
+    </div>
+  </section>
+
+</aside>

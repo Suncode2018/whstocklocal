@@ -1,0 +1,22 @@
+<div class="handheld-header d-flex align-items-center justify-content-between p-2 text-white" style="background:#312e81;">
+  <div class="d-flex align-items-center gap-2">
+    <div class="logo-icon" style="width:36px;height:36px;font-size:1.1rem;display:grid;place-items:center;background:rgba(255,255,255,.15);border-radius:10px">📱</div>
+    <div>
+      <div class="brand-title fw-bold" style="font-size:.95rem">WH Stock Handheld</div>
+      <div class="brand-sub small opacity-75">สแกนรับ/จ่าย Real-time</div>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="session-badge badge bg-light text-dark p-2" style="cursor:default">
+      <i class="bi bi-person-fill"></i>
+      <span id="hhUsername">-</span>
+      <span class="badge bg-warning text-dark ms-1" id="hhRole">-</span>
+    </span>
+    <button class="btn btn-outline-light btn-sm" onclick="doLogout()" title="ออกจากระบบ" aria-label="ออกจากระบบ">
+      <i class="bi bi-box-arrow-right"></i>
+    </button>
+  </div>
+</div>
+<div class="net-banner bg-danger text-white text-center py-1 small" id="netBanner" style="display:none">
+  <i class="bi bi-wifi-off me-1"></i>ไม่มีอินเทอร์เน็ต — ยังไม่สามารถบันทึกได้
+</div>

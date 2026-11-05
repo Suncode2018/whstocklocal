@@ -132,12 +132,19 @@
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      const role = data.user.role;
+      const role = String(data.user.role || '').toUpperCase();
       document.getElementById('loginBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>สำเร็จ กำลังเข้าสู่หน้าหลัก...';
 
-      if (role === 'ADMIN') location.href = '/admin.html';
-      else if (role === 'POWERUSER') location.href = '/poweruser.html';
-      else location.href = '/handheld.html';
+      // จำแนกหน้าตามสิทธิ์ของผู้ใช้งาน
+      if (role === 'ADMIN') {
+        location.href = '/admin.html';
+      } else if (role === 'SUPERVISOR') {
+        location.href = '/supervisor'; // วิ่งเข้าเส้นทาง Supervisor โดยตรง
+      } else if (role === 'POWERUSER' || role === 'VIEWER' || role === 'READONLY') {
+        location.href = '/poweruser.html';
+      } else {
+        location.href = '/handheld.html';
+      }
 
     } catch (err) {
       console.error('Login Error:', err);

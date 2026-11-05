@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>วางแผนจัดเก็บ (PUTAWAY) - WH Stock Supervisor</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
+  <link rel="stylesheet" href="/css/wms-friendly.css">
+  <style>
+    .panel-modern { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+    .panel-title { font-weight: 700; color: #0f172a; }
+    .table-container-modern { border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; }
+    .table-modern thead th { background-color: #f8fafc; color: #475569; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
+    .table-modern tbody td { padding: 14px 16px; border-bottom: 1px solid #f8fafc; font-size: 0.9rem; color: #334155; }
+  </style>
+<link rel="stylesheet" href="/css/supervisor-menu.css?v=20261105-1">
+</head>
+<body>
+
+<nav class="navbar navbar-dark navbar-wms px-3">
+  <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()"><i class="bi bi-list fs-4 text-white"></i></button>
+      <div class="logo-icon">📦</div>
+      <div><div class="brand-title">WH Stock System</div><div class="brand-sub">Supervisor • Inbound</div></div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="session-badge" style="cursor:default"><i class="bi bi-person-badge-fill"></i> <span id="userName">-</span> <span class="badge bg-primary ms-1">SUPERVISOR</span></span>
+      <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-right me-1"></i>ออกจากระบบ</button>
+    </div>
+  </div>
+</nav>
+
+<div class="admin-wrapper" id="adminWrapper">
+  <aside class="admin-sidebar supervisor-sidebar" aria-label="เมนู Supervisor">
+<section class="sidebar-group" data-sidebar-group="supervisor-warehouse"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-warehouse" onclick="toggleSidebarGroup('supervisor-warehouse')"><span>ข้อมูลคลังสินค้า (Master)</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-warehouse"><a href="/supervisor/products.html" class="sidebar-menu-item" id="menu-products"><i class="bi bi-box-seam fs-5 text-info" aria-hidden="true"></i><span>จัดการสินค้า (Master)</span></a></div></section>
+<section class="sidebar-group" data-sidebar-group="supervisor-main-process"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-main-process" onclick="toggleSidebarGroup('supervisor-main-process')"><span>กระบวนการหลัก</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-main-process"><a href="/supervisor/receive.html" class="sidebar-menu-item" id="menu-receive"><i class="bi bi-box-arrow-in-down fs-5 text-success" aria-hidden="true"></i><span>RECEIVE (รับสินค้า)</span></a>
+<a href="/supervisor/putaway.html" class="sidebar-menu-item active" id="menu-putaway" aria-current="page"><i class="bi bi-box-seam fs-5 text-primary" aria-hidden="true"></i><span>PUTAWAY (จัดเก็บ)</span></a>
+<a href="/supervisor/pick.html" class="sidebar-menu-item" id="menu-pick"><i class="bi bi-box-arrow-up fs-5 text-danger" aria-hidden="true"></i><span>PICK (เบิกจ่าย)</span></a>
+<a href="/supervisor/load.html" class="sidebar-menu-item" id="menu-load"><i class="bi bi-truck fs-5 text-secondary" aria-hidden="true"></i><span>LOAD (โหลดขึ้นรถส่ง)</span></a></div></section>
+<section class="sidebar-group" data-sidebar-group="supervisor-reports"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-reports" onclick="toggleSidebarGroup('supervisor-reports')"><span>รายงาน</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-reports"><a href="/supervisor/stock.html" class="sidebar-menu-item" id="menu-stock"><i class="bi bi-bar-chart-fill fs-5 text-success" aria-hidden="true"></i><span>สรุปสต็อก &amp; Export</span></a></div></section>
+</aside>
+  <div class="side-backdrop" onclick="toggleSidebar()"></div>
+
+  <main class="admin-content p-4">
+    <div class="panel-modern mb-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pb-3 mb-3 border-bottom">
+        <div>
+          <h5 class="panel-title mb-1">📦 PUTAWAY · วางแผนงานจัดเก็บ</h5>
+          <div class="text-muted small">ย้ายจากจุดรับเข้า RCV ไปยังช่องจัดเก็บ A/B พร้อมตรวจความจุ</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" onclick="loadPutawayManager()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+          <button class="btn btn-indigo" onclick="openPutawayForm()"><i class="bi bi-plus-circle me-1"></i>สร้างใบงาน</button>
+        </div>
+      </div>
+
+      <div id="putawayTaskForm" class="card-wms p-3 mb-3" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3"><strong>สร้างใบงาน PUTAWAY</strong><button class="btn btn-sm btn-outline-secondary" onclick="closePutawayForm()">ปิด</button></div>
+        <label class="form-label-wms" for="putawayTaskNote">หมายเหตุใบงาน</label><input id="putawayTaskNote" class="form-control form-control-wms mb-3" maxlength="300" placeholder="เช่น จัดเก็บสินค้า Receive รอบเช้า">
+        <div class="table-responsive"><table class="table table-wms align-middle"><thead><tr><th>Barcode</th><th>ต้นทาง</th><th>ปลายทาง</th><th>จำนวน</th><th></th></tr></thead><tbody id="putawayDraftLines"></tbody></table></div>
+        <div class="d-flex justify-content-between gap-2 mt-3"><button class="btn btn-outline-primary" onclick="addPutawayDraftLine()"><i class="bi bi-plus-lg me-1"></i>เพิ่มรายการ</button><button class="btn btn-indigo" onclick="savePutawayTask()"><i class="bi bi-unlock me-1"></i>สร้างและเปิด Handheld</button></div>
+      </div>
+
+      <div class="table-responsive table-container-modern">
+        <table class="table table-modern align-middle mb-0">
+          <thead>
+            <tr><th>เลขที่ใบงาน</th><th>จำนวนรายการ / ความคืบหน้า</th><th>สถานะ</th><th>หมายเหตุ</th><th>ผู้สร้าง / เวลา</th><th class="text-end">จัดการ</th></tr>
+          </thead>
+          <tbody id="putawayTaskTableBody"><tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/common.js?v=20261101-2"></script>
+<script src="/js/putaway.js?v=20261101-4"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const p = requireAuth(['ADMIN', 'POWERUSER', 'SUPERVISOR']);
+    if (!p) return;
+    document.getElementById('userName').textContent = p.fullname || p.username || 'หัวหน้าคลัง';
+    loadPutawayManager();
+  });
+  function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
+  function toggleSidebarGroup(groupName) {
+    const group = document.querySelector(`[data-sidebar-group="${groupName}"]`);
+    if (group) group.classList.toggle('is-collapsed');
+  }
+  function doLogout() {
+    Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ออกจากระบบ' }).then(r => { if (r.isConfirmed) logout(); });
+  }
+</script>
+<script src="/js/supervisor-menu.js?v=20261105-1"></script>
+</body>
+</html>

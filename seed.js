@@ -4,20 +4,31 @@ const bcrypt = require('bcryptjs');
 async function initUsers() {
   try {
     const pool = await poolPromise;
-    // สร้าง bcrypt hash แท้ของคำว่า admin123
     const hash = await bcrypt.hash('admin123', 10);
 
+    // ตรวจสอบคอลัมน์ Permissions
     await pool.request().query(`
-      DELETE FROM Users;
-      INSERT INTO Users (Username, PasswordHash, FullName, Role) VALUES 
-      ('admin', '${hash}', N'ผู้ดูแลระบบ', 'ADMIN'),
-      ('picker01', '${hash}', N'พนักงานสแกน 01', 'OPERATOR');
+      IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Users') AND name = 'Permissions')
+      BEGIN
+          ALTER TABLE dbo.Users ADD Permissions NVARCHAR(100) NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      DELETE FROM Users WHERE Username IN ('admin', 'poweruser', 'picker01', 'viewer01');
+      INSERT INTO Users (Username, PasswordHash, FullName, Role, IsActive, CreatedAt, Permissions) VALUES 
+      ('admin', '${hash}', N'ผู้ดูแลระบบ', 'ADMIN', 1, SYSDATETIME(), 'ALL'),
+      ('poweruser', '${hash}', N'หัวหน้างานคลังสินค้า', 'POWERUSER', 1, SYSDATETIME(), 'ALL'),
+      ('picker01', '${hash}', N'พนักงานสแกน 01', 'OPERATOR', 1, SYSDATETIME(), 'RECEIVE,PUTAWAY,PICK,TRANSFER,CHECK,LOAD,CYCLECOUNT,LOOKUP'),
+      ('viewer01', '${hash}', N'เจ้าหน้าที่อ่านอย่างเดียว', 'VIEWER', 1, SYSDATETIME(), 'LOOKUP');
     `);
 
     console.log('============================================');
     console.log('✅ สร้าง User ใน MSSQL สำเร็จเรียบร้อยแล้ว!');
-    console.log('👉 admin    / admin123 (สำหรับ Admin)');
-    console.log('👉 picker01 / admin123 (สำหรับ Handheld)');
+    console.log('👉 admin     / admin123 (สำหรับ Admin)');
+    console.log('👉 poweruser / admin123 (สำหรับ Power User)');
+    console.log('👉 picker01  / admin123 (สำหรับ Handheld PDA)');
+    console.log('👉 viewer01  / admin123 (สำหรับ อ่านอย่างเดียว / Viewer)');
     console.log('============================================');
     process.exit(0);
   } catch (err) {

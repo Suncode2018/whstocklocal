@@ -1,91 +1,228 @@
-let shortageReasonMasterRows = [];
+/* ============================================================
+   shortage-reasons.js — จัดการ Master เหตุผลขาดส่ง
+   ============================================================ */
 
-const shortageReasonEsc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+let shortageReasons = [];
 
-async function shortageReasonApi(path = '', options = {}) {
-  const response = await fetch(`/api/receiving/reasons${path}`, {
-    ...options,
-    headers: { ...authHeaders(), ...(options.headers || {}) }
-  });
-  const payload = await response.json();
-  if (response.status === 403 && payload.isExpired) { logout(); throw new Error('เซสชันหมดอายุ'); }
-  if (!response.ok || !payload.success) throw new Error(payload.message || 'จัดการ Master เหตุผลขาดส่งไม่สำเร็จ');
-  return payload;
+async function apiShortage(path, options = {}) {
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    ...(options.headers || {})
+  };
+
+  // ลอง /api/master/shortage-reasons ก่อน หากไม่ได้ให้ fallback ไปที่ /api/shortage-reasons
+  let res = await fetch('/api/master/shortage-reasons' + path, { ...options, headers });
+  if (res.status === 404) {
+    res = await fetch('/api/shortage-reasons' + path, { ...options, headers });
+  }
+  
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error('เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง (ไม่ใช่ JSON)');
+  }
+
+  if (!res.ok) {
+    throw new Error(data.error || data.message || ('Error ' + res.status));
+  }
+  return data;
 }
 
-async function loadShortageReasonMaster() {
+async function loadShortageReasonMaster(showToast = false) {
   const tbody = document.getElementById('shortageReasonsTableBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">กำลังโหลด...</td></tr>';
+
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>';
+
   try {
-    const payload = await shortageReasonApi();
-    shortageReasonMasterRows = payload.data || [];
-    tbody.innerHTML = shortageReasonMasterRows.length ? shortageReasonMasterRows.map(reason => {
-      const active = reason.IsActive === true || reason.IsActive === 1;
-      return `<tr>
-        <td><code>${shortageReasonEsc(reason.ReasonCode)}</code></td>
-        <td><strong>${shortageReasonEsc(reason.ReasonName)}</strong></td>
-        <td>${reason.RequiresNote ? '<span class="badge bg-warning text-dark">บังคับกรอก</span>' : 'ไม่บังคับ'}</td>
-        <td>${reason.SortOrder}</td>
-        <td><span class="badge ${active ? 'bg-success' : 'bg-secondary'}">${active ? 'Active' : 'Inactive'}</span></td>
-        <td class="text-nowrap"><button class="btn btn-sm btn-outline-primary" onclick="editShortageReason(${Number(reason.ReasonId)})" title="แก้ไข"><i class="bi bi-pencil"></i></button> ${active ? `<button class="btn btn-sm btn-outline-danger" onclick="deactivateShortageReason(${Number(reason.ReasonId)})" title="ปิดใช้งาน"><i class="bi bi-toggle-off"></i></button>` : ''}</td>
-      </tr>`;
-    }).join('') : '<tr><td colspan="6" class="text-center py-3 text-muted">ยังไม่มีเหตุผลขาดส่ง</td></tr>';
-  } catch (error) { tbody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-danger">${shortageReasonEsc(error.message)}</td></tr>`; }
+    const data = await apiShortage('');
+    shortageReasons = Array.isArray(data) ? data : (data.data || []);
+
+    if (shortageReasons.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีข้อมูลเหตุผลขาดส่งในระบบ</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = shortageReasons.map((item, index) => {
+      const id = item.ReasonId;
+      const code = item.ReasonCode || '-';
+      const name = item.ReasonName || '-';
+      const reqNote = item.RequiresNote;
+      const isActive = item.IsActive !== false && item.IsActive !== 0;
+      const sort = item.SortOrder ?? 0;
+
+      const noteBadge = reqNote
+        ? '<span class="badge bg-warning text-dark"><i class="bi bi-pencil-fill me-1"></i>บังคับระบุ</span>'
+        : '<span class="badge bg-light text-muted border">ไม่บังคับ</span>';
+
+      const statusBadge = isActive
+        ? '<span class="badge bg-success">Active</span>'
+        : '<span class="badge bg-secondary">Inactive</span>';
+
+      return `
+        <tr>
+          <td><strong class="font-monospace text-primary">${code}</strong></td>
+          <td class="fw-semibold text-dark">${name}</td>
+          <td>${noteBadge}</td>
+          <td><span class="badge bg-light text-dark border">${sort}</span></td>
+          <td>${statusBadge}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editShortageReason(${id})" title="แก้ไข">
+              <i class="bi bi-pencil-square fs-6"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteShortageReason(${id})" title="ลบ">
+              <i class="bi bi-trash fs-6"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    if (showToast && typeof Swal !== 'undefined') {
+      Swal.fire({ icon: 'success', title: 'รีเฟรชข้อมูลเรียบร้อย', timer: 1000, showConfirmButton: false });
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+  }
 }
 
-async function addShortageReason() {
-  const result = await Swal.fire({
+function shortageModalHtml(item) {
+  const isEdit = !!item;
+  return `
+    <div class="text-start">
+      <div class="mb-3">
+        <label class="form-label fw-bold">รหัสเหตุผล (Code) *</label>
+        <input type="text" id="sw-code" class="form-control text-uppercase" placeholder="เช่น SHORT_SUPPLIER, DAMAGED" value="${item ? item.ReasonCode : ''}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">ชื่อเหตุผลที่แสดง *</label>
+        <input type="text" id="sw-name" class="form-control" placeholder="เช่น ผู้ส่งส่งของไม่ครบ, สินค้าเสียหายระหว่างขนส่ง" value="${item ? item.ReasonName : ''}" required>
+      </div>
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label fw-bold">ลำดับแสดง (Sort)</label>
+          <input type="number" id="sw-sort" class="form-control" value="${item ? (item.SortOrder ?? 0) : 0}">
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-bold">สถานะ</label>
+          <select id="sw-status" class="form-select">
+            <option value="1" ${!item || item.IsActive ? 'selected' : ''}>Active</option>
+            <option value="0" ${item && !item.IsActive ? 'selected' : ''}>Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" type="checkbox" id="sw-note" ${item && item.RequiresNote ? 'checked' : ''}>
+        <label class="form-check-label fw-semibold" for="sw-note">บังคับให้พนักงานพิมพ์หมายเหตุเพิ่มเติม</label>
+      </div>
+    </div>
+  `;
+}
+
+function addShortageReason() {
+  Swal.fire({
     title: 'เพิ่มเหตุผลขาดส่ง',
-    html: '<label class="form-label-wms text-start w-100" for="newReasonCode">รหัส (อังกฤษ/ตัวเลข/underscore)</label><input id="newReasonCode" class="form-control form-control-wms mb-2" maxlength="30" placeholder="เช่น SUPPLIER_DELAY"><label class="form-label-wms text-start w-100" for="newReasonName">ชื่อที่แสดงใน Handheld</label><input id="newReasonName" class="form-control form-control-wms mb-2" maxlength="100" placeholder="เช่น ผู้ขายส่งล่าช้า"><label class="form-label-wms text-start w-100" for="newReasonSort">ลำดับการแสดง</label><input id="newReasonSort" class="form-control form-control-wms mb-2" type="number" step="1" value="50"><div class="form-check text-start"><input id="newReasonNote" class="form-check-input" type="checkbox"><label for="newReasonNote" class="form-check-label">บังคับให้ผู้แจ้งกรอกหมายเหตุ</label></div>',
-    showCancelButton: true, confirmButtonText: 'เพิ่มเหตุผล', cancelButtonText: 'ยกเลิก',
+    html: shortageModalHtml(null),
+    showCancelButton: true,
+    confirmButtonText: 'บันทึก',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#4f46e5',
+    focusConfirm: false,
     preConfirm: () => {
-      const reasonCode = document.getElementById('newReasonCode').value.trim().toUpperCase();
-      const reasonName = document.getElementById('newReasonName').value.trim();
-      const sortOrder = Number(document.getElementById('newReasonSort').value);
-      if (!/^[A-Z0-9_]{2,30}$/.test(reasonCode)) { Swal.showValidationMessage('รหัสต้องมี 2–30 ตัว และใช้ A-Z, 0-9 หรือ underscore'); return false; }
-      if (!reasonName) { Swal.showValidationMessage('กรุณาระบุชื่อเหตุผล'); return false; }
-      if (!Number.isInteger(sortOrder)) { Swal.showValidationMessage('ลำดับต้องเป็นจำนวนเต็ม'); return false; }
-      return { reasonCode, reasonName, sortOrder, requiresNote: document.getElementById('newReasonNote').checked };
+      const code = document.getElementById('sw-code').value.trim();
+      const name = document.getElementById('sw-name').value.trim();
+      if (!code || !name) {
+        Swal.showValidationMessage('กรุณากรอกรหัสและชื่อเหตุผลให้ครบถ้วน');
+        return false;
+      }
+      return {
+        reasonCode: code.toUpperCase(),
+        reasonName: name,
+        sortOrder: parseInt(document.getElementById('sw-sort').value, 10) || 0,
+        isActive: document.getElementById('sw-status').value === '1',
+        requiresNote: document.getElementById('sw-note').checked
+      };
+    }
+  }).then(async r => {
+    if (r.isConfirmed) {
+      try {
+        await apiShortage('', { method: 'POST', body: JSON.stringify(r.value) });
+        Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', timer: 1200, showConfirmButton: false });
+        loadShortageReasonMaster();
+      } catch (e) {
+        Swal.fire('ผิดพลาด', e.message, 'error');
+      }
     }
   });
-  if (!result.isConfirmed) return;
-  try {
-    await shortageReasonApi('', { method: 'POST', body: JSON.stringify(result.value) });
-    toast('success', 'เพิ่มเหตุผลขาดส่งแล้ว');
-    await loadShortageReasonMaster();
-  } catch (error) { toast('error', error.message); }
 }
 
-async function editShortageReason(reasonId) {
-  const reason = shortageReasonMasterRows.find(item => Number(item.ReasonId) === Number(reasonId));
-  if (!reason) return;
-  const result = await Swal.fire({
+function editShortageReason(id) {
+  const item = shortageReasons.find(x => x.ReasonId === id);
+  if (!item) return;
+
+  Swal.fire({
     title: 'แก้ไขเหตุผลขาดส่ง',
-    html: `<div class="text-start mb-2"><span class="text-muted">รหัส (แก้ไขไม่ได้)</span><br><code>${shortageReasonEsc(reason.ReasonCode)}</code></div><label class="form-label-wms text-start w-100" for="editReasonName">ชื่อเหตุผล</label><input id="editReasonName" class="form-control form-control-wms mb-2" maxlength="100" value="${shortageReasonEsc(reason.ReasonName)}"><label class="form-label-wms text-start w-100" for="editReasonSort">ลำดับการแสดง</label><input id="editReasonSort" class="form-control form-control-wms mb-2" type="number" step="1" value="${Number(reason.SortOrder)}"><div class="form-check text-start mb-2"><input id="editReasonNote" class="form-check-input" type="checkbox" ${reason.RequiresNote ? 'checked' : ''}><label for="editReasonNote" class="form-check-label">บังคับกรอกหมายเหตุ</label></div><div class="form-check text-start"><input id="editReasonActive" class="form-check-input" type="checkbox" ${reason.IsActive ? 'checked' : ''}><label for="editReasonActive" class="form-check-label">เปิดใช้งานใน Handheld</label></div>`,
-    showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก',
+    html: shortageModalHtml(item),
+    showCancelButton: true,
+    confirmButtonText: 'บันทึกแก้ไข',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#4f46e5',
+    focusConfirm: false,
     preConfirm: () => {
-      const reasonName = document.getElementById('editReasonName').value.trim();
-      const sortOrder = Number(document.getElementById('editReasonSort').value);
-      if (!reasonName) { Swal.showValidationMessage('กรุณาระบุชื่อเหตุผล'); return false; }
-      if (!Number.isInteger(sortOrder)) { Swal.showValidationMessage('ลำดับต้องเป็นจำนวนเต็ม'); return false; }
-      return { reasonName, sortOrder, requiresNote: document.getElementById('editReasonNote').checked, isActive: document.getElementById('editReasonActive').checked };
+      const code = document.getElementById('sw-code').value.trim();
+      const name = document.getElementById('sw-name').value.trim();
+      if (!code || !name) {
+        Swal.showValidationMessage('กรุณากรอกรหัสและชื่อเหตุผลให้ครบถ้วน');
+        return false;
+      }
+      return {
+        reasonCode: code.toUpperCase(),
+        reasonName: name,
+        sortOrder: parseInt(document.getElementById('sw-sort').value, 10) || 0,
+        isActive: document.getElementById('sw-status').value === '1',
+        requiresNote: document.getElementById('sw-note').checked
+      };
+    }
+  }).then(async r => {
+    if (r.isConfirmed) {
+      try {
+        await apiShortage('/' + id, { method: 'PUT', body: JSON.stringify(r.value) });
+        Swal.fire({ icon: 'success', title: 'แก้ไขเรียบร้อย', timer: 1200, showConfirmButton: false });
+        loadShortageReasonMaster();
+      } catch (e) {
+        Swal.fire('ผิดพลาด', e.message, 'error');
+      }
     }
   });
-  if (!result.isConfirmed) return;
-  try {
-    await shortageReasonApi(`/${reasonId}`, { method: 'PUT', body: JSON.stringify(result.value) });
-    toast('success', 'บันทึก Master เหตุผลแล้ว');
-    await loadShortageReasonMaster();
-  } catch (error) { toast('error', error.message); }
 }
 
-async function deactivateShortageReason(reasonId) {
-  const confirm = await Swal.fire({ title: 'ปิดใช้งานเหตุผลนี้?', text: 'เหตุผลจะไม่แสดงใน Handheld แต่ข้อมูลแจ้งเดิมจะยังอยู่', icon: 'warning', showCancelButton: true, confirmButtonText: 'ปิดใช้งาน', cancelButtonText: 'กลับ' });
+async function deleteShortageReason(id) {
+  const confirm = await Swal.fire({
+    title: 'ยืนยันการลบ?',
+    text: 'ต้องการลบเหตุผลขาดส่งนี้ใช่หรือไม่',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    confirmButtonText: 'ลบ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
   if (!confirm.isConfirmed) return;
+
   try {
-    await shortageReasonApi(`/${reasonId}`, { method: 'DELETE' });
-    toast('success', 'ปิดใช้งานเหตุผลแล้ว');
-    await loadShortageReasonMaster();
-  } catch (error) { toast('error', error.message); }
+    await apiShortage('/' + id, { method: 'DELETE' });
+    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1200, showConfirmButton: false });
+    loadShortageReasonMaster();
+  } catch (e) {
+    Swal.fire('ผิดพลาด', e.message, 'error');
+  }
 }
+
+window.loadShortageReasonMaster = loadShortageReasonMaster;
+window.addShortageReason = addShortageReason;
+window.editShortageReason = editShortageReason;
+window.deleteShortageReason = deleteShortageReason;

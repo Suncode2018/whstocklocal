@@ -11,7 +11,7 @@ async function loadRolesMaster() {
   tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr>`;
 
   try {
-    const res = await fetch('/api/roles', { headers: authHeaders() });
+    const res = await fetch('/api/roles', { headers: typeof authHeaders === 'function' ? authHeaders() : {} });
     if (!res.ok) throw new Error('Failed to fetch roles');
     const data = await res.json();
     const roles = Array.isArray(data) ? data : (data.data || []);
@@ -21,24 +21,35 @@ async function loadRolesMaster() {
       return;
     }
 
-    tbody.innerHTML = roles.map((r, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td><strong class="text-indigo">${r.RoleCode || ''}</strong></td>
-        <td>${r.RoleName || ''}</td>
-        <td>${r.Description || '-'}</td>
-        <td><span class="badge ${r.IsActive ? 'bg-success' : 'bg-secondary'}">${r.IsActive ? 'Active' : 'Inactive'}</span></td>
-        <td>
-          <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditRole(${r.RoleId}, '${r.RoleCode}', '${r.RoleName || ''}', '${r.Description || ''}', ${r.IsActive})"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-outline-danger" onclick="deleteRole(${r.RoleId})"><i class="bi bi-trash"></i></button>
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = roles.map((r, index) => {
+      const roleId = r.RoleId || r.id || (index + 1);
+      const roleCode = r.RoleCode || r.role || '-';
+      const roleName = r.RoleName || r.name || '';
+      const description = r.Description || r.description || '-';
+      const isActive = r.IsActive !== false && r.IsActive !== 0;
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td><strong class="text-indigo">${roleCode}</strong></td>
+          <td>${roleName}</td>
+          <td>${description}</td>
+          <td><span class="badge ${isActive ? 'bg-success' : 'bg-secondary'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditRole(${roleId}, '${roleCode}', '${roleName}', '${description}', ${isActive ? 1 : 0})"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteRole(${roleId})"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   } catch (err) {
     console.error('loadRolesMaster Error:', err);
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">โหลดข้อมูลไม่สำเร็จ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
+
+// ผูก Alias ให้เรียกผ่าน loadRoles() ได้โดยไม่เกิด Error
+const loadRoles = loadRolesMaster;
 
 function openAddRole() {
   editingRoleId = null;
@@ -79,13 +90,13 @@ async function saveRole() {
   try {
     const res = await fetch(url, {
       method: method,
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      headers: { 'Content-Type': 'application/json', ...(typeof authHeaders === 'function' ? authHeaders() : {}) },
       body: JSON.stringify({ roleCode, roleName, description, isActive })
     });
     const data = await res.json();
 
     if (!res.ok) {
-      Swal.fire('ผิดพลาด', data.error || 'บันทึกไม่สำเร็จ', 'error');
+      Swal.fire('ผิดพลาด', data.error || data.message || 'บันทึกไม่สำเร็จ', 'error');
       return;
     }
 
@@ -100,18 +111,28 @@ async function saveRole() {
 
 async function deleteRole(id) {
   const r = await Swal.fire({
-    title: 'ยืนยันการลบ?', text: 'คุณต้องการลบ Roleนี้นใช่หรือไม่',
-    icon: 'warning', showCancelButton: true,
-    confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280',
-    confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก'
+    title: 'ยืนยันการลบ?', 
+    text: 'คุณต้องการลบ Role นี้ใช่หรือไม่',
+    icon: 'warning', 
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', 
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'ลบ', 
+    cancelButtonText: 'ยกเลิก'
   });
 
   if (!r.isConfirmed) return;
 
   try {
-    const res = await fetch(`/api/roles/${id}`, { method: 'DELETE', headers: authHeaders() });
+    const res = await fetch(`/api/roles/${id}`, { 
+      method: 'DELETE', 
+      headers: typeof authHeaders === 'function' ? authHeaders() : {} 
+    });
     const data = await res.json();
-    if (!res.ok) { Swal.fire('ผิดพลาด', data.error || 'ลบไม่สำเร็จ', 'error'); return; }
+    if (!res.ok) { 
+      Swal.fire('ผิดพลาด', data.error || data.message || 'ลบไม่สำเร็จ', 'error'); 
+      return; 
+    }
 
     Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500, showConfirmButton: false });
     loadRolesMaster();

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Handheld Scan Operation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
+  <link rel="stylesheet" href="/css/wms-friendly.css">
+</head>
+<body class="handheld-wrapper pb-5">
+
+  <div id="handheldHeader"></div>
+
+  <div class="container py-3" style="max-width:500px">
+    <a href="/handheld/index.html" class="btn btn-sm btn-outline-secondary mb-3">
+      <i class="bi bi-arrow-left me-1"></i>กลับเมนูหลัก
+    </a>
+
+    <div class="card p-3 shadow-sm border-0 rounded-3">
+      <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+        <span style="font-size:1.8rem" id="opIcon">📦</span>
+        <div>
+          <h5 class="fw-bold mb-0" id="opTitle">PICK · เบิกจ่าย</h5>
+          <small class="text-muted" id="opSub">สแกนบาร์โค้ดแล้วยืนยัน</small>
+        </div>
+      </div>
+
+      <!-- บาร์โค้ด -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">🔲 บาร์โค้ดสินค้า</label>
+        <div class="input-group">
+          <input id="scanBarcode" type="text" class="form-control form-control-lg" placeholder="ยิงสแกนเนอร์" autofocus autocomplete="off">
+          <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('scanBarcode').value='';document.getElementById('scanBarcode').focus()"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+
+      <!-- จำนวนพร้อมปุ่ม Stepper -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">📊 จำนวน</label>
+        <div class="d-flex gap-2">
+          <button class="btn btn-secondary px-3" onclick="stepQty(-1)">−</button>
+          <input id="scanQty" type="number" class="form-control form-control-lg text-center" value="1" min="1">
+          <button class="btn btn-secondary px-3" onclick="stepQty(1)">+</button>
+        </div>
+      </div>
+
+      <!-- ตำแหน่ง -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">📍 โลเคชั่น</label>
+        <input id="scanLocation" type="text" class="form-control form-control-lg" placeholder="เช่น A-01-01" autocomplete="off">
+      </div>
+
+      <div id="resultPanel" class="mt-2"></div>
+    </div>
+  </div>
+
+  <!-- ปุ่มกดยืนยันขนาดใหญ่ติดขอบล่างจอ ใช้งานง่ายด้วยนิ้วโป้ง -->
+  <div class="fixed-bottom p-2 bg-white border-top shadow">
+    <div class="container d-flex gap-2" style="max-width:500px">
+      <button class="btn btn-light border px-3" onclick="resetForm()"><i class="bi bi-arrow-counterclockwise fs-5"></i></button>
+      <button class="btn btn-primary flex-grow-1 py-2 fw-bold" onclick="submitScan()"><i class="bi bi-check2-circle me-1"></i>ยืนยันบันทึก</button>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/handheld-app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const res = await fetch('/includes/header-handheld.html');
+      if (res.ok) document.getElementById('handheldHeader').innerHTML = await res.text();
+    });
+    function stepQty(n) {
+      const q = document.getElementById('scanQty');
+      q.value = Math.max(1, (parseInt(q.value) || 1) + n);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }
+    function resetForm() {
+      document.getElementById('scanBarcode').value = '';
+      document.getElementById('scanQty').value = 1;
+      document.getElementById('scanLocation').value = '';
+      document.getElementById('scanBarcode').focus();
+    }
+  </script>
+</body>
+</html>

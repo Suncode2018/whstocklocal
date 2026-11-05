@@ -1,15 +1,20 @@
 /* ==========================================================
    admin-users.js — หน้า "จัดการผู้ใช้งาน" (เฉพาะ ADMIN)
-   ปรับปรุงให้รองรับโครงสร้างฐานข้อมูลจริง (UserId, FullName, IsActive, Permissions)
+   ปรับปรุงให้ดึง Roles จากฐานข้อมูลจริงผ่าน /api/roles แบบ Dynamic
    ========================================================== */
 (function () {
   const API = '/api/users';
+  const ROLES_API = '/api/roles';
+
+  // รายการสำรองกรณีต่อ API /api/roles ไม่ได้
   const FALLBACK_ROLES = [
-    { key: 'ADMIN',     badge: 'bg-danger',            name: 'ผู้ดูแลระบบสูงสุด' },
-    { key: 'POWERUSER', badge: 'bg-success',           name: 'Power User' },
-    { key: 'OPERATOR',  badge: 'bg-warning text-dark', name: 'เจ้าหน้าที่คลังสินค้า / Picker' }
+    { key: 'ADMIN', badge: 'bg-danger', name: 'ผู้ดูแลระบบสูงสุด' },
+    { key: 'POWERUSER', badge: 'bg-success', name: 'Power User' },
+    { key: 'OPERATOR', badge: 'bg-warning text-dark', name: 'เจ้าหน้าที่คลังสินค้า / Picker' },
+    { key: 'VIEWER', badge: 'bg-info text-dark', name: 'ผู้อ่านอย่างเดียว (Read-Only / Viewer)' }
   ];
 
+  let dynamicRoles = [];
   let users = [];
   let demo = false;
   let loaded = false;
@@ -18,13 +23,50 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const attr = v => esc(JSON.stringify(v));
-  const roleList = () => (typeof roles !== 'undefined' && Array.isArray(roles) && roles.length) ? roles : FALLBACK_ROLES;
-  const roleInfo = key => roleList().find(r => r.key === key) || { key, badge: 'bg-secondary', name: key };
+
+  // แผนที่จับคู่สี Badge ให้แต่ละ Role อัตโนมัติ
+  const ROLE_BADGE_MAP = {
+    'ADMIN': 'bg-danger',
+    'POWERUSER': 'bg-success',
+    'SUPERVISOR': 'bg-primary',
+    'OPERATOR': 'bg-warning text-dark',
+    'VIEWER': 'bg-info text-dark'
+  };
+
+  const roleList = () => (dynamicRoles.length ? dynamicRoles : FALLBACK_ROLES);
+  const roleInfo = key => roleList().find(r => r.key === key) || { key, badge: ROLE_BADGE_MAP[key] || 'bg-secondary', name: key };
   const me = () => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) { return {}; } };
   const isSelf = u => { const m = me(); return (m.id != null && String(m.id) === String(u.id)) || (m.userId != null && String(m.userId) === String(u.id)) || (m.username && m.username === u.username); };
   const activeAdmins = () => users.filter(u => u.role === 'ADMIN' && u.active).length;
 
   const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2200, timerProgressBar: true });
+
+  /* ---------- ดึงข้อมูล Roles จากฐานข้อมูลจริง ---------- */
+  async function fetchDbRoles() {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(ROLES_API, {
+        headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.data || []);
+      
+      // กรองเอาเฉพาะ Role ที่ Active
+      dynamicRoles = list
+        .filter(r => r.IsActive !== false && r.IsActive !== 0)
+        .map(r => {
+          const code = (r.RoleCode || r.role || r.Role || '').toUpperCase();
+          return {
+            key: code,
+            badge: ROLE_BADGE_MAP[code] || 'bg-secondary',
+            name: r.RoleName || r.name || code
+          };
+        });
+    } catch (err) {
+      console.warn('โหลด Roles จาก API ไม่สำเร็จ กำลังใช้ค่าสำรอง:', err);
+    }
+  }
 
   /* ---------- API ---------- */
   async function api(method, path, body) {
@@ -68,7 +110,10 @@
 
   /* ---------- โหลด / วาด ---------- */
   async function loadUsers(force) {
+    // 1. ดึง Roles ล่าสุดจากฐานข้อมูลก่อน
+    await fetchDbRoles();
     fillRoleFilter();
+
     if (loaded && !force) { render(); return; }
     $('usersTableBody').innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลด...</td></tr>';
     try {
@@ -92,13 +137,13 @@
     const sel = $('userRoleFilter');
     if (!sel) return;
     const cur = sel.value;
-    sel.innerHTML = '<option value="">ทุก Role</option>' + roleList().map(r => `<option value="${esc(r.key)}">${esc(r.key)}</option>`).join('');
+    sel.innerHTML = '<option value="">ทุก Role</option>' + roleList().map(r => `<option value="${esc(r.key)}">${esc(r.key)} — ${esc(r.name || '')}</option>`).join('');
     sel.value = cur;
   }
 
   function syncRoleCounts() {
-    if (typeof roles !== 'undefined' && Array.isArray(roles)) {
-      roles.forEach(r => { r.users = users.filter(u => u.role === r.key).length; });
+    if (dynamicRoles.length) {
+      dynamicRoles.forEach(r => { r.users = users.filter(u => u.role === r.key).length; });
       if (typeof renderRoles === 'function') renderRoles();
     }
   }
@@ -162,8 +207,8 @@
         <td>${statusActionBtn}</td>
         <td class="small">${fmtTime(u.last_login)}</td>
         <td class="text-end text-nowrap">
-          <button class="btn btn-sm btn-outline-primary me-1" onclick="userEdit(${attr(u.id)})" title="แก้ไข" aria-label="แก้ไข"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-outline-warning" onclick="userReset(${attr(u.id)})" title="รีเซ็ตรหัสผ่าน" aria-label="รีเซ็ตรหัสผ่าน"><i class="bi bi-key"></i></button>
+          <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="userEdit(${attr(u.id)})" title="แก้ไข" aria-label="แก้ไข"><i class="bi bi-pencil fs-6"></i></button>
+          <button class="btn btn-sm btn-outline-warning border-0" onclick="userReset(${attr(u.id)})" title="รีเซ็ตรหัสผ่าน" aria-label="รีเซ็ตรหัสผ่าน"><i class="bi bi-key fs-6"></i></button>
         </td></tr>`;
     }).join('');
 
@@ -187,10 +232,17 @@
     return [...a].map(n => chars[n % chars.length]).join('');
   }
 
-  /* ---------- ฟอร์มเพิ่ม/แก้ไข ---------- */
+  /* ---------- ฟอร์มเพิ่ม/แก้ไข (ดึง Roles จาก Database) ---------- */
   function formHtml(u) {
     const edit = !!u;
-    const opts = roleList().map(r => `<option value="${esc(r.key)}" ${u && u.role === r.key ? 'selected' : ''}>${esc(r.key)} — ${esc(r.name || '')}</option>`).join('');
+    const currentRole = u ? u.role : (dynamicRoles[0]?.key || 'OPERATOR');
+    
+    // สร้าง Dropdown ตัวเลือก Role จากฐานข้อมูลจริง
+    const opts = roleList().map(r => {
+      const isSelected = r.key === currentRole ? 'selected' : '';
+      return `<option value="${esc(r.key)}" ${isSelected}>${esc(r.key)} — ${esc(r.name || '')}</option>`;
+    }).join('');
+
     const self = edit && isSelf(u);
     return `
       <div class="text-start">
@@ -225,8 +277,11 @@
       </div>`;
   }
 
-  function openForm(u) {
+  async function openForm(u) {
     const edit = !!u;
+    // ก่อนเปิดฟอร์ม ตรวจสอบให้แน่ใจว่าดึง Roles จาก Database เรียบร้อยแล้ว
+    await fetchDbRoles();
+
     Swal.fire({
       title: edit ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่',
       html: formHtml(u),

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desktop Warehouse Operations</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
+  <link rel="stylesheet" href="/css/wms-friendly.css">
+</head>
+<body>
+
+  <div id="navbarContainer"></div>
+
+  <div class="admin-wrapper" id="adminWrapper">
+    <div id="sidebarContainer"></div>
+    <div class="side-backdrop" onclick="toggleSidebar()"></div>
+
+    <main class="admin-content p-4">
+      <div class="row g-4">
+        
+        <!-- ฝั่งซ้าย: โต๊ะยิงสแกนสินค้าหน้าคอมพิวเตอร์ -->
+        <div class="col-lg-5">
+          <div class="card p-4 shadow-sm border-0 rounded-3">
+            <h5 class="fw-bold mb-3"><i class="bi bi-upc-scan me-2 text-primary"></i>โต๊ะคีย์สแกนสินค้า (Desktop Mode)</h5>
+            
+            <div class="mb-3">
+              <label class="form-label">ประเภทงาน</label>
+              <select id="deskMode" class="form-select">
+                <option value="PICK">PICK (เบิกจ่ายสินค้า)</option>
+                <option value="CHECK">CHECK (ตรวจนับสินค้า)</option>
+                <option value="LOAD">LOAD (นำขึ้นรถจัดส่ง)</option>
+                <option value="TRANSFER">TRANSFER (ย้ายสต็อก)</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">บาร์โค้ดสินค้า *</label>
+              <input id="deskBarcode" class="form-control form-control-lg" placeholder="สแกนหรือพิมพ์บาร์โค้ด..." autofocus>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label">จำนวน</label>
+                <input id="deskQty" type="number" class="form-control" value="1" min="1">
+              </div>
+              <div class="col-6">
+                <label class="form-label">โลเคชั่น</label>
+                <input id="deskLocation" class="form-control" placeholder="เช่น A-01-01">
+              </div>
+            </div>
+
+            <button class="btn btn-primary py-2 w-100 fw-bold" onclick="submitDesktopScan()">
+              <i class="bi bi-check2-circle me-1"></i> บันทึกข้อมูล
+            </button>
+          </div>
+        </div>
+
+        <!-- ฝั่งขวา: รายการประวัติที่เพิ่งยิงล่าสุดแบบ Real-time -->
+        <div class="col-lg-7">
+          <div class="card p-4 shadow-sm border-0 rounded-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-success"></i>ประวัติการบันทึกล่าสุด</h5>
+              <button class="btn btn-sm btn-outline-secondary" onclick="loadRecentLogs()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>เวลา</th>
+                    <th>งาน</th>
+                    <th>บาร์โค้ด</th>
+                    <th>สินค้า</th>
+                    <th>โลเคชั่น</th>
+                    <th>จำนวน</th>
+                  </tr>
+                </thead>
+                <tbody id="recentLogsTable">
+                  <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดประวัติ...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/layout-loader.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initLayout('menu-desk-scan');
+    });
+  </script>
+</body>
+</html>
