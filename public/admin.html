@@ -298,7 +298,8 @@
 
         <div class="row g-2 mb-2 align-items-end">
           <div class="col-md"><label for="prodSearchInput" class="form-label small">ค้นหาสินค้า</label><div class="search-input-wrap"><i class="bi bi-search search-icon"></i><input type="search" id="prodSearchInput" class="form-control form-control-modern" placeholder="พิมพ์หรือสแกนบาร์โค้ด รหัสสินค้า ชื่อไทย/อังกฤษ" aria-describedby="productSearchHelp" oninput="scheduleProductSearch(event)" oncompositionstart="productSearchComposing=true" oncompositionend="productSearchComposing=false; scheduleProductSearch(event)" onkeydown="handleProductSearchKey(event)"></div></div>
-          <div class="col-md-3"><label for="prodCategoryFilter" class="form-label small">หมวดสินค้า</label><select id="prodCategoryFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกหมวด</option><option value="1">วัตถุดิบ (RM)</option><option value="2">บรรจุภัณฑ์ (PKG)</option><option value="3">สินค้าสำเร็จรูป (FG)</option></select></div>
+          <div class="col-md-3 col-lg-2"><label for="prodStockFilter" class="form-label small">สถานะสต๊อก</label><select id="prodStockFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกสถานะ</option><option value="available">มีสินค้า</option><option value="empty">หมดสต๊อก</option><option value="low">ต่ำกว่า Min</option></select></div>
+          <div class="col-md-3 col-lg-2"><label for="prodCategoryFilter" class="form-label small">หมวดสินค้า</label><select id="prodCategoryFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกหมวด</option><option value="1">วัตถุดิบ (RM)</option><option value="2">บรรจุภัณฑ์ (PKG)</option><option value="3">สินค้าสำเร็จรูป (FG)</option></select></div>
           <div class="col-auto"><button type="button" class="btn btn-clear-modern px-3" onclick="clearProductSearch()"><i class="bi bi-arrow-counterclockwise me-1"></i>ล้าง</button></div>
         </div>
         <div id="productSearchHelp" class="small text-muted mb-2">ค้นหาได้หลายคำ เช่น cream 120 · Enter ค้นหาทันที · Esc ล้างคำค้น</div>
@@ -312,11 +313,12 @@
                 <th style="width: 150px">รหัสสินค้า</th>
                 <th>ชื่อสินค้า / รายละเอียด</th>
                 <th>ชื่อภาษาไทย (THAI NAME)</th>
+                <th id="prodStockColumn" style="width: 150px" class="text-end" title="ยอดรวมทุกคลังและทุกตำแหน่ง">สต๊อกคงเหลือ<small class="d-block fw-normal text-muted">รวมทุกคลัง</small></th>
                 <th style="width: 100px" class="text-end">จัดการ</th>
               </tr>
             </thead>
             <tbody id="productTableBody">
-              <tr><td colspan="6" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลสินค้า...</td></tr>
+              <tr><td colspan="7" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลสินค้า...</td></tr>
             </tbody>
           </table>
         </div><div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3"><span class="small text-muted">แสดงหน้าละ 50 รายการ · Export เฉพาะผลค้นหาทั้งหมด</span><nav class="d-flex align-items-center gap-2" aria-label="หน้ารายการสินค้า"><button id="productPrev" type="button" class="btn btn-sm btn-outline-secondary" onclick="changeProductPage(-1)" disabled>ก่อนหน้า</button><span id="productPageInfo" class="small text-muted">หน้า 1 / 1</span><button id="productNext" type="button" class="btn btn-sm btn-outline-secondary" onclick="changeProductPage(1)" disabled>ถัดไป</button></nav></div>
@@ -819,7 +821,7 @@
 <script src="/js/common.js?v=20261101-2"></script>
 <script src="/js/admin-stock.js?v=20261105-3"></script>
 <script src="/js/receiving.js?v=20261101-4"></script>
-<script src="/js/admin-products.js?v=20261105-adj-layout-2"></script>
+<script src="/js/admin-products.js?v=20261105-stock-quantity-1"></script>
 <script src="/js/admin-locations.js?v=20261105-02"></script>
 <script src="/js/shortage-reasons.js?v=20261101-1"></script>
 <script src="/js/cycle-count.js?v=20261101-1"></script>
