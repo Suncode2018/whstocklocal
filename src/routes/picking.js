@@ -1,7 +1,8 @@
 const express=require('express'),jwt=require('jsonwebtoken'),{randomUUID}=require('crypto');
 const {poolPromise,sql}=require('../config/db');const router=express.Router();
 const fail=(status,message)=>{const e=new Error(message);e.status=status;throw e};
-router.use((req,res,next)=>{try{const m=/^Bearer\s+(\S+)$/i.exec(req.headers.authorization||'');if(!m)return res.status(401).json({success:false,message:'กรุณาเข้าสู่ระบบ'});req.user=jwt.verify(m[1],process.env.JWT_SECRET||'super_secret_local_warehouse_jwt_key_2026');if(!['ADMIN','POWERUSER','SUPERVISOR'].includes(String(req.user.role).toUpperCase()))return res.status(403).json({success:false,message:'ไม่มีสิทธิ์เบิกจ่ายสินค้า'});next()}catch{return res.status(401).json({success:false,message:'เซสชันหมดอายุ'})}});
+const access=require('../middleware/access');
+router.use(...access.operation('PICK'));
 function error(res,e){console.error('Picking:',e.code||e.status);res.status(e.status||500).json({success:false,message:e.status?e.message:'ทำรายการเบิกไม่สำเร็จ กรุณาตรวจการเชื่อมต่อและติดตั้ง PickingThreeTypes.sql'})}
 const balances=`SELECT s.whid,s.ProductId,s.LocationCode,s.Quantity,p.ProductCode,p.ProductName,p.ThaiName,p.Barcode,CASE WHEN UPPER(c.CategoryCode)='PACK' THEN 'PKG' ELSE UPPER(c.CategoryCode) END AS PickType,COALESCE(u.UnitCode,p.PackageType,N'') AS UOM,
 COALESCE((SELECT SUM(l.Quantity-l.MovedQuantity) FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines l ON l.PlanId=h.PlanId WHERE h.Status='OPEN' AND h.WhId=s.whid AND h.ProductId=s.ProductId AND h.FromLocationCode=s.LocationCode),0) AS ReservedQuantity

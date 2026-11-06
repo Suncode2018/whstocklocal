@@ -1,3 +1,5 @@
+/* Select the current page rather than retaining another screen's active menu. */
+(()=>{document.querySelectorAll('.supervisor-sidebar a[href]').forEach(a=>{const current=new URL(a.href,location.href).pathname===location.pathname;a.classList.toggle('active',current);if(current)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});})();
 /* Consistent group behavior across Supervisor pages. */
 (() => {
   const stateKey = 'wmsSidebarGroups:SUPERVISOR';
@@ -22,3 +24,6 @@
   });
   if (window.innerWidth < 992) document.getElementById('adminWrapper')?.classList.add('sidebar-collapsed');
 })();
+
+/* Operations reuse the same pages for scanners and supervisors. */
+(()=>{let user;try{user=JSON.parse(localStorage.getItem('user')||'{}')}catch{return}if(['ADMIN','POWERUSER','SUPERVISOR'].includes(user.role))return;document.querySelectorAll('[onclick="openDeliveryForm()"],#plannerSave,[onclick="autoAllocateStorage()"]').forEach(e=>e.hidden=true);const home=document.createElement('a');home.href='/handheld.html';home.textContent='← เมนูงานของฉัน';home.className='btn btn-outline-primary m-2';document.querySelector('main')?.prepend(home);})();

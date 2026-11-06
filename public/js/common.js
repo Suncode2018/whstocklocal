@@ -14,6 +14,7 @@ function requireAuth(allowedRoles = []) {
 
   try {
     const user = JSON.parse(userStr);
+    const segment=token.split('.')[1];const claims=JSON.parse(atob(segment.replace(/-/g,'+').replace(/_/g,'/')));if(claims.exp&&claims.exp*1000<=Date.now()){logout();return null;}
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
       window.location.href = '/index.html?msg=' + encodeURIComponent('ไม่มีสิทธิ์เข้าถึงหน้านี้');
       return null;

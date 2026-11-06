@@ -3,20 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 
 // 1. ดึงโมดูลเชื่อมต่อฐานข้อมูล
-let dbModule;
-const possiblePaths = ['../config/db', '../db', '../db_4', '../db_3', '../db_2'];
-for (const p of possiblePaths) {
-  try {
-    dbModule = require(p);
-    break;
-  } catch (e) {}
-}
-
-if (!dbModule) {
-  throw new Error('ไม่พบโมดูลเชื่อมต่อฐานข้อมูล กรุณาตรวจสอบไฟล์ db.js');
-}
-
-const { sql, poolPromise } = dbModule;
+const {sql,poolPromise}=require('../config/db');
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_local_warehouse_jwt_key_2026';
 
 // 2. Middleware ตรวจสอบสิทธิ์

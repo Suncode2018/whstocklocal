@@ -1,64 +1,29 @@
-/* Cycle Count schema for WarehouseStockDB
-   Safe to run repeatedly. Existing Locations, Products, Stock, StockTransactions,
-   and Users tables are used as the source of truth. */
-USE [WarehouseStockDB];
-GO
+-- Current workflow installer; historical tables are retained.
+USE dbWMS;
+IF OBJECT_ID('dbo.StoragePlans','U') IS NULL
+CREATE TABLE dbo.StoragePlans (
+ PlanId INT IDENTITY PRIMARY KEY, RequestId UNIQUEIDENTIFIER NOT NULL UNIQUE,
+ PlanNo NVARCHAR(40) NOT NULL UNIQUE, WhId INT NOT NULL, ProductId INT NOT NULL,
+ FromLocationCode NVARCHAR(50) NOT NULL, UnitVolumeCm3 DECIMAL(18,3) NOT NULL CHECK(UnitVolumeCm3>0),
+ Status VARCHAR(12) NOT NULL DEFAULT 'OPEN' CHECK(Status IN ('OPEN','COMPLETED','CANCELLED')),
+ Note NVARCHAR(255) NULL, CreatedBy NVARCHAR(50) NOT NULL, CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+);
+IF OBJECT_ID('dbo.StoragePlanLines','U') IS NULL
+CREATE TABLE dbo.StoragePlanLines (
+ LineId INT IDENTITY PRIMARY KEY, PlanId INT NOT NULL REFERENCES dbo.StoragePlans(PlanId),
+ ToLocationCode NVARCHAR(50) NOT NULL, Quantity DECIMAL(18,2) NOT NULL CHECK(Quantity>0),
+ MovedQuantity DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK(MovedQuantity>=0),
+ CONSTRAINT CK_StoragePlanLines_Qty CHECK(MovedQuantity<=Quantity),
+ CONSTRAINT UQ_StoragePlanLines_Target UNIQUE(PlanId,ToLocationCode)
+);
 
-IF OBJECT_ID('dbo.CycleCountSessions', 'U') IS NULL
-BEGIN
-  CREATE TABLE dbo.CycleCountSessions (
-    SessionId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    SessionCode NVARCHAR(40) NOT NULL UNIQUE,
-    SessionName NVARCHAR(100) NOT NULL,
-    ScopeType NVARCHAR(10) NOT NULL,
-    ScopeValue NVARCHAR(50) NULL,
-    Status NVARCHAR(12) NOT NULL CONSTRAINT DF_CycleCountSessions_Status DEFAULT ('OPEN'),
-    CreatedBy INT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_CycleCountSessions_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    ExpiresAt DATETIME2 NOT NULL,
-    ClosedBy INT NULL,
-    ClosedAt DATETIME2 NULL,
-    CONSTRAINT FK_CycleCountSessions_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserId),
-    CONSTRAINT FK_CycleCountSessions_ClosedBy FOREIGN KEY (ClosedBy) REFERENCES dbo.Users(UserId),
-    CONSTRAINT CK_CycleCountSessions_ScopeType CHECK (ScopeType IN ('ZONE','LOCATION')),
-    CONSTRAINT CK_CycleCountSessions_Status CHECK (Status IN ('OPEN','CLOSED'))
-  );
-END;
 GO
-
-IF COL_LENGTH('dbo.CycleCountSessions', 'ExpiresAt') IS NULL
-BEGIN
-  ALTER TABLE dbo.CycleCountSessions ADD ExpiresAt DATETIME2 NULL;
-END;
-GO
-
-UPDATE dbo.CycleCountSessions SET ExpiresAt = DATEADD(hour, 24, CreatedAt) WHERE ExpiresAt IS NULL;
-GO
-
-ALTER TABLE dbo.CycleCountSessions ALTER COLUMN ExpiresAt DATETIME2 NOT NULL;
-GO
-
-IF OBJECT_ID('dbo.CYCLECOUNT', 'U') IS NULL AND OBJECT_ID('dbo.CycleCountItems', 'U') IS NOT NULL
-  EXEC sp_rename 'dbo.CycleCountItems', 'CYCLECOUNT';
-GO
-
-IF OBJECT_ID('dbo.CYCLECOUNT', 'U') IS NULL
-BEGIN
-  CREATE TABLE dbo.CYCLECOUNT (
-    CycleCountItemId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    SessionId INT NOT NULL,
-    ProductId INT NOT NULL,
-    LocationId INT NOT NULL,
-    ExpectedQuantity INT NOT NULL,
-    CountedQuantity INT NULL,
-    CountedBy INT NULL,
-    CountedAt DATETIME2 NULL,
-    CONSTRAINT FK_CYCLECOUNT_Session FOREIGN KEY (SessionId) REFERENCES dbo.CycleCountSessions(SessionId),
-    CONSTRAINT FK_CYCLECOUNT_Product FOREIGN KEY (ProductId) REFERENCES dbo.Products(ProductId),
-    CONSTRAINT FK_CYCLECOUNT_Location FOREIGN KEY (LocationId) REFERENCES dbo.Locations(LocationId),
-    CONSTRAINT FK_CYCLECOUNT_CountedBy FOREIGN KEY (CountedBy) REFERENCES dbo.Users(UserId),
-    CONSTRAINT UQ_CYCLECOUNT UNIQUE (SessionId, ProductId, LocationId)
-  );
-  CREATE INDEX IX_CYCLECOUNT_Session ON dbo.CYCLECOUNT(SessionId, LocationId);
-END;
-GO
+USE dbWMS;
+IF OBJECT_ID('dbo.StorageMoves','U') IS NULL
+CREATE TABLE dbo.StorageMoves(MoveId INT IDENTITY PRIMARY KEY,RequestId UNIQUEIDENTIFIER NOT NULL UNIQUE,LineId INT NOT NULL REFERENCES dbo.StoragePlanLines(LineId),Quantity DECIMAL(18,2) NOT NULL CHECK(Quantity>0),MovedBy NVARCHAR(50) NOT NULL,MovedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME());
+IF OBJECT_ID('dbo.InventoryCountSessions','U') IS NULL
+CREATE TABLE dbo.InventoryCountSessions(SessionId INT IDENTITY PRIMARY KEY,RequestId UNIQUEIDENTIFIER NOT NULL UNIQUE,SessionNo NVARCHAR(40) NOT NULL UNIQUE,WhId INT NOT NULL,LocationCode NVARCHAR(50) NOT NULL,Status VARCHAR(10) NOT NULL DEFAULT 'OPEN' CHECK(Status IN('OPEN','CLOSED','CANCELLED')),CreatedBy NVARCHAR(50) NOT NULL,CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),ClosedAt DATETIME2 NULL);
+IF OBJECT_ID('dbo.InventoryCountItems','U') IS NULL
+CREATE TABLE dbo.InventoryCountItems(ItemId INT IDENTITY PRIMARY KEY,SessionId INT NOT NULL REFERENCES dbo.InventoryCountSessions(SessionId),StockId INT NOT NULL,ProductId INT NOT NULL,SnapshotQuantity DECIMAL(18,2) NOT NULL,SnapshotUpdatedAt DATETIME2 NOT NULL,CountedQuantity DECIMAL(18,2) NULL CHECK(CountedQuantity>=0),CountedBy NVARCHAR(50) NULL,CountedAt DATETIME2 NULL,CONSTRAINT UQ_InventoryCountItem UNIQUE(SessionId,StockId));
+USE dbWMS;
+IF OBJECT_ID('dbo.StockTransfers','U') IS NULL CREATE TABLE dbo.StockTransfers(TransferId INT IDENTITY PRIMARY KEY,RequestId UNIQUEIDENTIFIER NOT NULL UNIQUE,WhId INT NOT NULL,ProductId INT NOT NULL,FromLocationCode NVARCHAR(50) NOT NULL,ToLocationCode NVARCHAR(50) NOT NULL,Quantity DECIMAL(18,2) NOT NULL CHECK(Quantity>0),ReferenceNo NVARCHAR(60) NOT NULL,CreatedBy NVARCHAR(50) NOT NULL,CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME());

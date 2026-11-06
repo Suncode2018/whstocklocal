@@ -1,3 +1,5 @@
+-- HISTORICAL SOURCE ONLY. Current installation: UpgradeModernWorkflows.sql.
+-- This file is retained for historical reference and is not part of application startup.
 /*
   Safely clear the receiving lines for ONE ReceiveId.
   This removes linked CN lines, CN headers, and shortage reports first,

@@ -9,7 +9,7 @@ async function initLayout(activeMenuId) {
     if (navRes.ok) document.getElementById('navbarContainer').innerHTML = await navRes.text();
 
     // 3. ดึง Sidebar เข้ามาใส่ในแท็ก #sidebarContainer
-    const sideRes = await fetch('/includes/sidebar.html');
+    const sideRes = await fetch(payload?.role==='POWERUSER'?'/includes/sidebar-poweruser.html':'/includes/sidebar.html');
     if (sideRes.ok) {
       document.getElementById('sidebarContainer').innerHTML = await sideRes.text();
       

@@ -1,3 +1,5 @@
+USE dbMaster;
+GO
 /* Storage location volume capacity. Capacity applies to A- and B- storage bins.
    RCV (receiving) and OUT (shipping staging) locations have NULL capacity. */
 IF COL_LENGTH('dbo.Locations', 'CapacityVolumeCm3') IS NULL

@@ -1,25 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const sql = require('mssql');
+const {sql,poolPromise}=require('../config/db');
 
 // 🛠️ กำหนดค่าเชื่อมต่อฐานข้อมูลให้ชัดเจน เพื่อป้องกัน Error port เป็น undefined
-const dbConfig = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER,
-  database: process.env.DB_DATABASE,
-  port: parseInt(process.env.DB_PORT) || 1433,
-  options: {
-    encrypt: process.env.DB_ENCRYPT === 'true' || false,
-    enableArithAbort: true,
-    trustServerCertificate: true // สำหรับ SQL Server แบบ Local / Self-signed certificate
-  }
-};
+
 
 // ดึงข้อมูล Roles ทั้งหมด
 router.get('/', async (req, res) => {
   try {
-    const pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     const result = await pool.request().query('SELECT * FROM UserRoles ORDER BY RoleId ASC');
     res.json(result.recordset);
   } catch (err) {
@@ -32,7 +21,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { roleCode, roleName, description, isActive } = req.body;
-    const pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     await pool.request()
       .input('RoleCode', sql.VarChar, roleCode.toUpperCase())
       .input('RoleName', sql.NVarChar, roleName)
@@ -52,7 +41,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { roleName, description, isActive } = req.body;
-    const pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     await pool.request()
       .input('RoleId', sql.Int, id)
       .input('RoleName', sql.NVarChar, roleName)
@@ -71,7 +60,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     await pool.request()
       .input('RoleId', sql.Int, id)
       .query('DELETE FROM UserRoles WHERE RoleId = @RoleId');

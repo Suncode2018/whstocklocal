@@ -3,23 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 
-// ดึงไฟล์ DB อัตโนมัติ (รองรับทั้ง db.js, db_3.js, db_2.js หรือ config/db.js)
-let dbModule;
-const possiblePaths = ['../db', '../db_3', '../db_2', '../config/db'];
-for (const p of possiblePaths) {
-  try {
-    dbModule = require(p);
-    break;
-  } catch (e) {
-    // ข้ามไปลอง path ถัดไป
-  }
-}
-
-if (!dbModule) {
-  throw new Error('ไม่พบไฟล์เชื่อมต่อฐานข้อมูล (db.js / db_3.js) ในโฟลเดอร์ src/');
-}
-
-const { sql, poolPromise } = dbModule;
+const {sql,poolPromise}=require('../config/db');
 
 // ==========================================
 // 1. Categories API (tblCategories)

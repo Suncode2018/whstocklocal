@@ -1,0 +1,7 @@
+const jwt=require('jsonwebtoken');
+function authenticate(req,res,next){try{const m=/^Bearer\s+(\S+)$/i.exec(req.headers.authorization||'');if(!m)return res.status(401).json({success:false,message:'กรุณาเข้าสู่ระบบ'});req.user=jwt.verify(m[1],process.env.JWT_SECRET||'super_secret_local_warehouse_jwt_key_2026');next()}catch{return res.status(401).json({success:false,isExpired:true,message:'เซสชันหมดอายุ'})}}
+function operation(permission){return [authenticate,(req,res,next)=>{const role=String(req.user.role||'').toUpperCase(),permissions=String(req.user.permissions||'').toUpperCase().split(',').map(s=>s.trim());if(['ADMIN','POWERUSER','SUPERVISOR'].includes(role)||permissions.includes('ALL')||permissions.includes(permission))return next();return res.status(403).json({success:false,message:'ไม่มีสิทธิ์ '+permission})}]}
+function planner(req,res,next){if(['ADMIN','POWERUSER','SUPERVISOR'].includes(String(req.user.role).toUpperCase()))return next();return res.status(403).json({success:false,message:'เฉพาะผู้วางแผนงาน'})}
+function masterWrite(req,res,next){if(req.method==='GET'||['ADMIN','POWERUSER'].includes(String(req.user.role).toUpperCase()))return next();return res.status(403).json({success:false,message:'เฉพาะผู้ดูแล Master'})}
+function admin(req,res,next){if(String(req.user.role).toUpperCase()==='ADMIN')return next();res.status(403).json({success:false,message:'เฉพาะ Admin'});}
+module.exports={authenticate,operation,planner,masterWrite,admin};

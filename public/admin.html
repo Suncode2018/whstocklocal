@@ -218,9 +218,7 @@
         <span>กระบวนการหลัก</span><i class="bi bi-chevron-down"></i>
       </button>
       <div class="sidebar-group-items" id="sidebar-group-main-process">
-        <button role="tab" class="sidebar-menu-item" id="tab-op-RECEIVE" onclick="switchTab('OP_RECEIVE')">
-          <i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE (รับสินค้า)</span>
-        </button>
+        <a class="sidebar-menu-item text-decoration-none" id="tab-op-RECEIVE" href="/supervisor/receive.html"><i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE (รับสินค้า)</span></a>
         <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')">
           <i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY (จัดเก็บ)</span>
         </button>
@@ -564,31 +562,12 @@
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 7: RECEIVE / PO -->
     <!-- ------------------------------------------------------------- -->
-    <div id="pane-receiving" style="display:none">
-      <div class="card-wms p-4">
-        <div class="page-head">
-          <div><h5>📥 รับสินค้าตาม PO (RECEIVE)</h5><div class="sub">สร้างใบรับประจำวันตาม PO ก่อน แล้ว Handheld จึงจะรับสินค้าได้</div></div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" onclick="loadReceiveOrders()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
-            <button class="btn btn-indigo" onclick="openReceiveOrderForm()"><i class="bi bi-plus-circle me-1"></i>สร้างใบรับ PO</button>
-          </div>
-        </div>
-        <div class="table-scroll mt-3"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบรับ</th><th>PO</th><th>Supplier</th><th>รายการ / รับแล้ว</th><th>สถานะ</th><th>ผู้สร้าง / เวลา</th><th>จัดการ</th></tr></thead><tbody id="receiveOrdersTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
-      </div>
-    </div>
+    
 
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 8: PUTAWAY -->
     <!-- ------------------------------------------------------------- -->
-    <div id="pane-putaway" style="display:none">
-      <div class="card-wms p-4">
-        <div class="page-head">
-          <div><h5>📦 PUTAWAY · วางแผนงานจัดเก็บ</h5><div class="sub">ย้ายจากจุดรับเข้า RCV ไปยังช่องจัดเก็บ A/B</div></div>
-          <div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadPutawayManager()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button></div>
-        </div>
-        <div class="table-scroll mt-3"><table class="table table-wms align-middle mb-0"><thead><tr><th>เลขที่ใบงาน</th><th>จำนวนรายการ / ความคืบหน้า</th><th>สถานะ</th><th>หมายเหตุ</th><th>ผู้สร้าง / เวลา</th><th>จัดการ</th></tr></thead><tbody id="putawayTaskTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
-      </div>
-    </div>
+    
 
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 9: STOCK REPORT -->
@@ -619,28 +598,12 @@
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 10: SCAN DESKTOP (PICK) -->
     <!-- ------------------------------------------------------------- -->
-    <div id="pane-scan" style="display:none">
-      <div class="card-wms p-4" style="max-width:640px">
-        <div class="page-head mb-3"><h5>PICK · เบิกจ่ายสินค้า</h5><div class="sub">สแกนบาร์โค้ด ระบุจำนวนและโลเคชั่น</div></div>
-        <div class="row g-3">
-          <input id="deskMode" type="hidden" value="PICK">
-          <div class="col-12"><label class="form-label-wms" for="deskBarcode">บาร์โค้ด</label><input id="deskBarcode" type="text" class="form-control form-control-wms" placeholder="สแกนหรือพิมพ์บาร์โค้ด แล้วกด Enter" autocomplete="off" style="height:56px;font-size:1.15rem;font-weight:600"></div>
-          <div class="col-6"><label class="form-label-wms" for="deskQty">จำนวน</label><input id="deskQty" type="number" class="form-control form-control-wms" value="1" min="1"></div>
-          <div class="col-6"><label class="form-label-wms" for="deskLocation">โลเคชั่นต้นทาง</label><input id="deskLocation" type="text" class="form-control form-control-wms" placeholder="เช่น A-01-01" autocomplete="off"></div>
-          <div class="col-12 d-flex gap-2"><button class="btn btn-indigo px-4 flex-grow-1" style="min-height:52px" onclick="submitDesktopScan()"><i class="bi bi-check2-circle me-1"></i>บันทึกเบิกจ่าย</button><button class="btn btn-outline-secondary" style="min-height:52px" onclick="clearDesk()" title="ล้างฟอร์ม"><i class="bi bi-arrow-counterclockwise"></i></button></div>
-        </div>
-      </div>
-    </div>
+    
 
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 11: CYCLE COUNT -->
     <!-- ------------------------------------------------------------- -->
-    <div id="pane-cyclecount" style="display:none">
-      <div class="card-wms p-4">
-        <div class="page-head"><div><h5>🔄 ตรวจนับประจำรอบ</h5><div class="sub">รอบตรวจนับยอดคงเหลือจริง</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadCycleCounts()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button></div></div>
-        <div class="table-scroll mt-3"><table class="table table-wms align-middle mb-0"><thead><tr><th>บาร์โค้ด</th><th>สินค้า</th><th>โลเคชั่น</th><th>ยอดคาดหมาย</th><th>ยอดตรวจนับ</th><th>ผลต่าง</th></tr></thead><tbody id="cycleCountTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
-      </div>
-    </div>
+    
 
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 12: SHORTAGE REASONS -->
@@ -823,19 +786,16 @@
 <!-- ========================================================================= -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="/js/common.js?v=20261101-2"></script>
-<script src="/js/admin-stock.js?v=20261105-3"></script>
-<script src="/js/receiving.js?v=20261101-4"></script>
-<script src="/js/admin-products.js?v=20261105-stock-quantity-1"></script>
-<script src="/js/admin-locations.js?v=20261105-02"></script>
-<script src="/js/shortage-reasons.js?v=20261101-1"></script>
-<script src="/js/cycle-count.js?v=20261101-1"></script>
-<script src="/js/putaway.js?v=20261101-4"></script>
-<script src="/js/admin-users.js"></script>
-<script src="/js/admin-permissions.js"></script>
-<script src="/js/admin-roles.js?v=20261105-02"></script>
-<script src="/js/admin-suppliers.js?v=20261105-1"></script>
-<script src="/js/admin-warehouses.js?v=20261105-01"></script>
+<script src="/js/common.js?v=20261106-modern-1"></script>
+<script src="/js/admin-stock.js?v=20261106-modern-1"></script>
+<script src="/js/admin-products.js?v=20261106-modern-1"></script>
+<script src="/js/admin-locations.js?v=20261106-modern-1"></script>
+<script src="/js/shortage-reasons.js?v=20261106-modern-1"></script>
+<script src="/js/admin-users.js?v=20261106-modern-1"></script>
+<script src="/js/admin-permissions.js?v=20261106-modern-1"></script>
+<script src="/js/admin-roles.js?v=20261106-modern-1"></script>
+<script src="/js/admin-suppliers.js?v=20261106-modern-1"></script>
+<script src="/js/admin-warehouses.js?v=20261106-modern-1"></script>
 
 <script>
 (function () {
@@ -852,7 +812,7 @@
   loadSummaryStock();
   loadMasterProducts();
   loadLocationsMaster();
-  loadReceiveOrders();
+  const initialView=new URLSearchParams(location.search).get("view");if(initialView)switchTab(initialView);
 })();
 
 function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
@@ -893,6 +853,8 @@ function initSidebarGroups(role) {
 
 // สลับ Tab หน้าจอหลัก
 function switchTab(tab) {
+const destinations={OP_RECEIVE:'receive',receiving:'receive',OP_PUTAWAY:'putaway',putaway:'putaway',OP_PICK:'pick',OP_LOAD:'load',OP_CYCLECOUNT:'cycle-count',cyclecount:'cycle-count',OP_CHECK:'cycle-count',OP_TRANSFER:'transfer'};if(destinations[tab]){location.assign('/supervisor/'+destinations[tab]+'.html');return;}
+
   const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
   const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : (operation === 'PUTAWAY' ? 'putaway' : 'scan'))) : tab;
   
@@ -908,7 +870,6 @@ function switchTab(tab) {
   
   const activeGroup = activeButton?.closest('.sidebar-group');
   if (activeGroup?.classList.contains('is-collapsed')) setSidebarGroup(activeGroup.dataset.sidebarGroup, true);
-  if (operation && !['CYCLECOUNT', 'RECEIVE', 'PUTAWAY'].includes(operation)) setDesktopOperation(operation);
   
   // เรียกฟังก์ชันโหลดข้อมูลตาม Tab
   if (tab === 'stock') loadSummaryStock();
@@ -925,9 +886,7 @@ function switchTab(tab) {
     else if (typeof loadRoles === 'function') loadRoles();
   }
 
-  if (paneTab === 'cyclecount') loadCycleCounts();
-  if (paneTab === 'receiving') loadReceiveOrders();
-  if (paneTab === 'putaway') loadPutawayManager();
+
   
   if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed');
 }

@@ -1,4 +1,4 @@
-USE [WarehouseStockDB];
+USE [dbMaster];
 GO
 
 -- 1. เพิ่มคอลัมน์ Permissions ในตาราง Users หากยังไม่มี

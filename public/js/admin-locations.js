@@ -9,9 +9,6 @@ let warehousesCache = [];
 async function fetchSafeLocations() {
   const headers = typeof authHeaders === 'function' ? authHeaders() : {};
   let res = await fetch('/api/master/locations', { headers });
-  if (!res.ok) {
-    res = await fetch('/api/locations', { headers });
-  }
   return res;
 }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สรุปสต็อกสินค้าคงคลัง - WH Stock Supervisor</title>
+  <title>รายงานสต๊อก · รับสินค้าตาม PO - WH Stock Supervisor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/wms.css">
@@ -11,281 +11,77 @@
   <style>
     .panel-modern { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
     .panel-title { font-weight: 700; color: #0f172a; }
-    
-    /* Stat Cards */
-    .stat-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      border: 1px solid #edf2f7;
-    }
-    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
-    
-    /* Filter & Search */
-    .search-input-wrap { position: relative; }
-    .search-icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: #94a3b8; font-size: 0.95rem; }
-    .form-control-modern, .form-select-modern {
-      height: 42px;
-      border-radius: 10px;
-      border: 1px solid #e2e8f0;
-      font-size: 0.9rem;
-      background-color: #f8fafc;
-      transition: all 0.2s ease;
-    }
-    .search-input-wrap .form-control-modern { padding-left: 38px; }
-    .form-control-modern:focus, .form-select-modern:focus {
-      background-color: #fff;
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
-    }
-    
-    /* Table Modern */
     .table-container-modern { border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; }
-    .table-modern thead th {
-      background-color: #f8fafc;
-      color: #475569;
-      font-size: 0.82rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #e2e8f0;
-    }
+    .table-modern thead th { background-color: #f8fafc; color: #475569; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
     .table-modern tbody td { padding: 14px 16px; border-bottom: 1px solid #f8fafc; font-size: 0.9rem; color: #334155; }
-    .table-modern tbody tr:hover { background-color: #f8faff; }
-    
-    .barcode-pill {
-      background: #eef2ff;
-      color: #4f46e5;
-      font-family: monospace;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-    }
-    .loc-tag {
-      background: #f1f5f9;
-      color: #334155;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      display: inline-block;
-    }
-  </style>
+  .inbound-type-card { border:1px solid #e2e8f0; border-radius:16px; padding:18px; background:#fff; transition:background .15s,border-color .15s; } .inbound-type-card:hover { background:#f8fafc; border-color:#a5b4fc; } .inbound-type-card[aria-pressed="true"] { border:2px solid #6366f1; background:#eef2ff; padding:17px; } .inbound-type-card:focus-visible { outline:3px solid #a5b4fc; outline-offset:2px; } #inboundForm[hidden] { display:none!important; }
+.pack-receipt{border:1px solid #c7d2fe;border-radius:16px;padding:20px;background:#f8fafc}.pack-step{padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;height:100%}.pack-step h6{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:16px}.pack-step h6>span{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#eef2ff;color:#4f46e5;font-size:13px}.pack-callout{font-size:12px;line-height:1.6;padding:10px;background:#f1f5f9;border-radius:8px;color:#64748b}.pack-form-footer{position:sticky;bottom:0;z-index:2;padding:14px 0 0;background:#f8fafc;margin-top:16px}.pack-receipt .form-control,.pack-receipt .form-select{min-height:42px;font-size:14px}
+</style>
 <link rel="stylesheet" href="/css/supervisor-menu.css?v=20261105-1">
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar navbar-dark navbar-wms px-3">
   <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center gap-3">
       <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()"><i class="bi bi-list fs-4 text-white"></i></button>
-      <div class="logo-icon">📊</div>
-      <div>
-        <div class="brand-title">WH Stock System</div>
-        <div class="brand-sub d-none d-sm-block">Supervisor • ภาพรวมและรายงานยอดสินค้าคงคลัง</div>
-      </div>
+      <div class="logo-icon">📋</div>
+      <div><div class="brand-title">WH Stock System</div><div class="brand-sub">Supervisor • Inbound</div></div>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <span class="session-badge" style="cursor:default">
-        <i class="bi bi-person-badge-fill"></i> <span id="userName">-</span>
-        <span class="badge bg-primary ms-1" id="userRole">SUPERVISOR</span>
-      </span>
+      <span class="session-badge" style="cursor:default"><i class="bi bi-person-badge-fill"></i> <span id="userName">-</span> <span class="badge bg-primary ms-1">SUPERVISOR</span></span>
       <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-right me-1"></i>ออกจากระบบ</button>
     </div>
   </div>
 </nav>
 
 <div class="admin-wrapper" id="adminWrapper">
-  <!-- SIDEBAR SUPERVISOR -->
   <aside class="admin-sidebar supervisor-sidebar" aria-label="เมนู Supervisor">
 <section class="sidebar-group" data-sidebar-group="supervisor-warehouse"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-warehouse" onclick="toggleSidebarGroup('supervisor-warehouse')"><span>ข้อมูลคลังสินค้า (Master)</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-warehouse"><a href="/supervisor/products.html" class="sidebar-menu-item" id="menu-products"><i class="bi bi-box-seam fs-5 text-info" aria-hidden="true"></i><span>จัดการสินค้า (Master)</span></a></div></section>
-<section class="sidebar-group" data-sidebar-group="supervisor-main-process"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-main-process" onclick="toggleSidebarGroup('supervisor-main-process')"><span>กระบวนการหลัก</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-main-process"><a href="/supervisor/receive.html" class="sidebar-menu-item" id="menu-receive"><i class="bi bi-box-arrow-in-down fs-5 text-success" aria-hidden="true"></i><span>RECEIVE (รับสินค้า)</span></a>
+<section class="sidebar-group" data-sidebar-group="supervisor-main-process"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-main-process" onclick="toggleSidebarGroup('supervisor-main-process')"><span>กระบวนการหลัก</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-main-process"><a href="/supervisor/receive.html" class="sidebar-menu-item active" id="menu-receive" aria-current="page"><i class="bi bi-box-arrow-in-down fs-5 text-success" aria-hidden="true"></i><span>RECEIVE (รับสินค้า)</span></a>
 <a href="/supervisor/putaway.html" class="sidebar-menu-item" id="menu-putaway"><i class="bi bi-box-seam fs-5 text-primary" aria-hidden="true"></i><span>PUTAWAY (จัดเก็บ)</span></a>
 <a href="/supervisor/pick.html" class="sidebar-menu-item" id="menu-pick"><i class="bi bi-box-arrow-up fs-5 text-danger" aria-hidden="true"></i><span>PICK (เบิกจ่าย)</span></a>
 <a href="/supervisor/load.html" class="sidebar-menu-item" id="menu-load"><i class="bi bi-truck fs-5 text-secondary" aria-hidden="true"></i><span>LOAD (โหลดขึ้นรถส่ง)</span></a></div></section>
-<section class="sidebar-group" data-sidebar-group="supervisor-reports"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-reports" onclick="toggleSidebarGroup('supervisor-reports')"><span>รายงาน</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-reports"><a href="/supervisor/stock.html" class="sidebar-menu-item active" id="menu-stock" aria-current="page"><i class="bi bi-bar-chart-fill fs-5 text-success" aria-hidden="true"></i><span>สรุปสต็อก &amp; Export</span></a></div></section>
+<section class="sidebar-group" data-sidebar-group="supervisor-reports"><button type="button" class="sidebar-section-title" aria-expanded="true" aria-controls="sidebar-group-supervisor-reports" onclick="toggleSidebarGroup('supervisor-reports')"><span>รายงาน</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><div class="sidebar-group-items" id="sidebar-group-supervisor-reports"><a href="/supervisor/stock.html" class="sidebar-menu-item" id="menu-stock"><i class="bi bi-bar-chart-fill fs-5 text-success" aria-hidden="true"></i><span>สรุปสต็อก &amp; Export</span></a></div></section>
 </aside>
   <div class="side-backdrop" onclick="toggleSidebar()"></div>
 
-  <!-- MAIN CONTENT -->
-  <main class="admin-content p-4">
-    
-    <!-- KPI Summary Row -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-boxes"></i></div>
-          <div><div class="text-muted small fw-semibold">SKU ทั้งหมด</div><h3 class="mb-0 fw-bold" id="kpiTotalSku">-</h3></div>
-        </div>
+  <main class="admin-content p-3 p-lg-4"><div id="pane-stock" style="display:block" data-stock-report="true">
+      <div class="page-head mb-4"><div><h4 class="fw-bold mb-1">รายงานสินค้าคงคลัง</h4><div class="sub">ตรวจสอบยอดคงเหลือและตำแหน่งจัดเก็บสินค้า</div></div><span class="badge bg-primary-subtle text-primary p-2">On-Hand Balance</span></div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-boxes"></i></div><div><div class="stat-label">SKU ทั้งหมด</div><h3 class="stat-value" id="reportSku">—</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-success-subtle text-success"><i class="bi bi-box-seam"></i></div><div><div class="stat-label">ยอดคงเหลือรวม</div><h3 class="stat-value" id="reportQty">—</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-geo-alt"></i></div><div><div class="stat-label">โลเคชั่นที่มีสินค้า</div><h3 class="stat-value" id="reportLocations">—</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-triangle"></i></div><div><div class="stat-label">SKU ต่ำกว่า Min</div><h3 class="stat-value" id="reportLow">—</h3></div></div></div>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></div>
-          <div><div class="text-muted small fw-semibold">ยอดคงเหลือรวม</div><h3 class="mb-0 fw-bold" id="kpiTotalQty">-</h3></div>
+      <div class="card-wms p-3 p-md-4">
+        <div class="page-head pb-3 border-bottom"><div><h5>สรุปสต๊อกคงเหลือปัจจุบัน</h5><div class="sub">การ์ดสรุปอ้างอิงข้อมูลทั้งหมด · ตารางและไฟล์ส่งออกอ้างอิงตัวกรอง</div></div><div class="d-flex flex-wrap gap-2"><button id="reportExport" class="btn btn-success" onclick="exportAdminStockCsv()" disabled><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button><button id="reportRefresh" class="btn btn-outline-secondary" onclick="loadSummaryStock()"><i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช</button></div></div>
+        <div class="row g-2 my-3">
+          <div class="col-lg-5"><label class="form-label small" for="reportSearch">ค้นหาสินค้า / ตำแหน่ง</label><input id="reportSearch" type="search" class="form-control" placeholder="รหัสสินค้า บาร์โค้ด ชื่อสินค้า หรือโลเคชั่น" oninput="renderAdminStockReport()"></div>
+          <div class="col-sm-5 col-lg-3"><label class="form-label small" for="reportZone">โซนจัดเก็บ</label><select id="reportZone" class="form-select" onchange="renderAdminStockReport()"><option value="">ทุกโซน</option><option value="A-">โซน A</option><option value="B-">โซน B</option><option value="RCV">จุดรับเข้า (RCV)</option><option value="OUT">พักรอส่ง (OUT)</option></select></div>
+          <div class="col-sm-5 col-lg-3"><label class="form-label small" for="reportStatus">สถานะสต๊อก</label><select id="reportStatus" class="form-select" onchange="renderAdminStockReport()"><option value="">ทุกสถานะ</option><option value="available">มีสินค้า</option><option value="empty">หมดสต๊อก</option><option value="low">ต่ำกว่า Min</option></select></div>
+          <div class="col-sm-2 col-lg-1 d-flex align-items-end"><button class="btn btn-outline-secondary w-100" onclick="clearAdminStockFilters()" title="ล้างตัวกรอง" aria-label="ล้างตัวกรอง"><i class="bi bi-arrow-counterclockwise"></i></button></div>
         </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-geo-alt"></i></div>
-          <div><div class="text-muted small fw-semibold">โลเคชั่นที่ใช้งาน</div><h3 class="mb-0 fw-bold" id="kpiTotalLoc">-</h3></div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-triangle"></i></div>
-          <div><div class="text-muted small fw-semibold">สินค้าต่ำกว่า Min</div><h3 class="mb-0 fw-bold" id="kpiLowStock">-</h3></div>
-        </div>
+        <div id="reportNotice" class="small text-muted mb-3" role="status" aria-live="polite">เลือกรีเฟรชเพื่อโหลดข้อมูลล่าสุด</div>
+        <div class="table-responsive" style="max-height:560px"><table class="table table-wms align-middle mb-0"><caption class="visually-hidden">รายงานยอดคงเหลือแยกตามสินค้า</caption><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่งจัดเก็บ</th><th class="text-end">ยอดคงเหลือ</th><th>หน่วย</th><th>สถานะ</th><th>อัปเดตล่าสุด</th></tr></thead><tbody id="stockTableBody"><tr><td colspan="9" class="text-center py-5 text-muted">ยังไม่ได้โหลดข้อมูล</td></tr></tbody></table></div>
+        <div class="d-flex flex-wrap justify-content-between gap-2 mt-3 small text-muted"><span id="reportCount">แสดง 0 รายการ</span><span id="reportUpdated">ยังไม่ได้อัปเดต</span></div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3"><label class="small text-muted d-flex align-items-center gap-2">แสดงต่อหน้า<select id="reportPageSize" class="form-select form-select-sm w-auto" onchange="renderAdminStockReport()"><option>25</option><option selected>50</option><option>100</option></select></label><nav aria-label="หน้ารายงานสต๊อก" class="d-flex align-items-center gap-2"><button id="reportPrev" class="btn btn-sm btn-outline-secondary" onclick="changeAdminStockPage(-1)" disabled>ก่อนหน้า</button><span id="reportPageInfo" class="small text-muted" aria-live="polite">หน้า 1 / 1</span><button id="reportNext" class="btn btn-sm btn-outline-secondary" onclick="changeAdminStockPage(1)" disabled>ถัดไป</button></nav></div>
       </div>
     </div>
-
-    <!-- Panel รายการสต็อก -->
-    <div class="panel-modern">
-      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pb-3 mb-3 border-bottom">
-        <div>
-          <h5 class="panel-title mb-1">📊 สรุปสต็อกคงเหลือปัจจุบัน (On-Hand Balance)</h5>
-          <div class="text-muted small">ตรวจสอบยอดสินค้าคงคลังแยกตามตำแหน่งจัดเก็บ พร้อมระบบปรับยอดสต็อก</div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <!-- ปุ่มเปิดหน้าต่าง Adjust สต็อกเพื่อตั้งยอด -->
-          <button class="btn btn-warning text-dark fw-semibold" onclick="openStockAdjustModal()">
-            <i class="bi bi-sliders me-1"></i> ปรับสต็อก (Adj)
-          </button>
-          <button class="btn btn-success" onclick="exportStockExcel()">
-            <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
-          </button>
-          <button class="btn btn-outline-secondary" onclick="loadStockSummary(true)" title="รีเฟรช">
-            <i class="bi bi-arrow-clockwise"></i> รีเฟรช
-          </button>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="row g-2 mb-3">
-        <div class="col-md-7">
-          <div class="search-input-wrap">
-            <i class="bi bi-search search-icon"></i>
-            <input type="search" id="stockSearchInput" class="form-control form-control-modern" placeholder="ค้นหาด้วยรหัสสินค้า, บาร์โค้ด, ชื่อสินค้า หรือโลเคชั่น..." oninput="filterStockTable(this.value)">
-          </div>
-        </div>
-        <div class="col-md-3">
-          <select id="stockZoneFilter" class="form-select form-select-modern" onchange="filterStockZone(this.value)">
-            <option value="">ทุกตำแหน่ง (All Locations)</option>
-            <option value="A-">โซน A (จัดเก็บหลัก)</option>
-            <option value="B-">โซน B (จัดเก็บสำรอง)</option>
-            <option value="RCV">จุดรับเข้า (RCV)</option>
-            <option value="OUT">พักรอส่ง (OUT)</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <button class="btn btn-outline-secondary w-100" style="height:42px" onclick="clearStockFilter()">
-            <i class="bi bi-arrow-counterclockwise me-1"></i> ล้างตัวกรอง
-          </button>
-        </div>
-      </div>
-
-      <!-- ตารางแสดงรายการสต็อก -->
-      <div class="table-responsive table-container-modern">
-        <table class="table table-modern align-middle mb-0">
-          <thead>
-            <tr>
-              <th style="width: 60px" class="text-center">#</th>
-              <th style="width: 170px">บาร์โค้ด</th>
-              <th style="width: 150px">รหัสสินค้า</th>
-              <th>ชื่อสินค้า / รายละเอียด</th>
-              <th style="width: 140px">โลเคชั่น</th>
-              <th style="width: 130px" class="text-end">ยอดคงเหลือ</th>
-              <th style="width: 160px">อัปเดตล่าสุด</th>
-              <th style="width: 90px" class="text-end">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="stockTableBody">
-            <tr>
-              <td colspan="8" class="text-center py-5 text-muted">
-                <span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลสต็อกคงเหลือ...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
-        <div id="stockRowCount">แสดง 0 รายการ</div>
-        <div>ข้อมูลซิงค์กับฐานข้อมูลคลังสินค้าแบบ Real-time</div>
-      </div>
-    </div>
-  </main>
-</div>
-
-<!-- ========================================================================= -->
-<!-- MODAL: ปรับปรุงสต็อก / ตั้งยอดยกมา (Stock Adjustment) -->
-<!-- ========================================================================= -->
-<div class="modal fade" id="adjustModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-warning-subtle text-dark border-0">
-        <h5 class="modal-title fw-bold"><i class="bi bi-sliders me-1"></i> ปรับยอดสต็อก (Stock Adjustment)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label fw-bold" for="adjProductCode">รหัสสินค้า / บาร์โค้ด *</label>
-          <input type="text" id="adjProductCode" class="form-control" placeholder="เช่น P0001 หรือสแกนบาร์โค้ด" required>
-          <div id="adjProductHint" class="small text-muted mt-1"></div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold" for="adjLocation">โลเคชั่นจัดเก็บ *</label>
-          <input type="text" id="adjLocation" class="form-control text-uppercase" placeholder="เช่น A-01-01, RCV" required>
-        </div>
-        <div class="row mb-3">
-          <div class="col-6">
-            <label class="form-label fw-bold" for="adjQty">ยอดจำนวนใหม่ (New Qty) *</label>
-            <input type="number" id="adjQty" class="form-control" min="0" step="1" value="0" required>
-          </div>
-          <div class="col-6">
-            <label class="form-label fw-bold" for="adjType">ประเภทการปรับ</label>
-            <select id="adjType" class="form-select">
-              <option value="INITIAL">ตั้งยอดยกมา (Initial)</option>
-              <option value="COUNT_ADJ">ปรับผลต่างการนับ (Count)</option>
-              <option value="DAMAGE">ชำรุด / เสียหาย (Damage)</option>
-            </select>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold" for="adjRemark">หมายเหตุ / อ้างอิง</label>
-          <input type="text" id="adjRemark" class="form-control" placeholder="เช่น นับสต็อกยกยอดประจำงวด">
-        </div>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button type="button" class="btn btn-primary" onclick="submitStockAdjust()">
-          <i class="bi bi-check2 me-1"></i> บันทึกยอดสต็อก
-        </button>
-      </div>
-    </div>
-  </div>
+</main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="/js/common.js?v=20261101-2"></script>
-
+<script src="/js/common.js?v=20261106-modern-1"></script>
+<script src="/js/admin-stock.js?v=20261106-modern-1"></script>
 <script>
-  let rawStockList = [];
-
   document.addEventListener('DOMContentLoaded', () => {
-    const p = requireAuth(['ADMIN', 'POWERUSER', 'SUPERVISOR']);
+    const p = requireAuth(['ADMIN', 'POWERUSER', 'SUPERVISOR', 'VIEWER', 'READONLY']);
     if (!p) return;
-    const name = [p.fullname, p.fullName, p.username].find(v => v && String(v).trim()) || 'หัวหน้าคลัง';
-    document.getElementById('userName').textContent = name;
-    loadStockSummary();
+    document.getElementById('userName').textContent = p.fullname || p.username || 'หัวหน้าคลัง';
+    loadSummaryStock();
   });
-
   function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
   function toggleSidebarGroup(groupName) {
     const group = document.querySelector(`[data-sidebar-group="${groupName}"]`);
@@ -294,180 +90,7 @@
   function doLogout() {
     Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ออกจากระบบ' }).then(r => { if (r.isConfirmed) logout(); });
   }
-
-  // 1. โหลดข้อมูลสต็อก
-  async function loadStockSummary(showToast = false) {
-    const tbody = document.getElementById('stockTableBody');
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลสต็อก...</td></tr>`;
-
-    try {
-      // เรียก API ตรวจสต็อก หากไม่มีให้ Fallback ดึง Master สินค้ามาแสดงยอดตั้งต้น
-      let res = await fetch('/api/master/stock-summary', { headers: typeof authHeaders === 'function' ? authHeaders() : {} });
-      if (!res.ok) {
-        res = await fetch('/api/products', { headers: typeof authHeaders === 'function' ? authHeaders() : {} });
-      }
-      
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (data.data || []);
-      
-      rawStockList = list.map(item => ({
-        barcode: item.Barcode || item.barcode || '-',
-        code: item.ProductCode || item.code || '-',
-        name: item.ProductName || item.name || '-',
-        thaiName: item.ThaiName || '',
-        location: item.LocationCode || item.location || 'A-01-01',
-        qty: parseFloat(item.Quantity || item.qty || item.StandardCost || 0),
-        updatedAt: item.UpdatedAt || item.time || new Date().toISOString()
-      }));
-
-      renderStockTable(rawStockList);
-      updateKpis(rawStockList);
-
-      if (showToast) {
-        Swal.fire({ icon: 'success', title: 'รีเฟรชข้อมูลเรียบร้อย', timer: 1000, showConfirmButton: false });
-      }
-    } catch (err) {
-      console.error('loadStockSummary Error:', err);
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-danger">เกิดข้อผิดพลาดในการดึงข้อมูลสต็อก: ${err.message}</td></tr>`;
-    }
-  }
-
-  // 2. แสดงข้อมูลในตาราง
-  function renderStockTable(list) {
-    const tbody = document.getElementById('stockTableBody');
-    if (!list || list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">ไม่พบข้อมูลสินค้าคงเหลือในคลัง</td></tr>`;
-      document.getElementById('stockRowCount').textContent = 'แสดง 0 รายการ';
-      return;
-    }
-
-    tbody.innerHTML = list.map((item, index) => {
-      const timeStr = item.updatedAt ? new Date(item.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '-';
-      const qtyClass = item.qty <= 0 ? 'text-danger fw-bold' : 'text-dark fw-bold';
-      
-      return `
-        <tr>
-          <td class="text-center text-muted fw-semibold">${index + 1}</td>
-          <td><span class="barcode-pill">${item.barcode}</span></td>
-          <td><span class="fw-bold">${item.code}</span></td>
-          <td>
-            <div class="fw-semibold text-dark">${item.name}</div>
-            ${item.thaiName ? `<div class="small text-muted">${item.thaiName}</div>` : ''}
-          </td>
-          <td><span class="loc-tag">${item.location}</span></td>
-          <td class="text-end ${qtyClass}" style="font-size: 1.05rem;">${item.qty.toLocaleString()}</td>
-          <td class="small text-muted">${timeStr}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-warning border-0" onclick="quickAdjust('${item.code}', '${item.barcode}', '${item.location}', ${item.qty})" title="ปรับสต็อก">
-              <i class="bi bi-pencil-square"></i>
-            </button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    document.getElementById('stockRowCount').textContent = `แสดง ${list.length.toLocaleString()} รายการ`;
-  }
-
-  // 3. คำนวณการ์ดสถิติ KPI
-  function updateKpis(list) {
-    const totalSku = new Set(list.map(i => i.code)).size;
-    const totalQty = list.reduce((sum, i) => sum + (i.qty || 0), 0);
-    const totalLoc = new Set(list.map(i => i.location)).size;
-    const lowStock = list.filter(i => (i.qty || 0) <= 0).length;
-
-    document.getElementById('kpiTotalSku').textContent = totalSku.toLocaleString();
-    document.getElementById('kpiTotalQty').textContent = totalQty.toLocaleString();
-    document.getElementById('kpiTotalLoc').textContent = totalLoc.toLocaleString();
-    document.getElementById('kpiLowStock').textContent = lowStock.toLocaleString();
-  }
-
-  // 4. การค้นหาและตัวกรอง
-  function filterStockTable(q) {
-    q = (q || '').trim().toLowerCase();
-    const zone = document.getElementById('stockZoneFilter').value;
-    const filtered = rawStockList.filter(item => {
-      const matchQ = !q || item.barcode.toLowerCase().includes(q) || item.code.toLowerCase().includes(q) || item.name.toLowerCase().includes(q) || item.location.toLowerCase().includes(q);
-      const matchZone = !zone || item.location.startsWith(zone);
-      return matchQ && matchZone;
-    });
-    renderStockTable(filtered);
-  }
-
-  function filterStockZone(zone) {
-    const q = document.getElementById('stockSearchInput').value;
-    filterStockTable(q);
-  }
-
-  function clearStockFilter() {
-    document.getElementById('stockSearchInput').value = '';
-    document.getElementById('stockZoneFilter').value = '';
-    renderStockTable(rawStockList);
-  }
-
-  // 5. ระบบ Adjust สต็อก
-  function openStockAdjustModal() {
-    document.getElementById('adjProductCode').value = '';
-    document.getElementById('adjLocation').value = 'A-01-01';
-    document.getElementById('adjQty').value = '100';
-    document.getElementById('adjRemark').value = 'ตั้งยอดยกมาเริ่มต้น';
-    new bootstrap.Modal(document.getElementById('adjustModal')).show();
-  }
-
-  function quickAdjust(code, barcode, location, currentQty) {
-    document.getElementById('adjProductCode').value = code || barcode;
-    document.getElementById('adjLocation').value = location;
-    document.getElementById('adjQty').value = currentQty;
-    document.getElementById('adjRemark').value = 'ปรับยอดคงเหลือจริง';
-    new bootstrap.Modal(document.getElementById('adjustModal')).show();
-  }
-
-  async function submitStockAdjust() {
-    const code = document.getElementById('adjProductCode').value.trim();
-    const location = document.getElementById('adjLocation').value.trim().toUpperCase();
-    const qty = parseFloat(document.getElementById('adjQty').value || 0);
-    const type = document.getElementById('adjType').value;
-    const remark = document.getElementById('adjRemark').value.trim();
-
-    if (!code || !location || isNaN(qty)) {
-      Swal.fire('แจ้งเตือน', 'กรุณาระบุรหัสสินค้า, โลเคชั่น และจำนวนให้ถูกต้อง', 'warning');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/products/adjust', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(typeof authHeaders === 'function' ? authHeaders() : {}) },
-        body: JSON.stringify({ productCode: code, location, qty, type, remark })
-      });
-
-      bootstrap.Modal.getInstance(document.getElementById('adjustModal')).hide();
-      Swal.fire({ icon: 'success', title: 'บันทึกยอดสต็อกเรียบร้อย', timer: 1500, showConfirmButton: false });
-      loadStockSummary();
-    } catch (err) {
-      Swal.fire('ผิดพลาด', err.message, 'error');
-    }
-  }
-
-  // 6. ส่งออกเป็น Excel (CSV)
-  function exportStockExcel() {
-    if (!rawStockList || rawStockList.length === 0) {
-      Swal.fire('แจ้งเตือน', 'ไม่มีข้อมูลสำหรับส่งออก', 'info');
-      return;
-    }
-
-    let csv = '\uFEFF#บาร์โค้ด,รหัสสินค้า,ชื่อสินค้า,โลเคชั่น,ยอดคงเหลือ,อัปเดตล่าสุด\n';
-    rawStockList.forEach(i => {
-      csv += `"${i.barcode}","${i.code}","${i.name.replace(/"/g, '""')}","${i.location}",${i.qty},"${i.updatedAt}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Stock_Report_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-  }
 </script>
-<script src="/js/supervisor-menu.js?v=20261105-1"></script>
+<script src="/js/supervisor-menu.js?v=20261106-modern-1"></script>
 </body>
 </html>

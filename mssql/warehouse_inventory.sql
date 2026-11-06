@@ -1,3 +1,5 @@
+-- HISTORICAL SOURCE ONLY. Current installation: UpgradeModernWorkflows.sql.
+-- This file is retained for historical reference and is not part of application startup.
 -- =====================================================================
 --  Warehouse Inventory (PK / RM / FG) - schema + data + views
 --  สร้างจากไฟล์: _WH__Inventory_PK.xlsx, _WH__Inventory_RM.xlsx, _WH__Inventory_FG.xlsx

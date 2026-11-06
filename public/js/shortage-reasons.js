@@ -14,9 +14,6 @@ async function apiShortage(path, options = {}) {
 
   // ลอง /api/master/shortage-reasons ก่อน หากไม่ได้ให้ fallback ไปที่ /api/shortage-reasons
   let res = await fetch('/api/master/shortage-reasons' + path, { ...options, headers });
-  if (res.status === 404) {
-    res = await fetch('/api/shortage-reasons' + path, { ...options, headers });
-  }
   
   const text = await res.text();
   let data;

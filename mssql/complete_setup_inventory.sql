@@ -1,3 +1,5 @@
+-- HISTORICAL SOURCE ONLY. Current installation: UpgradeModernWorkflows.sql.
+-- This file is retained for historical reference and is not part of application startup.
 -- =============================================================================
 -- COMPLETE DATABASE SETUP SCRIPT FOR INVENTORY MANAGEMENT SYSTEM (SQL SERVER)
 -- Includes:

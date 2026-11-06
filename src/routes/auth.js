@@ -4,18 +4,7 @@ const sql = require('mssql');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken'); // หรือระบบจัดการ Session ที่คุณใช้
 
-const dbConfig = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER,
-  database: process.env.DB_DATABASE,
-  port: parseInt(process.env.DB_PORT) || 1433,
-  options: {
-    encrypt: process.env.DB_ENCRYPT === 'true' || false,
-    enableArithAbort: true,
-    trustServerCertificate: true
-  }
-};
+const {poolPromise}=require('../config/db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_local_warehouse_jwt_key_2026';
 
@@ -28,7 +17,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
     }
 
-    const pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('Username', sql.VarChar, username)
       .query("SELECT UserId, Username, PasswordHash, FullName = COALESCE(NULLIF(LTRIM(RTRIM(FullName)), N''), Username), Role, IsActive, Permissions FROM Users WHERE Username = @Username");
@@ -53,7 +42,7 @@ router.post('/login', async (req, res) => {
     const tokenPayload = {
       id: user.UserId,
       username: user.Username,
-      fullname: user.Fullname,
+      fullname: user.FullName,
       role: user.Role,
       permissions: user.Permissions || ''
     };
@@ -66,7 +55,7 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.UserId,
         username: user.Username,
-        fullname: user.Fullname,
+        fullname: user.FullName,
         role: user.Role,
         permissions: user.Permissions || ''
       }

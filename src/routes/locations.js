@@ -133,7 +133,7 @@ router.delete('/locations/:id', async (req, res) => {
     const pool = await poolPromise;
     await pool.request()
       .input('LocationId', sql.Int, id)
-      .query(`DELETE FROM [dbo].[Locations] WHERE [LocationId] = @LocationId;`);
+      .query(`IF EXISTS(SELECT 1 FROM dbWMS.dbo.tblStock s JOIN dbo.Locations l ON s.whid=l.whid AND s.LocationCode=l.LocationCode WHERE l.LocationId=@LocationId AND s.Quantity<>0) OR EXISTS(SELECT 1 FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines pl ON pl.PlanId=h.PlanId JOIN dbo.Locations l ON l.whid=h.WhId AND (l.LocationCode=h.FromLocationCode OR l.LocationCode=pl.ToLocationCode) WHERE l.LocationId=@LocationId AND h.Status='OPEN') THROW 51000,N'ตำแหน่งมีสต๊อกหรืองานจัดเก็บค้างอยู่',1; UPDATE dbo.Locations SET IsActive=0 WHERE LocationId=@LocationId;`);
 
     res.json({ success: true, message: 'ลบโลเคชั่นเรียบร้อย' });
   } catch (err) {
