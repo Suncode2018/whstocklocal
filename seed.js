@@ -18,9 +18,9 @@ async function initUsers() {
       DELETE FROM Users WHERE Username IN ('admin', 'poweruser', 'picker01', 'viewer01');
       INSERT INTO Users (Username, PasswordHash, FullName, Role, IsActive, CreatedAt, Permissions) VALUES 
       ('admin', '${hash}', N'ผู้ดูแลระบบ', 'ADMIN', 1, SYSDATETIME(), 'ALL'),
-      ('poweruser', '${hash}', N'หัวหน้างานคลังสินค้า', 'POWERUSER', 1, SYSDATETIME(), 'ALL'),
-      ('picker01', '${hash}', N'พนักงานสแกน 01', 'OPERATOR', 1, SYSDATETIME(), 'RECEIVE,PUTAWAY,PICK,TRANSFER,CHECK,LOAD,CYCLECOUNT,LOOKUP'),
-      ('viewer01', '${hash}', N'เจ้าหน้าที่อ่านอย่างเดียว', 'VIEWER', 1, SYSDATETIME(), 'LOOKUP');
+      ('poweruser', '${hash}', N'หัวหน้างานคลังสินค้า', 'USER', 1, SYSDATETIME(), 'ALL'),
+      ('picker01', '${hash}', N'พนักงานสแกน 01', 'USER', 1, SYSDATETIME(), 'RECEIVE,PUTAWAY,PICK,TRANSFER,CHECK,LOAD,CYCLECOUNT,LOOKUP'),
+      ('viewer01', '${hash}', N'เจ้าหน้าที่อ่านอย่างเดียว', 'USER', 1, SYSDATETIME(), 'LOOKUP');
     `);
 
     console.log('============================================');
