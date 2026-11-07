@@ -815,11 +815,11 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261107-dialogs"></script>
 <script src="/js/admin-stock.js?v=20261107-box-details"></script>
-<script src="/js/admin-products.js?v=20261107-product-editor"></script>
+<script src="/js/product-pack-versions.js?v=20261107-1"></script><script src="/js/admin-products.js?v=20261107-supplier-search"></script>
 <script src="/js/admin-locations.js?v=20261107-capacity"></script>
 <script src="/js/shortage-reasons.js?v=20261106-two-roles"></script>
 <script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
-<script src="/js/admin-users.js?v=20261106-real-user-id"></script>
+<script src="/js/admin-users.js?v=20261107-manual-reset"></script>
 <script src="/js/admin-permissions.js?v=20261106-two-roles"></script>
 <script src="/js/admin-roles.js?v=20261106-two-roles"></script>
 <script src="/js/bom-stock.js?v=20261106-two-roles"></script>
@@ -827,7 +827,7 @@
 <script src="/js/admin-suppliers.js?v=20261106-supplier-scopes"></script>
 <script src="/js/admin-warehouses.js?v=20261107-assigned-wh"></script>
 
-<script src="/js/manufacturer-products.js?v=20261107-dialogs"></script>
+<script src="/js/manufacturer-products.js?v=20261107-name-search"></script>
 <script src="/js/customer-products.js?v=20261107-1"></script>
 <dialog id="transportDialog" class="extension-dialog"><form onsubmit="saveTransport(event)"><div class="dialog-head"><h5 id="transportTitle" class="mb-0"></h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('transportDialog').close()"></button></div><div class="dialog-body"><div class="mb-3"><label for="transportCode">รหัสผู้ขนส่ง *</label><input id="transportCode" class="form-control" maxlength="30" required></div><div class="mb-3"><label for="transportName">ชื่อผู้ให้บริการขนส่ง *</label><input id="transportName" class="form-control" maxlength="200" required></div><label for="transportEnabled">สถานะ</label><select id="transportEnabled" class="form-select"><option value="1">เปิดใช้งาน</option><option value="0">ปิดใช้งาน</option></select><p id="transportError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('transportDialog').close()">ยกเลิก</button><button id="transportSave" type="submit" class="btn btn-primary">บันทึก</button></div></form></dialog><dialog id="tpDialog" class="extension-dialog"><form onsubmit="saveTransportProducts(event)"><div class="dialog-head"><h5 class="mb-0">เชื่อมผู้ขนส่ง–สินค้า</h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('tpDialog').close()"></button></div><div class="dialog-body"><p id="tpCompany" class="fw-bold"></p><label for="tpMode">สินค้าที่ขนส่งได้</label><select id="tpMode" class="form-select mb-3" onchange="changeTransportProductMode()"><option value="ALL">All · สินค้าทั้งหมด (ค่าเริ่มต้น)</option><option value="SELECTED">เฉพาะสินค้าที่เลือก</option></select><p id="tpAllHint" class="alert alert-light border">ใช้กับสินค้าทั้งหมด รวมสินค้าที่เพิ่มภายหลัง ไม่ต้องเพิ่มการเชื่อมทีละ SKU</p><div id="tpChoices" hidden><label for="tpProductSearch">ค้นหาสินค้า</label><input id="tpProductSearch" class="form-control mb-2" placeholder="รหัส ชื่อสินค้า หรือหมวด RM / PKG / SEMI / FG" oninput="renderTransportProductOptions()"><p id="tpPicked" class="small muted"></p><div id="tpProductOptions" style="max-height:280px;overflow:auto;border:1px solid #e2e6f1;border-radius:12px"></div></div><p id="tpError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('tpDialog').close()">ยกเลิก</button><button id="tpSave" type="submit" class="btn btn-primary">บันทึกการเชื่อมโยง</button></div></form></dialog><script src="/js/transport-products.js?v=20261107-1"></script><script src="/js/transports.js?v=20261107-1"></script>
 <script src="/js/customers.js?v=20261106-supplier-layout"></script>

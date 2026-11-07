@@ -354,33 +354,9 @@
 
   /* ---------- รีเซ็ตรหัสผ่าน ---------- */
   window.userReset = async id => {
-    const u = users.find(x => String(x.id) === String(id));
-    if (!u) return;
-    const c = await Swal.fire({
-      icon: 'question', title: `รีเซ็ตรหัสผ่าน @${u.username}?`,
-      text: 'ระบบจะสร้างรหัสผ่านชั่วคราวใหม่ให้ รหัสเดิมจะใช้ไม่ได้ทันที',
-      showCancelButton: true, confirmButtonColor: '#d97706', confirmButtonText: 'รีเซ็ตรหัสผ่าน', cancelButtonText: 'ยกเลิก',
-      showLoaderOnConfirm: true,
-      preConfirm: async () => {
-        const pw = genPassword();
-        try { if (!demo) await api('POST', '/' + encodeURIComponent(u.id) + '/reset-password', { password: pw }); return pw; }
-        catch (e) { Swal.showValidationMessage(e.message); return false; }
-      }
-    });
-    if (!c.isConfirmed) return;
-    const pw = c.value;
-    await Swal.fire({
-      icon: 'success', title: 'รีเซ็ตรหัสผ่านแล้ว',
-      html: `<div class="small text-muted mb-2">รหัสผ่านชั่วคราวของ <b>@${esc(u.username)}</b><br>แสดงครั้งเดียว กรุณาคัดลอกและแจ้งผู้ใช้</div>
-             <div class="copy-box" id="pwBox">${esc(pw)}</div>`,
-      showCancelButton: true, confirmButtonText: '<i class="bi bi-clipboard me-1"></i>คัดลอก', cancelButtonText: 'ปิด',
-      confirmButtonColor: '#4f46e5', allowOutsideClick: false,
-      preConfirm: async () => {
-        try { await navigator.clipboard.writeText(pw); Toast.fire({ icon: 'success', title: 'คัดลอกแล้ว' }); }
-        catch (_) { const r = document.createRange(); r.selectNode($('pwBox')); getSelection().removeAllRanges(); getSelection().addRange(r); Toast.fire({ icon: 'info', title: 'เลือกข้อความแล้ว กด Ctrl+C' }); }
-        return false;
-      }
-    });
+    const u=users.find(x=>String(x.id)===String(id));if(!u)return;
+    const result=await Swal.fire({title:'กำหนดรหัสผ่านใหม่',html:'<div class="text-start"><div class="small text-muted mb-3">ผู้ใช้งาน <strong>@'+esc(u.username)+'</strong> · รหัสเดิมจะใช้เข้าสู่ระบบไม่ได้หลังบันทึก</div><label for="resetNewPassword" class="form-label">รหัสผ่านใหม่ *</label><input id="resetNewPassword" type="password" class="form-control mb-3" autocomplete="new-password" placeholder="อย่างน้อย 8 ตัวอักษร" aria-describedby="resetPasswordHint"><label for="resetConfirmPassword" class="form-label">ยืนยันรหัสผ่านใหม่ *</label><input id="resetConfirmPassword" type="password" class="form-control mb-3" autocomplete="new-password" placeholder="พิมพ์รหัสผ่านเดิมอีกครั้ง"><label class="form-check"><input id="resetShowPassword" type="checkbox" class="form-check-input"><span class="form-check-label small">แสดงรหัสผ่าน</span></label><div id="resetPasswordHint" class="small text-muted mt-2">อย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์</div></div>',showCancelButton:true,confirmButtonText:'บันทึกรหัสผ่านใหม่',cancelButtonText:'ยกเลิก',showLoaderOnConfirm:true,allowOutsideClick:()=>!Swal.isLoading(),allowEscapeKey:()=>!Swal.isLoading(),didOpen:()=>{const first=$('resetNewPassword'),confirm=$('resetConfirmPassword');first.focus();$('resetShowPassword').onchange=event=>{first.type=confirm.type=event.target.checked?'text':'password';};},preConfirm:async()=>{const password=$('resetNewPassword').value,confirm=$('resetConfirmPassword').value;if(password.length<8||new TextEncoder().encode(password).length>72){Swal.showValidationMessage('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์');return false;}if(password!==confirm){Swal.showValidationMessage('รหัสผ่านทั้งสองช่องไม่ตรงกัน');$('resetConfirmPassword').focus();return false;}try{if(!demo)await api('POST','/'+encodeURIComponent(u.id)+'/reset-password',{password});return true;}catch(e){Swal.showValidationMessage(e.message);return false;}},willClose:()=>{for(const id of ['resetNewPassword','resetConfirmPassword'])if($(id))$(id).value='';}});
+    if(result.isConfirmed)await Swal.fire({icon:'success',title:'เปลี่ยนรหัสผ่านแล้ว',text:'ผู้ใช้ @'+u.username+' สามารถเข้าสู่ระบบด้วยรหัสผ่านที่คุณกำหนด',confirmButtonText:'ปิด'});
   };
 
   window.loadUsers = loadUsers;

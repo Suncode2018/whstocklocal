@@ -263,7 +263,8 @@
         <button role="tab" class="sidebar-menu-item" id="tab-users" onclick="switchTab('users')">
           <i class="bi bi-people-fill fs-5 text-primary"></i> <span>จัดการผู้ใช้งาน (Users)</span>
         </button>
-        <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
+        <button role="tab" class="sidebar-menu-item" id="tab-company" onclick="switchTab('company')"><i class="bi bi-building"></i> ข้อมูลบริษัท</button>
+<button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
           <i class="bi bi-shield-lock-fill fs-5 text-warning"></i> <span>กำหนดสิทธิ์เมนู (Permissions)</span>
         </button>
         <button role="tab" class="sidebar-menu-item" id="tab-roles" onclick="switchTab('roles')">
@@ -504,7 +505,8 @@
     <!-- ------------------------------------------------------------- -->
     <!-- TAB 5: PERMISSIONS (กำหนดสิทธิ์เมนู) -->
     <!-- ------------------------------------------------------------- -->
-    <div id="pane-permissions" style="display:none">
+    <div id="pane-company" style="display:none"><section class="ship-panel bg-white border rounded-4 p-4"><h3>ข้อมูลบริษัท / Company Master</h3><p class="text-muted">ใช้กับหัวใบส่งสินค้า · เอกสารเดิมคงข้อมูล ณ วันที่สร้าง</p><div id="companyNotice" role="status"></div><form id="companyForm" onsubmit="saveCompany(event)"><div class="row g-3"><div class="col-md-6"><label for="companyNameTH" class="form-label">ชื่อบริษัทภาษาไทย *</label><input class="form-control" id="companyNameTH" maxlength="150" required></div><div class="col-md-6"><label for="companyNameEN" class="form-label">ชื่อบริษัทภาษาอังกฤษ *</label><input class="form-control" id="companyNameEN" maxlength="150" required></div><div class="col-md-6"><label for="companyAddressTH" class="form-label">ที่อยู่ภาษาไทย *</label><textarea rows="3" class="form-control" id="companyAddressTH" maxlength="1000" required></textarea></div><div class="col-md-6"><label for="companyAddressEN" class="form-label">ที่อยู่ภาษาอังกฤษ *</label><textarea rows="3" class="form-control" id="companyAddressEN" maxlength="1000" required></textarea></div><div class="col-md-6"><label for="companyTaxId" class="form-label">เลขผู้เสียภาษี 13 หลัก *</label><input class="form-control" id="companyTaxId" maxlength="13" required></div><div class="col-md-6"><label for="companyBranchCode" class="form-label">รหัสสาขา 5 หลัก *</label><input class="form-control" id="companyBranchCode" maxlength="5" required></div><div class="col-md-6"><label for="companyPhone" class="form-label">โทรศัพท์</label><input class="form-control" id="companyPhone" maxlength="150" ></div><div class="col-md-6"><label for="companyEmail" class="form-label">อีเมล</label><input class="form-control" id="companyEmail" maxlength="150" ></div><div class="col-md-6"><label for="companyLogoText" class="form-label">ข้อความตราบริษัท *</label><input class="form-control" id="companyLogoText" maxlength="6" required></div><div class="col-md-6"><label for="companyLogoCaption" class="form-label">ข้อความใต้ตรา *</label><input class="form-control" id="companyLogoCaption" maxlength="12" required></div></div><div class="d-flex justify-content-end gap-2 mt-4"><button type="button" class="btn btn-outline-secondary" onclick="loadCompany()">รีเฟรช</button><button id="companySave" class="btn btn-primary" type="submit">บันทึกข้อมูลบริษัท</button></div></form></section></div>
+<div id="pane-permissions" style="display:none">
       <div class="card-wms p-4">
         <div class="page-head mb-3">
           <div><h5>🛡️ กำหนดสิทธิ์เมนู (Permissions Master)</h5><div class="sub">จัดการรหัสสิทธิ์เมนูการทำงานสำหรับ Handheld และระบบหลังบ้าน</div></div>
@@ -816,11 +818,12 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261107-dialogs"></script>
 <script src="/js/admin-stock.js?v=20261107-box-details"></script>
-<script src="/js/admin-products.js?v=20261107-product-editor"></script>
+<script src="/js/product-pack-versions.js?v=20261107-1"></script><script src="/js/admin-products.js?v=20261107-supplier-search"></script>
 <script src="/js/admin-locations.js?v=20261107-capacity"></script>
 <script src="/js/shortage-reasons.js?v=20261106-two-roles"></script>
 <script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
-<script src="/js/admin-users.js?v=20261106-real-user-id"></script>
+<script src="/js/admin-users.js?v=20261107-manual-reset"></script>
+<script src="/js/company-master.js?v=20261107"></script>
 <script src="/js/admin-permissions.js?v=20261106-two-roles"></script>
 <script src="/js/admin-roles.js?v=20261106-two-roles"></script>
 <script src="/js/bom-stock.js?v=20261106-two-roles"></script>
@@ -828,7 +831,7 @@
 <script src="/js/admin-suppliers.js?v=20261106-supplier-scopes"></script>
 <script src="/js/admin-warehouses.js?v=20261107-assigned-wh"></script>
 
-<script src="/js/manufacturer-products.js?v=20261107-dialogs"></script>
+<script src="/js/manufacturer-products.js?v=20261107-name-search"></script>
 <script src="/js/customer-products.js?v=20261107-1"></script>
 <dialog id="transportDialog" class="extension-dialog"><form onsubmit="saveTransport(event)"><div class="dialog-head"><h5 id="transportTitle" class="mb-0"></h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('transportDialog').close()"></button></div><div class="dialog-body"><div class="mb-3"><label for="transportCode">รหัสผู้ขนส่ง *</label><input id="transportCode" class="form-control" maxlength="30" required></div><div class="mb-3"><label for="transportName">ชื่อผู้ให้บริการขนส่ง *</label><input id="transportName" class="form-control" maxlength="200" required></div><label for="transportEnabled">สถานะ</label><select id="transportEnabled" class="form-select"><option value="1">เปิดใช้งาน</option><option value="0">ปิดใช้งาน</option></select><p id="transportError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('transportDialog').close()">ยกเลิก</button><button id="transportSave" type="submit" class="btn btn-primary">บันทึก</button></div></form></dialog><dialog id="tpDialog" class="extension-dialog"><form onsubmit="saveTransportProducts(event)"><div class="dialog-head"><h5 class="mb-0">เชื่อมผู้ขนส่ง–สินค้า</h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('tpDialog').close()"></button></div><div class="dialog-body"><p id="tpCompany" class="fw-bold"></p><label for="tpMode">สินค้าที่ขนส่งได้</label><select id="tpMode" class="form-select mb-3" onchange="changeTransportProductMode()"><option value="ALL">All · สินค้าทั้งหมด (ค่าเริ่มต้น)</option><option value="SELECTED">เฉพาะสินค้าที่เลือก</option></select><p id="tpAllHint" class="alert alert-light border">ใช้กับสินค้าทั้งหมด รวมสินค้าที่เพิ่มภายหลัง ไม่ต้องเพิ่มการเชื่อมทีละ SKU</p><div id="tpChoices" hidden><label for="tpProductSearch">ค้นหาสินค้า</label><input id="tpProductSearch" class="form-control mb-2" placeholder="รหัส ชื่อสินค้า หรือหมวด RM / PKG / SEMI / FG" oninput="renderTransportProductOptions()"><p id="tpPicked" class="small muted"></p><div id="tpProductOptions" style="max-height:280px;overflow:auto;border:1px solid #e2e6f1;border-radius:12px"></div></div><p id="tpError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('tpDialog').close()">ยกเลิก</button><button id="tpSave" type="submit" class="btn btn-primary">บันทึกการเชื่อมโยง</button></div></form></dialog><script src="/js/transport-products.js?v=20261107-1"></script><script src="/js/transports.js?v=20261107-1"></script>
 <script src="/js/customers.js?v=20261106-supplier-layout"></script>
@@ -893,7 +896,7 @@ const destinations={OP_RECEIVE:'receive',receiving:'receive',OP_PUTAWAY:'putaway
   const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
   const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : (operation === 'PUTAWAY' ? 'putaway' : 'scan'))) : tab;
   
-  const allPanes = ['transport-products','transports','receiving','scan','putaway','stock','master','locations','shortage-reasons','cyclecount','users','permissions','roles','warehouses','suppliers','manufacturer-products','customers','customer-products','bom','bom-stock'];
+  const allPanes = ['company','transport-products','transports','receiving','scan','putaway','stock','master','locations','shortage-reasons','cyclecount','users','permissions','roles','warehouses','suppliers','manufacturer-products','customers','customer-products','bom','bom-stock'];
   allPanes.forEach(t => {
     const p = document.getElementById('pane-' + t);
     if (p) p.style.display = (t === paneTab) ? 'block' : 'none';
@@ -907,6 +910,7 @@ const destinations={OP_RECEIVE:'receive',receiving:'receive',OP_PUTAWAY:'putaway
   if (activeGroup?.classList.contains('is-collapsed')) setSidebarGroup(activeGroup.dataset.sidebarGroup, true);
   
   // เรียกฟังก์ชันโหลดข้อมูลตาม Tab
+  if (tab === 'company') loadCompany();
   if (tab === 'stock') loadSummaryStock();
   if (tab === 'master') loadMasterProducts();
   if (tab === 'locations') loadLocationsMaster();

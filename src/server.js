@@ -31,6 +31,7 @@ app.use('/api/customer-products',require('./routes/customer-products'));
 app.use('/api/transport-products',require('./routes/transport-products'));
 app.use('/api/checks',require('./routes/checks'));
 app.use('/api/transports',require('./routes/transports'));
+app.use('/api/company',require('./routes/company'));
 app.use('/api/customers',require('./routes/customers'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/warehouses', access.authenticate, access.masterWrite, require('./routes/warehouses'));

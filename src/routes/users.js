@@ -70,6 +70,9 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Reset only the password; roles, status, navigation and warehouse access stay intact.
+router.post('/:id/reset-password',require('../middleware/access').authenticate,require('../middleware/access').admin,async(req,res)=>{try{const password=req.body?.password;if(typeof password!=='string'||password.length<8||Buffer.byteLength(password,'utf8')>72)return res.status(400).json({success:false,error:'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์'});const hash=await bcrypt.hash(password,12),pool=await poolPromise;const result=await pool.request().input('Id',sql.Int,req.params.id).input('Hash',sql.VarChar(255),hash).query('UPDATE dbo.Users SET PasswordHash=@Hash OUTPUT inserted.UserId WHERE UserId=@Id');if(!result.recordset.length)return res.status(404).json({success:false,error:'ไม่พบผู้ใช้งาน กรุณารีเฟรชรายการ'});res.set('Cache-Control','no-store');res.json({success:true,message:'รีเซ็ตรหัสผ่านเรียบร้อย'})}catch(e){console.error('API reset password failed:',e.code||'ERROR');res.status(500).json({success:false,error:'รีเซ็ตรหัสผ่านไม่สำเร็จ กรุณาลองใหม่'})}});
+
 // แก้ไขข้อมูลผู้ใช้งาน
 router.put('/:id', async (req, res) => {
   try {
