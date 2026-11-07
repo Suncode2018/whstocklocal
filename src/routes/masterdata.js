@@ -13,8 +13,9 @@ const {sql,poolPromise}=require('../config/db');
 router.get('/categories', async (req, res) => {
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query('SELECT * FROM dbo.tblCategories ORDER BY CategoryId ASC');
-    res.json({ success: true, data: result.recordset });
+    const result = await pool.request().query('SELECT CategoryId AS CategoryId,CategoryCode,CategoryName FROM dbo.tblCategories ORDER BY CategoryId ASC');
+    const categories=require('../middleware/product-scope').filter(req,result.recordset);
+    res.set('Cache-Control','no-store').json({ success: true, data: categories });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

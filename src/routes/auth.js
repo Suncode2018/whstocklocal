@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken'); // หรือระบบจัดกา�
 
 const {poolPromise}=require('../config/db');
 
+const navigation=require('../middleware/navigation'),{normalizeRole,normalizePermissions}=require('../config/navigation');
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_local_warehouse_jwt_key_2026';
 
 // API Login
@@ -38,26 +39,31 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
     }
 
+    user.Role=normalizeRole(user.Role);if(!['ADMIN','USER'].includes(user.Role))return res.status(403).json({error:'กรุณาอัปเดตบทบาทผู้ใช้ด้วย TwoRoles.sql'});user.Permissions=normalizePermissions(user.Permissions);
+    const profile=await navigation.profile(pool,user);
+    const mode=profile.assignedMode;
+    if(!mode)return res.status(403).json({error:'บัญชีนี้ยังไม่ได้รับช่องทางใช้งาน กรุณาติดต่อ Admin'});
     // สร้าง Token หรือ Payload สำหรับส่งกลับไป
     const tokenPayload = {
       id: user.UserId,
       username: user.Username,
       fullname: user.FullName,
       role: user.Role,
-      permissions: user.Permissions || ''
+      permissions: user.Permissions || '', mode
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '8h' });
 
     res.json({
       success: true,
+      redirect: mode==='HH'?'/handheld/index.html':'/desktop/index.html',
       token: token,
       user: {
         id: user.UserId,
         username: user.Username,
         fullname: user.FullName,
         role: user.Role,
-        permissions: user.Permissions || ''
+        permissions: user.Permissions || '', mode
       }
     });
 

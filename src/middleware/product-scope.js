@@ -1,0 +1,5 @@
+const nav=require('./navigation');
+const categoryCode=id=>require('../config/navigation').catalog.find(m=>m.scopeParent==='PRODUCTS'&&m.categoryId===Number(id))?.code;
+function can(req,category,action='VIEW'){if(req.navigation?.user.Role==='ADMIN')return true;const n=req.navigation;if(action==='VIEW'&&n&&!n.profile.DESKTOP.some(c=>c.startsWith('PRODUCTS'))){const {catalog}=require('../config/navigation');const supplierCategory=catalog.find(c=>c.scopeParent==='SUPPLIERS'&&c.categoryId===Number(category));if(supplierCategory&&require('./supplier-scope').can(req,supplierCategory.categoryCode,'VIEW'))return true;if(catalog.some(m=>m.code!=='SUPPLIERS'&&m.code!=='PRODUCTS'&&!m.scope&&m.reads.includes('/products')&&nav.hasAction(n.profile,n.mode,m.code,'VIEW')))return true;}return !!n&&!!categoryCode(category)&&nav.hasAction(n.profile,n.mode,categoryCode(category),action)}
+function filter(req,rows,action='VIEW'){return rows.filter(p=>can(req,p.CategoryId,action))}
+module.exports={can,filter};

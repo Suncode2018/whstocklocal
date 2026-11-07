@@ -70,11 +70,11 @@ router.delete('/:id', async (req, res) => {
     const pool = await poolPromise;
     await pool.request()
       .input('whid', sql.Int, req.params.id)
-      .query('DELETE FROM [dbo].[tblWH] WHERE whid = @whid');
+      .query("IF EXISTS(SELECT 1 FROM dbo.UserWarehouseAccess WHERE WhId=@whid) THROW 51000,N'คลังนี้มีผู้ใช้ได้รับสิทธิ์อยู่ กรุณาถอนสิทธิ์คลังก่อนลบ',1;DELETE FROM [dbo].[tblWH] WHERE whid = @whid");
 
     res.json({ success: true, message: 'ลบคลังสินค้าเรียบร้อย' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.number===51000?409:500).json({ error: err.message });
   }
 });
 

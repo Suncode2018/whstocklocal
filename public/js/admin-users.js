@@ -7,12 +7,7 @@
   const ROLES_API = '/api/roles';
 
   // รายการสำรองกรณีต่อ API /api/roles ไม่ได้
-  const FALLBACK_ROLES = [
-    { key: 'ADMIN', badge: 'bg-danger', name: 'ผู้ดูแลระบบสูงสุด' },
-    { key: 'POWERUSER', badge: 'bg-success', name: 'Power User' },
-    { key: 'OPERATOR', badge: 'bg-warning text-dark', name: 'เจ้าหน้าที่คลังสินค้า / Picker' },
-    { key: 'VIEWER', badge: 'bg-info text-dark', name: 'ผู้อ่านอย่างเดียว (Read-Only / Viewer)' }
-  ];
+  const FALLBACK_ROLES = [{key:'ADMIN',badge:'bg-danger',name:'ผู้ดูแลระบบ'},{key:'USER',badge:'bg-primary',name:'ผู้ใช้งาน'}];
 
   let dynamicRoles = [];
   let users = [];
@@ -25,13 +20,7 @@
   const attr = v => esc(JSON.stringify(v));
 
   // แผนที่จับคู่สี Badge ให้แต่ละ Role อัตโนมัติ
-  const ROLE_BADGE_MAP = {
-    'ADMIN': 'bg-danger',
-    'POWERUSER': 'bg-success',
-    'SUPERVISOR': 'bg-primary',
-    'OPERATOR': 'bg-warning text-dark',
-    'VIEWER': 'bg-info text-dark'
-  };
+  const ROLE_BADGE_MAP = {ADMIN:'bg-danger',USER:'bg-primary'};
 
   const roleList = () => (dynamicRoles.length ? dynamicRoles : FALLBACK_ROLES);
   const roleInfo = key => roleList().find(r => r.key === key) || { key, badge: ROLE_BADGE_MAP[key] || 'bg-secondary', name: key };
@@ -89,7 +78,7 @@
   function norm(u) {
     const active = u.active ?? u.is_active ?? u.IsActive ?? (u.status ? String(u.status).toUpperCase() === 'ACTIVE' : true);
     return {
-      id: u.UserId ?? u.user_id ?? u.id ?? u.username,
+      id: u.UserId ?? u.user_id ?? u.id,
       username: u.username ?? u.Username,
       fullname: u.FullName ?? u.fullname ?? u.full_name ?? u.name ?? '',
       role: String(u.role || u.Role || '').toUpperCase(),
@@ -102,9 +91,9 @@
   function sample() {
     return [
       { UserId: 3, Username: 'admin', FullName: 'ผู้ดูแลระบบ', Role: 'ADMIN', IsActive: true, CreatedAt: '2026-10-30T10:00:00', Permissions: 'ALL' },
-      { UserId: 4, Username: 'picker01', FullName: 'picker01', Role: 'OPERATOR', IsActive: true, CreatedAt: '2026-10-30T10:30:00', Permissions: 'RECEIVE,PUTAWAY' },
-      { UserId: 6, Username: 'picker02', FullName: 'picker02', Role: 'OPERATOR', IsActive: true, CreatedAt: '2026-10-30T20:15:00', Permissions: 'PUTAWAY' },
-      { UserId: 10, Username: 'poweruser', FullName: 'poweruser01', Role: 'POWERUSER', IsActive: true, CreatedAt: '2026-11-01T08:00:00', Permissions: 'ALL' }
+      { UserId: 4, Username: 'picker01', FullName: 'picker01', Role: 'USER', IsActive: true, CreatedAt: '2026-10-30T10:30:00', Permissions: 'RECEIVE,PUTAWAY' },
+      { UserId: 6, Username: 'picker02', FullName: 'picker02', Role: 'USER', IsActive: true, CreatedAt: '2026-10-30T20:15:00', Permissions: 'PUTAWAY' },
+      { UserId: 10, Username: 'poweruser', FullName: 'poweruser01', Role: 'USER', IsActive: true, CreatedAt: '2026-11-01T08:00:00', Permissions: 'ALL' }
     ].map(norm);
   }
 
@@ -122,9 +111,7 @@
       demo = false;
     } catch (e) {
       if (e.status === 401 && typeof logout === 'function') { logout(); return; }
-      if (e.status === 404 || e instanceof TypeError) {
-        demo = true; users = sample();
-      } else {
+      {
         $('usersTableBody').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-danger mb-2">โหลดข้อมูลไม่สำเร็จ: ${esc(e.message)}</div><button class="btn btn-sm btn-outline-primary" onclick="loadUsers(true)">ลองอีกครั้ง</button></td></tr>`;
         return;
       }
@@ -207,6 +194,7 @@
         <td>${statusActionBtn}</td>
         <td class="small">${fmtTime(u.last_login)}</td>
         <td class="text-end text-nowrap">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick="openUserMenus(${attr(u.id)})" title="กำหนดช่องทางและสิทธิ์การทำงาน">กำหนดสิทธิ์</button>
           <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="userEdit(${attr(u.id)})" title="แก้ไข" aria-label="แก้ไข"><i class="bi bi-pencil fs-6"></i></button>
           <button class="btn btn-sm btn-outline-warning border-0" onclick="userReset(${attr(u.id)})" title="รีเซ็ตรหัสผ่าน" aria-label="รีเซ็ตรหัสผ่าน"><i class="bi bi-key fs-6"></i></button>
         </td></tr>`;
@@ -235,7 +223,7 @@
   /* ---------- ฟอร์มเพิ่ม/แก้ไข (ดึง Roles จาก Database) ---------- */
   function formHtml(u) {
     const edit = !!u;
-    const currentRole = u ? u.role : (dynamicRoles[0]?.key || 'OPERATOR');
+    const currentRole = u ? u.role : 'USER';
     
     // สร้าง Dropdown ตัวเลือก Role จากฐานข้อมูลจริง
     const opts = roleList().map(r => {
@@ -316,7 +304,7 @@
           } else {
             let created = null;
             if (!demo) created = await api('POST', '', { username, fullname, role, password, permissions });
-            users.unshift(norm({ ...(created && typeof created === 'object' ? created : {}), UserId: (created && (created.UserId || created.id)) ?? Date.now(), Username: username, FullName: fullname, Role: role, IsActive: true, Permissions: permissions }));
+            await loadUsers(true);
           }
         } catch (e) {
           return Swal.showValidationMessage(e.message);

@@ -1,0 +1,4 @@
+USE [dbMaster];
+IF OBJECT_ID('dbo.tblTransportProductRules','U') IS NULL CREATE TABLE dbo.tblTransportProductRules(tranid nvarchar(30) NOT NULL PRIMARY KEY REFERENCES dbo.tblTrunsport(tranid),ProductMode varchar(10) NOT NULL DEFAULT 'ALL' CHECK(ProductMode IN('ALL','SELECTED')),Revision int NOT NULL DEFAULT 1,UpdatedAt datetime2 NOT NULL DEFAULT SYSDATETIME());
+IF OBJECT_ID('dbo.tblTransportProducts','U') IS NULL CREATE TABLE dbo.tblTransportProducts(tranid nvarchar(30) NOT NULL REFERENCES dbo.tblTransportProductRules(tranid),ProductId int NOT NULL REFERENCES dbo.tblProducts(ProductId),PRIMARY KEY(tranid,ProductId));
+IF OBJECT_ID('dbo.tblTransportProductAudit','U') IS NULL CREATE TABLE dbo.tblTransportProductAudit(AuditId int IDENTITY PRIMARY KEY,tranid nvarchar(30) NOT NULL,Actor nvarchar(100) NOT NULL,BeforeJson nvarchar(max) NOT NULL,AfterJson nvarchar(max) NOT NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME());

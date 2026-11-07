@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WH Stock System - เข้าสู่ระบบ</title>
+  <title>WH Stock · เข้าสู่ระบบ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/wms.css">
@@ -14,7 +14,7 @@
 <div class="login-card">
   <div class="login-logo">📦</div>
   <h3 class="fw-bold text-center mb-1">WH Stock System</h3>
-  <p class="text-muted text-center small mb-4">ระบบบริหารสต็อกคลังสินค้า</p>
+  <p class="text-muted text-center small mb-4">เข้าสู่ระบบด้วยบัญชีของคุณ</p>
 
   <!-- แจ้งเตือนกรณีถูกดีดกลับ -->
   <div id="alertBox" class="alert alert-warning py-2 small text-center d-none" role="alert">
@@ -52,7 +52,7 @@
     <button type="submit" id="loginBtn" class="btn btn-indigo w-100 py-2 fw-bold" style="min-height:52px;font-size:1.05rem">
       <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
     </button>
-  </form>
+  </form><p class="small text-muted text-center mt-3 mb-0">ระบบจะเปิด Desktop หรือ HH ตามที่ Admin กำหนดให้บัญชีนี้</p>
 
   <div class="text-center mt-4">
     <small class="text-muted">ระบบนี้สำหรับพนักงานที่ได้รับอนุญาตเท่านั้น<br>ลืมรหัสผ่าน? แจ้งผู้ดูแลระบบ</small>
@@ -135,16 +135,7 @@
       const role = String(data.user.role || '').toUpperCase();
       document.getElementById('loginBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>สำเร็จ กำลังเข้าสู่หน้าหลัก...';
 
-      // จำแนกหน้าตามสิทธิ์ของผู้ใช้งาน
-      if (role === 'ADMIN') {
-        location.href = '/admin.html';
-      } else if (role === 'SUPERVISOR') {
-        location.href = '/supervisor'; // วิ่งเข้าเส้นทาง Supervisor โดยตรง
-      } else if (role === 'POWERUSER' || role === 'VIEWER' || role === 'READONLY') {
-        location.href = '/poweruser.html';
-      } else {
-        location.href = '/handheld.html';
-      }
+      location.href=data.redirect || '/desktop/index.html';
 
     } catch (err) {
       console.error('Login Error:', err);

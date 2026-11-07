@@ -10,7 +10,7 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  doc.registerFont('Thai',path.join(fontDir,'Sarabun-Regular.ttf'));doc.registerFont('ThaiBold',path.join(fontDir,'Sarabun-Bold.ttf'));
  const left=36,width=doc.page.width-72,right=left+width,bottom=778;let y=36;
  const status={DRAFT:'ร่าง - ยังไม่ยืนยันส่งจริง',SENT:'ส่งสินค้าแล้ว',RECEIVED:'ปลายทางรับสินค้าแล้ว',CANCELLED:'ยกเลิกเอกสาร'}[order.Status]||text(order.Status);
- const type={CUSTOMER:'ส่งลูกค้า',CLINIC:'ส่งคลินิก',FULFILLMENT:'ส่ง Fulfillment'}[order.DeliveryType]||'';
+ const type={WAREHOUSE:'ส่งระหว่างคลัง',FACTORY:'ส่งโรงงาน',CUSTOMER:'ส่งลูกค้า',CLINIC:'ส่งคลินิก',FULFILLMENT:'ส่ง Fulfillment'}[order.DeliveryType]||'';
  function write(value,x,top,w,size=11,bold=false,extra={}){doc.font(bold?'ThaiBold':'Thai').fontSize(size).fillColor('#172033').text(text(value),x,top,{width:w,lineGap:2,...extra});}
  function height(value,w,size=11,bold=false){return doc.font(bold?'ThaiBold':'Thai').fontSize(size).heightOfString(text(value),{width:w,lineGap:2});}
  function rule(top){doc.strokeColor('#cbd5e1').lineWidth(.6).moveTo(left,top).lineTo(right,top).stroke();}

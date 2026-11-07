@@ -122,7 +122,7 @@ function filterLocationTable() {
 function openAddLocation() {
   editingLocationId = null;
   document.getElementById('locModalTitle').textContent = 'เพิ่มโลเคชั่นใหม่';
-  if (warehousesCache.length > 0) document.getElementById('modalLocWhId').value = warehousesCache[0].whid;
+  if (warehousesCache.length > 0) document.getElementById('modalLocWhId').value = document.getElementById('locWarehouseFilter')?.value || warehousesCache[0].whid;
   document.getElementById('modalLocCode').value = '';
   document.getElementById('modalLocZone').value = '';
   document.getElementById('modalLocDesc').value = '';
@@ -168,16 +168,20 @@ async function saveLocation() {
     return;
   }
 
+  const dimensions = ['modalLocWidth','modalLocLength','modalLocHeight'].map(id=>document.getElementById(id).value.trim());
+  if (dimensions.some(v=>v && (!/^\d{1,15}(?:\.\d{1,3})?$/.test(v) || !Number.isFinite(Number(v)) || Number(v)<=0))) {
+    Swal.fire('ตรวจสอบขนาด', 'กรอกขนาดเป็นเซนติเมตร จำนวนบวก ทศนิยมไม่เกิน 3 ตำแหน่ง', 'warning');return;
+  }
   const payload = {
     whid,
     locationCode,
     zone,
     description,
     isActive,
-    capacityWidthCm: w,
-    capacityLengthCm: l,
-    capacityHeightCm: h,
-    capacityVolumeCm3: (w && l && h) ? (w * l * h) : null
+    capacityWidthCm: dimensions[0] || null,
+    capacityLengthCm: dimensions[1] || null,
+    capacityHeightCm: dimensions[2] || null,
+    capacityVolumeCm3: null // API calculates exact volume from dimensions
   };
 
   // ใช้ Path ตรงตามที่ระบบเปิดไว้

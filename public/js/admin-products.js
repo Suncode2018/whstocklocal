@@ -1,3 +1,10 @@
+let productCategoryCache=[],productRightsSignature='';
+function applyProductCategoryVisibility(){const select=document.getElementById('prodCategoryFilter');if(select){const selected=select.value,visible=productCategoryCache.filter(c=>productCategoryAllowed(c.CategoryId,'VIEW'));select.innerHTML='<option value="">ทุกหมวดที่มีสิทธิ์</option>'+visible.map(c=>'<option value="'+Number(c.CategoryId)+'">'+productHtml(c.CategoryName)+' ('+productHtml(c.CategoryCode)+')</option>').join('');select.value=visible.some(c=>String(c.CategoryId)===selected)?selected:'';select.disabled=!visible.length;}
+for(const code of ['RM','PKG','FG']){const card=document.getElementById('prodKpi'+code)?.closest('.col-6');if(card){const category=productCategoryCache.find(c=>c.CategoryCode===code);card.hidden=!category||!productCategoryAllowed(category.CategoryId,'VIEW');}}
+}
+window.addEventListener('wms-navigation',e=>{const menu=e.detail.menus.find(m=>m.code==='PRODUCTS'),signature=JSON.stringify({role:e.detail.user.role,categories:menu?.categories||[]});applyProductCategoryVisibility();if(signature!==productRightsSignature){productRightsSignature=signature;if(menu&&document.getElementById('productTableBody'))loadMasterProducts();}});
+function productCategoryAllowed(category,action){if(typeof wmsNavigation==='undefined'||!wmsNavigation)return false;if(wmsNavigation.user.role==='ADMIN')return true;return !!wmsNavigation.menus.find(m=>m.code==='PRODUCTS')?.categories?.find(c=>Number(c.id)===Number(category))?.actions?.[action]}
+function setupProductCategory(category){let el=document.getElementById('modalProductCategory');if(!el){const field=document.createElement('div');field.className='product-editor-wide';field.innerHTML='<label for="modalProductCategory" class="form-label">กลุ่มสินค้า *</label><select id="modalProductCategory" class="form-select"></select>';document.getElementById('productBasicFields').prepend(field);el=document.getElementById('modalProductCategory')}const categories=typeof wmsNavigation!=='undefined'?wmsNavigation?.menus.find(m=>m.code==='PRODUCTS')?.categories||[]:[];el.innerHTML=categories.filter(c=>productCategoryAllowed(c.id,'EDIT')).map(c=>'<option value="'+Number(c.id)+'">'+productHtml(c.name)+' ('+productHtml(c.code)+')</option>').join('');if(category)el.value=category;el.disabled=!!category;el.onchange=()=>{setupProductSupplier(null);setupProductRMSpec()};}
 /* ============================================================
    admin-products.js — จัดการข้อมูลสินค้า (Admin Master)
    ฟีเจอร์:
@@ -33,6 +40,7 @@ async function loadMasterProducts() {
   tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-muted">กำลังโหลดข้อมูลสินค้า...</td></tr>';
   if(document.getElementById('productSearchCount'))document.getElementById('productSearchCount').textContent='กำลังโหลดสินค้า...';
   try {
+    const cr=await fetch('/api/master/categories',{headers:authHeaders()});if(!cr.ok)throw Error('โหลดหมวดสินค้าไม่สำเร็จ');const cb=await cr.json();if(version!==productLoadVersion)return;productCategoryCache=cb.data;applyProductCategoryVisibility();
     const res=await fetch('/api/products',{headers:authHeaders()});
     if(!res.ok)throw Error('โหลดสินค้าไม่สำเร็จ');
     const payload=await res.json();const products=Array.isArray(payload)?payload:payload.data;
@@ -43,7 +51,7 @@ async function loadMasterProducts() {
       if(!r.ok)throw Error('โหลดสถานะสต๊อกไม่สำเร็จ กรุณารีเฟรชอีกครั้ง');
       const balance=await r.json();if(balance.success===false || !Array.isArray(balance.data))throw Error('ข้อมูลสต๊อกไม่ถูกต้อง');
       const stocks=new Map(balance.data.map(p=>[p.ProductId,p]));
-      products.forEach(p=>{const stock=stocks.get(p.ProductId);if(!stock)throw Error('ไม่พบยอดสต๊อกของสินค้าบางรายการ กรุณารีเฟรช');p.TotalStock=Number(stock.TotalStock);p.StockUOM=stock.UOM || p.PackageType || '';p.MinStock=Number(stock.MinStock || 0);if(p.CategoryId==null)p.CategoryId=stock.CategoryId;});
+      products.forEach(p=>{const stock=stocks.get(p.ProductId);if(!stock)throw Error('ไม่พบยอดสต๊อกของสินค้าบางรายการ กรุณารีเฟรช');p.TotalStock=Number(stock.TotalStock);p.TransitStock=Number(stock.TransitStock||0);p.OwnedStock=Number(stock.OwnedStock??stock.TotalStock);p.StockUOM=stock.UOM || p.PackageType || '';p.MinStock=Number(stock.MinStock || 0);if(p.CategoryId==null)p.CategoryId=stock.CategoryId;});
     }
     if(version!==productLoadVersion)return;
     masterProducts=products;renderProductResults();loadProductKPI();
@@ -89,7 +97,7 @@ function renderProductResults(keepPage=false) {
   if(!productResults.length){tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-muted">'+(masterProducts.length?'ไม่พบสินค้าที่ตรงกับ '+productHtml(query?'“'+query+'”':'ตัวกรองที่เลือก')+' · ลองใช้คำสั้นลงหรือล้างตัวกรอง':'ไม่พบข้อมูลสินค้าในระบบ')+'</td></tr>';return;}
   tbody.innerHTML=productResults.slice(offset,offset+size).map((p,index)=>{
     const id=Number(p.ProductId || p.Id);
-    return '<tr><td class="text-center text-muted">'+(offset+index+1)+'</td><td>'+(p.Barcode?'<span class="barcode-pill">'+productHtml(p.Barcode)+'</span>':'—')+'</td><td><span class="code-tag">'+productHtml(p.ProductCode || p.ItemCode || '—')+'</span></td><td class="fw-semibold">'+productHtml(p.ProductName || p.ItemName || '—')+'</td><td>'+productHtml(p.ThaiName || '—')+'</td>'+productStockQuantityCell(p)+'<td class="text-end">'+(document.getElementById('pane-stock')?'<button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="openProductStockAdjust('+id+')" title="ปรับยอดสต๊อก"><i class="bi bi-sliders me-1"></i>Adj</button>':'')+'<button type="button" class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editProductFromList('+id+')" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct('+id+')" title="ลบ"><i class="bi bi-trash"></i></button></td></tr>';
+    return '<tr><td class="text-center text-muted">'+(offset+index+1)+'</td><td>'+(p.Barcode?'<span class="barcode-pill">'+productHtml(p.Barcode)+'</span>':'—')+'</td><td><span class="code-tag">'+productHtml(p.ProductCode || p.ItemCode || '—')+'</span></td><td class="fw-semibold">'+productHtml(p.ProductName || p.ItemName || '—')+'</td><td>'+productHtml(p.ThaiName || '—')+'</td>'+productStockQuantityCell(p)+'<td class="text-end">'+(document.getElementById('pane-stock')&&productCategoryAllowed(p.CategoryId,'CONFIRM')?'<button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="openProductStockAdjust('+id+')" title="ปรับยอดสต๊อก"><i class="bi bi-sliders me-1"></i>Adj</button>':'')+'<button type="button" class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editProductFromList('+id+')" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct('+id+')" title="ลบ"><i class="bi bi-trash"></i></button></td></tr>';
   }).join('');
 }
 function productStockQuantityCell(p) {
@@ -97,12 +105,12 @@ function productStockQuantityCell(p) {
   const known = p.TotalStock != null && Number.isFinite(Number(p.TotalStock));
   const qty = known ? Number(p.TotalStock) : null;
   const color = !known ? 'text-muted' : qty <= 0 ? 'text-danger' : Number(p.MinStock)>0 && qty<Number(p.MinStock) ? 'text-warning' : 'text-success';
-  return '<td class="text-end text-nowrap"><div class="fw-bold '+color+'" style="font-size:1.05rem;font-variant-numeric:tabular-nums">'+(known?qty.toLocaleString('th-TH',{maximumFractionDigits:2}):'—')+'</div><small class="text-muted">'+productHtml(p.StockUOM || p.PackageType || '')+'</small></td>';
+  return '<td class="text-end text-nowrap"><div class="fw-bold '+color+'" style="font-size:1.05rem;font-variant-numeric:tabular-nums">'+(known?qty.toLocaleString('th-TH',{maximumFractionDigits:2}):'—')+'</div><small class="text-muted">'+productHtml(p.StockUOM || p.PackageType || '')+'</small><div><button type="button" class="btn btn-sm btn-link p-0" onclick="showStockBoxDetails('+Number(p.ProductId||p.Id)+')">ดู PO / Lot / กล่อง</button></div>'+(Number(p.TransitStock)>0?'<div class="small text-warning mt-1">ระหว่างโอน '+Number(p.TransitStock).toLocaleString('th-TH')+'</div><div class="small text-muted">รวมถือครอง '+Number(p.OwnedStock).toLocaleString('th-TH')+'</div>':'')+'</td>';
 }
 function exportProductsToExcel() {
   clearTimeout(productSearchTimer);renderProductResults(true);
   if(!productResults.length){Swal.fire('ไม่พบข้อมูล','ไม่มีผลค้นหาสำหรับส่งออก','info');return;}
-  const records=[['บาร์โค้ด','รหัสสินค้า','ชื่อสินค้า','ชื่อภาษาไทย','สต๊อกคงเหลือ (รวมทุกคลัง)','หน่วย'],...productResults.map(p=>[p.Barcode,p.ProductCode || p.ItemCode,p.ProductName || p.ItemName,p.ThaiName,p.TotalStock ?? '',p.StockUOM || p.PackageType || ''])];
+  const records=[['บาร์โค้ด','รหัสสินค้า','ชื่อสินค้า','ชื่อภาษาไทย','สต๊อกคงเหลือ (รวมทุกคลัง)','หน่วย'],...exportRows.map(p=>[p.Barcode,p.ProductCode || p.ItemCode,p.ProductName || p.ItemName,p.ThaiName,p.TotalStock ?? '',p.StockUOM || p.PackageType || ''])];
   const cell=value=>'"'+String(value??'').replace(/^(\s*[=+@-]|[\t\r\n])/,"'$&").replace(/"/g,'""')+'"';
   const blob=new Blob(['\uFEFF'+records.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Product_Master_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -126,28 +134,30 @@ async function loadProductKPI() {
 }
 
 // 4. ฟังก์ชันเปิดหน้าต่างเพิ่มสินค้า
-function openAddProduct() {
+async function openAddProduct() {
   editingProductId = null;
   let modalEl = document.getElementById('productModal');
   if (!modalEl) { createProductModalDOM(); modalEl = document.getElementById('productModal'); }
 
-  document.getElementById('productModalTitle').textContent = 'เพิ่มสินค้าใหม่';
+  setupProductCategory();document.getElementById('productModalTitle').textContent = 'เพิ่มสินค้าใหม่';
   document.getElementById('modalProductBarcode').value = '';
   document.getElementById('modalProductCode').value = '';
   document.getElementById('modalProductCode').disabled = false;
   document.getElementById('modalProductName').value = '';
   document.getElementById('modalProductThaiName').value = '';
 
-  new bootstrap.Modal(modalEl).show();
+  if(!await setupProductUnit(null))return;
+  if(!await setupProductSupplier(null))return;if(!await setupProductRMSpec())return;setupProductVolume(null);switchProductEditorTab('Basic');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
 // 5. ฟังก์ชันเปิดหน้าต่างแก้ไขสินค้า
-function openEditProduct(p) {
+async function openEditProduct(p) {
   editingProductId = p.ProductId || p.Id;
   let modalEl = document.getElementById('productModal');
   if (!modalEl) { createProductModalDOM(); modalEl = document.getElementById('productModal'); }
 
-  const pCode = p.ProductCode || p.ItemCode || '';
+  setupProductCategory(p.CategoryId);const pCode = p.ProductCode || p.ItemCode || '';
   document.getElementById('productModalTitle').textContent = 'แก้ไขสินค้า: ' + pCode;
   document.getElementById('modalProductBarcode').value = p.Barcode || '';
   document.getElementById('modalProductCode').value = pCode;
@@ -155,7 +165,9 @@ function openEditProduct(p) {
   document.getElementById('modalProductName').value = p.ProductName || p.ItemName || '';
   document.getElementById('modalProductThaiName').value = p.ThaiName || '';
 
-  new bootstrap.Modal(modalEl).show();
+  if(!await setupProductUnit(p.UnitId))return;
+  if(!await setupProductSupplier(p.SupplierId))return;if(!await setupProductRMSpec(editingProductId))return;setupProductVolume(p.UnitVolumeCm3);switchProductEditorTab('Basic');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
 // 6. บันทึกข้อมูลสินค้า
@@ -166,17 +178,25 @@ async function saveProduct() {
   const thaiName = document.getElementById('modalProductThaiName').value.trim();
 
   if (!productCode || !productName) {
+    switchProductEditorTab('Basic');
     Swal.fire('แจ้งเตือน', 'กรุณากรอกรหัสสินค้าและชื่อสินค้า', 'warning');
     return;
   }
 
   const payload = {
+    categoryId:Number(document.getElementById('modalProductCategory').value),
+    unitId:Number(document.getElementById('modalProductUnit').value),
+    unitVolumeCm3:document.getElementById('productUnitVolume').value.trim()||null,
+    supplierId:document.getElementById('modalProductSupplier').value?Number(document.getElementById('modalProductSupplier').value):null,
     productCode,
     productName,
     thaiName: thaiName || null,
     barcode: barcode || null
   };
 
+  if(!Number.isInteger(payload.unitId)||payload.unitId<=0){await Swal.fire('เลือกหน่วยนับ','กรุณาเลือกหน่วยนับจากรายการก่อนบันทึก','warning');document.getElementById('modalProductUnit').focus();return;}
+  if(document.getElementById('modalProductSupplier').disabled||document.getElementById('modalProductSupplier').dataset.ready!=='true'){await Swal.fire('โหลดผู้จำหน่ายไม่สำเร็จ','กรุณาเปิดฟอร์มใหม่เพื่อโหลดรายการผู้จำหน่ายก่อนบันทึก','warning');return;}
+  if(productRMVisible()){if(!productRMSpecReady){await Swal.fire('โหลดหน่วยบรรจุไม่สำเร็จ','กรุณาเปิดฟอร์มสินค้าใหม่','warning');return;}if(document.getElementById('productRMEnabled').checked){payload.rmPackSpec={packUnit:document.getElementById('productRMPack').value.trim(),contentPerPack:document.getElementById('productRMPer').value,contentUnit:document.getElementById('productRMContentUnit').value.trim().toUpperCase(),basePerContentUnit:document.getElementById('productRMFactor').value,...(productRMSpecRevision==null?{}:{revision:productRMSpecRevision})};if(!payload.rmPackSpec.packUnit||!payload.rmPackSpec.contentUnit||!(Number(payload.rmPackSpec.contentPerPack)>0)||!(Number(payload.rmPackSpec.basePerContentUnit)>0)){switchProductEditorTab('RM');await Swal.fire('ตรวจหน่วยบรรจุ','กรอกหน่วย จำนวนต่อภาชนะ และอัตราแปลงมากกว่า 0','warning');return;}}}
   const url = editingProductId ? `/api/products/${editingProductId}` : '/api/products';
   const method = editingProductId ? 'PUT' : 'POST';
 
@@ -189,6 +209,7 @@ async function saveProduct() {
     const data = await res.json();
 
     if (!res.ok) {
+      if((data.message||'').includes('ปริมาตร'))switchProductEditorTab('Volume');
       Swal.fire('ผิดพลาด', data.message || data.error || 'บันทึกไม่สำเร็จ', 'error');
       return;
     }
@@ -240,44 +261,8 @@ async function deleteProduct(id) {
 }
 
 // 8. สร้าง DOM Modal จัดการสินค้า
-function createProductModalDOM() {
-  if (document.getElementById('productModal')) return;
-  const div = document.createElement('div');
-  div.innerHTML = `
-    <div class="modal fade" id="productModal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-indigo text-white">
-            <h5 class="modal-title" id="productModalTitle">จัดการข้อมูลสินค้า</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label" for="modalProductBarcode">บาร์โค้ด (Barcode)</label>
-              <input type="text" id="modalProductBarcode" class="form-control" maxlength="50" placeholder="สแกนหรือพิมพ์บาร์โค้ด...">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">รหัสสินค้า (Product Code) *</label>
-              <input type="text" id="modalProductCode" class="form-control" placeholder="เช่น T588880125" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">ชื่อสินค้า (อังกฤษ / สากล) *</label>
-              <input type="text" id="modalProductName" class="form-control" placeholder="เช่น LALIZA CLEAR PORE MICELLAR..." required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">ชื่อภาษาไทย (Thai Name)</label>
-              <input type="text" id="modalProductThaiName" class="form-control" placeholder="ระบุชื่อภาษาไทยของสินค้า...">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="button" class="btn btn-indigo" onclick="saveProduct()">บันทึก</button>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(div);
-}
+function createProductModalDOM(){if(document.getElementById('productModal'))return;const div=document.createElement('div');div.innerHTML=`<div class="modal fade product-editor" id="productModal" tabindex="-1" aria-labelledby="productModalTitle"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div class="d-flex align-items-center gap-3"><span class="product-editor-icon"><i class="bi bi-box-seam"></i></span><div><h5 class="modal-title" id="productModalTitle">จัดการข้อมูลสินค้า</h5><p class="mb-0 small text-muted mt-1">ข้อมูลหลัก หน่วยบรรจุ และปริมาตรสำหรับจัดเก็บ</p></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิดฟอร์มสินค้า"></button></div><div class="product-editor-tabs" role="tablist" aria-label="ส่วนข้อมูลสินค้า"><button type="button" id="productBasicTab" role="tab" aria-controls="productBasicPane" onclick="switchProductEditorTab('Basic')">1. ข้อมูลสินค้า</button><button type="button" id="productRMTab" role="tab" aria-controls="productRMPane" onclick="switchProductEditorTab('RM')" hidden>2. หน่วยบรรจุ RM</button><button type="button" id="productVolumeTab" role="tab" aria-controls="productVolumePane" onclick="switchProductEditorTab('Volume')">ปริมาตรจัดเก็บ</button></div><div class="modal-body"><section id="productBasicPane" role="tabpanel" aria-labelledby="productBasicTab"><div class="product-editor-section-title">ข้อมูลที่ใช้ค้นหาและรับสินค้า <span>* จำเป็น</span></div><div id="productBasicFields" class="product-editor-grid"><div><label for="modalProductCode" class="form-label">รหัสสินค้า *</label><input id="modalProductCode" class="form-control" placeholder="เช่น T188880078" maxlength="50" required><div class="form-text">แก้ไขรหัสไม่ได้หลังสร้างสินค้า</div></div><div><label for="modalProductBarcode" class="form-label">บาร์โค้ด <span class="text-muted fw-normal">(ถ้ามี)</span></label><input id="modalProductBarcode" class="form-control" maxlength="50" placeholder="สแกนหรือพิมพ์บาร์โค้ด"></div><div class="product-editor-wide"><label for="modalProductName" class="form-label">ชื่อสินค้า อังกฤษ / สากล *</label><input id="modalProductName" class="form-control" maxlength="255" placeholder="เช่น NIACINAMIDE" required></div><div class="product-editor-wide"><label for="modalProductThaiName" class="form-label">ชื่อภาษาไทย</label><input id="modalProductThaiName" class="form-control" maxlength="255" placeholder="ชื่อภาษาไทยหรือคำอธิบายเพิ่มเติม"></div><div class="product-editor-wide"><hr class="my-1"></div><div><label for="modalProductUnit" class="form-label">หน่วยสต๊อกหลัก *</label><select id="modalProductUnit" class="form-select" onchange="updateProductRMPreview();updateProductVolumeLabel()" required aria-describedby="modalProductUnitHint"><option value="">เลือกหน่วยนับ</option></select><div id="modalProductUnitHint" class="form-text">เช่น KG · ใช้คุมยอดสต๊อกทั้งหมด สินค้าที่ใช้งานแล้วอาจเปลี่ยนหน่วยไม่ได้</div></div><div><label for="modalProductSupplier" class="form-label">ผู้จำหน่ายหลัก</label><select id="modalProductSupplier" class="form-select" aria-describedby="modalProductSupplierHint"><option value="">ไม่ระบุผู้จำหน่ายหลัก</option></select><div id="modalProductSupplierHint" class="form-text">เลือกจาก Supplier Master หรือเว้นว่างหากผลิตเอง</div></div></div></section><section id="productRMPane" role="tabpanel" aria-labelledby="productRMTab" hidden><div class="product-editor-section-title">กำหนดวิธีรับและแบ่งเบิกวัตถุดิบ</div><p class="small text-muted">ค่า Master เป็นค่าเริ่มต้น รอบรับตาม PO ระบุปริมาณจริงต่อกล่องได้แยกกัน</p></section><section id="productVolumePane" role="tabpanel" aria-labelledby="productVolumeTab" hidden><div class="product-editor-section-title">ตรวจพื้นที่จัดเก็บสินค้า</div><p class="small text-muted">ใช้คำนวณความจุใน PUTAWAY · สินค้าคุมเป็น KG ต้องระบุปริมาตรต่อ 1 KG</p></section></div><div class="modal-footer"><span class="product-editor-footer-note"><i class="bi bi-info-circle me-1"></i>บันทึกข้อมูลสินค้าไม่เปลี่ยนยอดสต๊อก</span><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="saveProduct()"><i class="bi bi-check2 me-1"></i>บันทึกข้อมูล</button></div></div></div></div>`;document.body.appendChild(div);document.querySelector('#productModal .product-editor-tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=[...document.querySelectorAll('#productModal [role=tab]')].filter(t=>!t.hidden),index=tabs.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next].click();tabs[next].focus();});switchProductEditorTab('Basic');}
+function switchProductEditorTab(name){for(const key of ['Basic','RM','Volume']){const pane=document.getElementById('product'+key+'Pane'),tab=document.getElementById('product'+key+'Tab');if(!pane||!tab)continue;pane.hidden=key!==name;tab.setAttribute('aria-selected',String(key===name));tab.tabIndex=key===name?0:-1;}const body=document.querySelector('#productModal .modal-body');if(body)body.scrollTop=0;}
 // Stock adjustment from the Admin product list.
 let productAdjustmentContext = null;
 let productAdjustmentSaving = false;
@@ -398,3 +383,18 @@ async function saveProductStockAdjustment(event) {
     document.querySelectorAll('[data-adjust-dismiss]').forEach(b=>b.disabled=false);
   }
 }
+
+async function setupProductUnit(selected){const select=document.getElementById('modalProductUnit');select.disabled=true;select.innerHTML='<option value="">กำลังโหลดหน่วยนับ...</option>';try{const response=await fetch('/api/master/units',{headers:authHeaders(),cache:'no-store'}),body=await response.json();if(!response.ok)throw Error(body.message||'โหลดหน่วยนับไม่สำเร็จ');const rows=Array.isArray(body)?body:body.data;if(!Array.isArray(rows)||!rows.length)throw Error('ยังไม่มีหน่วยนับใน tblUnits');select.innerHTML='<option value="">เลือกหน่วยนับ</option>'+rows.map(u=>'<option value="'+Number(u.UnitId)+'">'+productHtml(u.UnitCode)+' — '+productHtml(u.UnitName||u.UnitCode)+'</option>').join('');select.value=selected==null?'':String(selected);select.disabled=false;return true}catch(e){select.innerHTML='<option value="">โหลดหน่วยนับไม่สำเร็จ</option>';await Swal.fire('โหลดหน่วยนับไม่สำเร็จ',e.message,'error');return false}}
+
+let productSupplierLoadSeq=0;
+async function setupProductSupplier(selected){const seq=++productSupplierLoadSeq,select=document.getElementById('modalProductSupplier'),hint=document.getElementById('modalProductSupplierHint'),category=Number(document.getElementById('modalProductCategory').value);select.disabled=true;select.dataset.ready='false';select.innerHTML='<option value="">กำลังโหลดผู้จำหน่าย...</option>';try{const response=await fetch('/api/products/supplier-options?categoryId='+category+(editingProductId?'&productId='+editingProductId:''),{headers:authHeaders(),cache:'no-store'}),body=await response.json();if(seq!==productSupplierLoadSeq)return false;if(!response.ok||!body.success)throw Error(body.message||'โหลดผู้จำหน่ายไม่สำเร็จ');select.innerHTML='<option value="">ไม่ระบุผู้จำหน่ายหลัก</option>'+body.data.map(x=>'<option value="'+Number(x.SupplierId)+'" '+(!x.CanSelect?'disabled ':'')+'>'+productHtml(x.SupplierCode+' · '+x.SupplierName)+(x.CanSelect?'':' (ปิดใช้งาน / ไม่รองรับกลุ่มนี้แล้ว)')+'</option>').join('');select.value=selected==null?'':String(selected);select.disabled=false;select.dataset.ready='true';const old=body.data.find(x=>x.SupplierId===Number(selected));hint.textContent=old&&!old.CanSelect?'ผู้จำหน่ายเดิมปิดใช้งานหรือไม่รองรับกลุ่มนี้แล้ว สามารถคงค่าเดิมหรือเลือกผู้จำหน่ายใหม่':body.data.length?'แสดงผู้จำหน่ายที่รองรับกลุ่มสินค้านี้ · เว้นว่างได้หากผลิตเอง':'ยังไม่มีผู้จำหน่ายที่รองรับกลุ่มนี้ สามารถไม่ระบุผู้จำหน่ายหลักได้';return true}catch(e){if(seq!==productSupplierLoadSeq)return false;select.innerHTML='<option value="">โหลดผู้จำหน่ายไม่สำเร็จ</option>';hint.textContent=e.message;await Swal.fire('โหลดผู้จำหน่ายไม่สำเร็จ',e.message,'error');return false}}
+
+let productRMSpecRevision=null,productRMSpecReady=false,productRMLoad=0;
+function productRMVisible(){if(typeof wmsNavigation==='undefined'||wmsNavigation?.user.role!=='ADMIN')return false;const id=Number(document.getElementById('modalProductCategory').value);return wmsNavigation.menus.find(m=>m.code==='PRODUCTS')?.categories?.some(c=>c.id===id&&c.code==='RM')}
+async function setupProductRMSpec(id){const seq=++productRMLoad;let section=document.getElementById('productRMSection');if(!section){section=document.createElement('section');section.id='productRMSection';section.className='border rounded-3 p-3 mt-3 bg-light';section.innerHTML='<h6 class="fw-bold mb-1"><i class="bi bi-box-seam me-2"></i>หน่วยบรรจุและการเบิก RM</h6><p class="small text-muted mb-3">กำหนดราย SKU · 1.1 เบิกเป็นกล่องเต็ม · 1.2 เบิกตามหน่วยใช้งานจริง</p><label class="form-check mb-3"><input id="productRMEnabled" class="form-check-input" type="checkbox" onchange="updateProductRMPreview()"><span class="form-check-label">กำหนดอัตราบรรจุสินค้านี้</span></label><div id="productRMInputs" hidden><div class="row g-2"><div class="col-sm-6"><label for="productRMPack" class="form-label small">หน่วยเบิกใหญ่ *</label><input id="productRMPack" class="form-control" maxlength="30" placeholder="เช่น กล่อง / ถัง / กระสอบ" oninput="updateProductRMPreview()"></div><div class="col-sm-6"><label for="productRMPer" class="form-label small">ปริมาณต่อภาชนะ *</label><input id="productRMPer" class="form-control" type="number" step="0.000001" min="0.000001" placeholder="เช่น 25" oninput="updateProductRMPreview()"></div><div class="col-sm-6"><label for="productRMContentUnit" class="form-label small">หน่วยเบิกย่อย *</label><input id="productRMContentUnit" class="form-control" list="productRMUnitChoices" maxlength="30" placeholder="เช่น KG หรือ L" oninput="updateProductRMPreview()"><datalist id="productRMUnitChoices"><option value="KG"></option><option value="L"></option><option value="G"></option></datalist></div><div class="col-sm-6"><label for="productRMFactor" class="form-label small">หน่วยสต๊อกต่อ 1 หน่วยเบิกย่อย *</label><input id="productRMFactor" class="form-control" type="number" step="0.000001" min="0.000001" value="1" oninput="updateProductRMPreview()"></div></div><div id="productRMPreview" class="small bg-white border rounded-3 p-3 mt-3" aria-live="polite"></div><p class="small text-muted mt-2 mb-0">หน่วยเบิกย่อยตรงกับหน่วยสต๊อก ใช้อัตราแปลง 1 · ถ้าต่างหน่วย เช่น L กับ KG ต้องระบุอัตราแปลงรายสินค้าให้ถูกต้อง</p></div><p class="small text-muted mt-3 mb-0">ตั้งอัตราบรรจุไม่เพิ่มยอดสต๊อก · กล่องเต็มที่พร้อมเบิกต้องอ้างอิงทะเบียนภาชนะจริง ห้ามเปลี่ยนอัตราขณะมีภาชนะคงเหลือหรืองานโอนค้าง</p>';document.getElementById('productRMPane').append(section)}section.hidden=!productRMVisible();document.getElementById('productRMTab').hidden=section.hidden;if(section.hidden&&!document.getElementById('productRMPane').hidden)switchProductEditorTab('Basic');productRMSpecRevision=null;productRMSpecReady=false;document.getElementById('productRMEnabled').checked=false;document.getElementById('productRMEnabled').disabled=false;for(const [key,value]of [['productRMPack',''],['productRMPer',''],['productRMContentUnit',''],['productRMFactor','1']])document.getElementById(key).value=value;updateProductRMPreview();if(section.hidden){productRMSpecReady=true;return true}try{if(id){const response=await fetch('/api/products/'+id+'/rm-spec',{headers:authHeaders(),cache:'no-store'}),body=await response.json();if(seq!==productRMLoad)return false;if(!response.ok)throw Error(body.message||'โหลดหน่วยบรรจุไม่สำเร็จ');const spec=body.data;if(spec){productRMSpecRevision=spec.Revision;document.getElementById('productRMEnabled').checked=true;document.getElementById('productRMEnabled').disabled=true;for(const [key,value]of [['productRMPack',spec.PackUnit],['productRMPer',spec.ContentPerPack],['productRMContentUnit',spec.ContentUnit],['productRMFactor',spec.BasePerContentUnit]])document.getElementById(key).value=value}}productRMSpecReady=true;updateProductRMPreview();return true}catch(e){await Swal.fire('โหลดหน่วยบรรจุไม่สำเร็จ',e.message,'error');return false}}
+function updateProductRMPreview(){const enabled=document.getElementById('productRMEnabled');if(!enabled)return;document.getElementById('productRMInputs').hidden=!enabled.checked;const unit=document.getElementById('modalProductUnit'),base=unit.selectedOptions?.[0]?.textContent?.split(' — ')[0]||'หน่วยสต๊อก',pack=document.getElementById('productRMPack').value.trim()||'ภาชนะ',per=Number(document.getElementById('productRMPer').value),content=document.getElementById('productRMContentUnit').value.trim().toUpperCase()||'หน่วยเบิกย่อย',factor=Number(document.getElementById('productRMFactor').value),preview=document.getElementById('productRMPreview');if(!(per>0)||!(factor>0)){preview.textContent='ตัวอย่าง: 1 กล่อง = 25 KG · เบิกใหญ่ 1 กล่อง โอน 25 KG · เบิกย่อยใช้จริงเป็น KG';return}preview.textContent='1 '+pack+' = '+per+' '+content+' = '+(per*factor).toLocaleString('th-TH',{maximumFractionDigits:6})+' '+base+' · อนุมัติ 1 '+pack+' จาก WH01 ไป WH04 แล้วเบิกย่อยตาม '+content;}
+
+function setupProductVolume(value){let section=document.getElementById('productVolumeSection');if(!section){section=document.createElement('section');section.id='productVolumeSection';section.className='border rounded-3 p-3 mt-3';section.innerHTML='<h6 class="fw-bold mb-2"><i class="bi bi-bounding-box me-2"></i>ปริมาตรสินค้า สำหรับจัดเก็บ</h6><label id="productVolumeLabel" for="productUnitVolume" class="form-label small">ปริมาตรต่อ 1 หน่วยสต๊อก (cm³)</label><input id="productUnitVolume" class="form-control" type="number" step="0.001" min="0.001" placeholder="ยังไม่ระบุปริมาตร"><div class="small text-muted mt-2">PUTAWAY ใช้จำนวนสต๊อก × ปริมาตรนี้ เทียบกับความจุโลเคชั่น · เว้นว่างได้ แต่จะตรวจความจุไม่ได้</div><details class="mt-3"><summary class="small text-primary">คำนวณจากขนาดกล่อง / ภาชนะ</summary><div class="row g-2 mt-2"><div class="col-4"><label for="volumeWidth" class="form-label small">กว้าง (ซม.)</label><input id="volumeWidth" type="number" min="0.001" step="0.001" class="form-control" oninput="calculateProductVolume()"></div><div class="col-4"><label for="volumeLength" class="form-label small">ยาว (ซม.)</label><input id="volumeLength" type="number" min="0.001" step="0.001" class="form-control" oninput="calculateProductVolume()"></div><div class="col-4"><label for="volumeHeight" class="form-label small">สูง (ซม.)</label><input id="volumeHeight" type="number" min="0.001" step="0.001" class="form-control" oninput="calculateProductVolume()"></div><div class="col-12"><label id="volumeBasisLabel" for="volumeBasis" class="form-label small">จำนวนหน่วยสต๊อกในกล่องนี้</label><input id="volumeBasis" type="number" min="0.001" step="0.001" class="form-control" placeholder="เช่น กล่องบรรจุ 25 KG ใส่ 25" oninput="calculateProductVolume()"></div></div><div id="volumeCalcResult" class="small text-muted mt-2" aria-live="polite"></div><button type="button" id="volumeUseCalculation" class="btn btn-sm btn-outline-primary mt-2" onclick="useCalculatedProductVolume()" disabled>ใช้ค่าที่คำนวณ</button></details><div class="small text-muted mt-3">กรอกขนาดจริงเท่านั้น · ตัวช่วยนี้ไม่เปลี่ยนจำนวนกล่องหรือยอด KG</div>';document.getElementById('productVolumePane').append(section)}document.getElementById('productUnitVolume').value=value??'';for(const id of ['volumeWidth','volumeLength','volumeHeight','volumeBasis'])document.getElementById(id).value='';updateProductVolumeLabel();calculateProductVolume();}
+function updateProductVolumeLabel(){const select=document.getElementById('modalProductUnit'),unit=select.selectedOptions?.[0]?.textContent?.split(' — ')[0]||'หน่วยสต๊อก';const label=document.getElementById('productVolumeLabel');if(label)label.textContent='ปริมาตรต่อ 1 '+unit+' (cm³)';const basis=document.getElementById('volumeBasisLabel');if(basis)basis.textContent='จำนวน '+unit+' ที่บรรจุในกล่อง / ภาชนะนี้';}
+function calculateProductVolume(){const dims=['volumeWidth','volumeLength','volumeHeight','volumeBasis'].map(id=>Number(document.getElementById(id).value)),button=document.getElementById('volumeUseCalculation'),result=document.getElementById('volumeCalcResult');button.disabled=dims.some(x=>!Number.isFinite(x)||x<=0);if(button.disabled){result.textContent='ปริมาตรต่อหน่วย = กว้าง × ยาว × สูง ÷ จำนวนหน่วยสต๊อกในกล่อง';return null}const value=Math.ceil(dims[0]*dims[1]*dims[2]/dims[3]*1000)/1000;if(!Number.isFinite(value)||value<=0||value>=1e12){button.disabled=true;result.textContent='ค่าคำนวณเกินช่วงที่รองรับ';return null}result.textContent=dims[0]+' × '+dims[1]+' × '+dims[2]+' ÷ '+dims[3]+' = '+value.toLocaleString('th-TH',{maximumFractionDigits:3})+' cm³ ต่อหน่วยสต๊อก (ปัดขึ้น 3 ตำแหน่ง)';return value;}
+function useCalculatedProductVolume(){const value=calculateProductVolume();if(value!=null)document.getElementById('productUnitVolume').value=value;}

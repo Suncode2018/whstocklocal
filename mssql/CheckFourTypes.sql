@@ -1,0 +1,13 @@
+USE dbWMS;
+IF OBJECT_ID('dbo.CheckSessions','U') IS NULL CREATE TABLE dbo.CheckSessions(Id int IDENTITY PRIMARY KEY,RequestId uniqueidentifier NOT NULL UNIQUE,DocNo nvarchar(40) NOT NULL UNIQUE,WhId int NOT NULL,LocationCode nvarchar(50) NOT NULL,CategoryCode varchar(4) NOT NULL CHECK(CategoryCode IN('RM','PKG','SEMI','FG')),Status varchar(12) NOT NULL DEFAULT 'OPEN' CHECK(Status IN('OPEN','REVIEW','CLOSED','CANCELLED')),CreatedBy nvarchar(100) NOT NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME(),ClosedBy nvarchar(100) NULL,ClosedAt datetime2 NULL);
+IF OBJECT_ID('dbo.CheckItems','U') IS NULL CREATE TABLE dbo.CheckItems(Id int IDENTITY PRIMARY KEY,SessionId int NOT NULL REFERENCES dbo.CheckSessions(Id),StockId int NOT NULL,ProductId int NOT NULL,Snapshot decimal(18,2) NOT NULL,Counted decimal(18,2) NULL,Recount decimal(18,2) NULL,Reason nvarchar(255) NULL,CountedBy nvarchar(100) NULL,CountedAt datetime2 NULL,UNIQUE(SessionId,StockId));
+IF OBJECT_ID('dbo.CheckContainers','U') IS NULL CREATE TABLE dbo.CheckContainers(Id int IDENTITY PRIMARY KEY,ItemId int NOT NULL REFERENCES dbo.CheckItems(Id),ContainerId int NOT NULL REFERENCES dbo.RMContainers(ContainerId),Snapshot decimal(18,2) NOT NULL,Counted decimal(18,2) NULL,Recount decimal(18,2) NULL,UNIQUE(ItemId,ContainerId));
+IF OBJECT_ID('dbo.CheckAudit','U') IS NULL CREATE TABLE dbo.CheckAudit(Id int IDENTITY PRIMARY KEY,SessionId int NOT NULL REFERENCES dbo.CheckSessions(Id),Actor nvarchar(100) NOT NULL,Action varchar(20) NOT NULL,Details nvarchar(max) NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME());
+GO
+CREATE OR ALTER TRIGGER dbo.TR_CheckFreezeStock ON dbo.tblStock AFTER INSERT,UPDATE,DELETE AS
+BEGIN SET NOCOUNT ON;
+IF EXISTS(SELECT 1 FROM (SELECT whid,ProductId,LocationCode FROM inserted UNION SELECT whid,ProductId,LocationCode FROM deleted) x JOIN dbMaster.dbo.tblProducts p ON p.ProductId=x.ProductId JOIN dbMaster.dbo.tblCategories c ON c.CategoryId=p.CategoryId JOIN dbo.CheckSessions h WITH(UPDLOCK,HOLDLOCK) ON h.WhId=x.whid AND h.LocationCode=x.LocationCode AND h.CategoryCode=c.CategoryCode WHERE h.Status IN('OPEN','REVIEW')) THROW 51000,N'สินค้าและตำแหน่งนี้อยู่ระหว่าง CHECK กรุณาปิดหรือยกเลิกใบตรวจก่อนเคลื่อนไหว',1; END;
+GO
+CREATE OR ALTER TRIGGER dbo.TR_CheckFreezeContainers ON dbo.RMContainers AFTER INSERT,UPDATE,DELETE AS
+BEGIN SET NOCOUNT ON;
+IF EXISTS(SELECT 1 FROM (SELECT WhId,ProductId,LocationCode FROM inserted UNION SELECT WhId,ProductId,LocationCode FROM deleted) x JOIN dbo.CheckSessions h WITH(UPDLOCK,HOLDLOCK) ON h.WhId=x.WhId AND h.LocationCode=x.LocationCode AND h.CategoryCode='RM' WHERE h.Status IN('OPEN','REVIEW')) THROW 51000,N'ภาชนะอยู่ระหว่าง CHECK กรุณาปิดหรือยกเลิกใบตรวจก่อน',1; END;

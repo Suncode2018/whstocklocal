@@ -1,2 +1,2 @@
 /* Compatibility entry: use the current workflow. */
-location.replace('/handheld.html');
+location.replace('/handheld/index.html');

@@ -1,1 +1,19 @@
-<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>กำลังเปิดหน้าปัจจุบัน</title><script>location.replace("/handheld.html")</script><a href="/handheld.html">เปิดหน้าปัจจุบัน</a></html>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ศูนย์งานคลังสินค้า · WH Stock</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="/css/desktop-home.css?v=20261106-login-theme">
+</head>
+<body>
+<header class="workspace-header"><a class="workspace-brand" href="/desktop/index.html" aria-label="หน้าหลัก WH Stock"><span class="brand-mark"><i class="bi bi-box-seam" aria-hidden="true"></i></span><span><strong>WH Stock</strong><small>Warehouse workspace</small></span></a><span class="workspace-location"><span class="status-dot"></span>Desktop</span><div class="workspace-account"><span id="desktopAvatar" class="account-avatar" aria-hidden="true">U</span><span class="account-copy"><strong id="desktopUser">กำลังโหลด...</strong><small id="desktopRole"></small></span><button class="icon-button logout-button" onclick="logout()" title="ออกจากระบบ" aria-label="ออกจากระบบ"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button></div></header>
+<div class="workspace-layout"><aside class="workspace-sidebar" aria-label="หมวดเมนู"><div class="sidebar-label">พื้นที่ทำงาน</div><nav id="desktopCategories"><button class="category-button is-active" onclick="chooseDesktopGroup('all')"><i class="bi bi-grid" aria-hidden="true"></i><span>ทุกเมนู</span></button></nav><div class="sidebar-bottom"><i class="bi bi-shield-check" aria-hidden="true"></i><span>เมนูสำหรับบัญชีของคุณ<small>จัดการสิทธิ์โดยผู้ดูแลระบบ</small></span></div></aside>
+<main class="workspace-main"><section class="workspace-intro"><div><div class="eyebrow">WH STOCK / WORKSPACE</div><h1>ศูนย์งานคลังสินค้า</h1><p>เลือกงานที่ต้องการ หรือค้นหาเมนูเพื่อเริ่มใช้งาน</p></div><span id="desktopMenuCount" class="menu-count">กำลังโหลดเมนู</span></section>
+<div class="workspace-toolbar"><label class="menu-search"><i class="bi bi-search" aria-hidden="true"></i><input id="desktopSearch" type="search" placeholder="ค้นหาเมนู เช่น รับสินค้า, สต๊อก, BOM" oninput="renderDesktopHome()" autocomplete="off" aria-label="ค้นหาเมนู"><kbd>/</kbd></label><button id="desktopClear" class="clear-button" onclick="clearDesktopSearch()" hidden>ล้างตัวกรอง</button></div>
+<p id="portalNotice" class="workspace-notice" role="status" aria-live="polite">กำลังโหลดเมนูที่คุณใช้งานได้...</p>
+<section id="desktopRecent" class="recent-section" hidden aria-label="เมนูที่เปิดล่าสุด"><span class="recent-label"><i class="bi bi-clock-history" aria-hidden="true"></i> ล่าสุด</span><div id="desktopRecentLinks" class="recent-links"></div></section>
+<div id="desktopMenuSections"><div class="menu-skeleton" aria-hidden="true"></div><div class="menu-skeleton" aria-hidden="true"></div><div class="menu-skeleton" aria-hidden="true"></div></div>
+<footer class="workspace-footer"><span>WH Stock System</span><span id="desktopResultCount"></span></footer></main></div>
+<script src="/js/common.js?v=20261107-dialogs"></script><script src="/js/desktop-home.js?v=20261106-two-roles"></script><script src="/js/navigation-guard.js?v=20261107-dialogs"></script>
+</body></html>

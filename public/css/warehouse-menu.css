@@ -1,0 +1,6 @@
+/* Match the button menu typography and spacing in admin.html. */
+.warehouse-sidebar .sidebar-menu-item { font-family: inherit; font-size: inherit; line-height: 1.5; text-decoration: none; }
+.warehouse-sidebar .sidebar-menu-item:hover, .warehouse-sidebar .sidebar-menu-item:focus { text-decoration: none; }
+.warehouse-sidebar .sidebar-menu-item > i { flex: 0 0 1.25rem; text-align: center; }
+.warehouse-sidebar .sidebar-menu-item > span { min-width: 0; }
+.warehouse-sidebar .sidebar-menu-item:focus-visible, .warehouse-sidebar .sidebar-section-title:focus-visible { outline: 3px solid var(--pri); outline-offset: 2px; }

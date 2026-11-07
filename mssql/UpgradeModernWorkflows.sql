@@ -216,3 +216,21 @@ IF OBJECT_ID('dbo.InventoryCountItems','U') IS NULL
 CREATE TABLE dbo.InventoryCountItems(ItemId INT IDENTITY PRIMARY KEY,SessionId INT NOT NULL REFERENCES dbo.InventoryCountSessions(SessionId),StockId INT NOT NULL,ProductId INT NOT NULL,SnapshotQuantity DECIMAL(18,2) NOT NULL,SnapshotUpdatedAt DATETIME2 NOT NULL,CountedQuantity DECIMAL(18,2) NULL CHECK(CountedQuantity>=0),CountedBy NVARCHAR(50) NULL,CountedAt DATETIME2 NULL,CONSTRAINT UQ_InventoryCountItem UNIQUE(SessionId,StockId));
 USE dbWMS;
 IF OBJECT_ID('dbo.StockTransfers','U') IS NULL CREATE TABLE dbo.StockTransfers(TransferId INT IDENTITY PRIMARY KEY,RequestId UNIQUEIDENTIFIER NOT NULL UNIQUE,WhId INT NOT NULL,ProductId INT NOT NULL,FromLocationCode NVARCHAR(50) NOT NULL,ToLocationCode NVARCHAR(50) NOT NULL,Quantity DECIMAL(18,2) NOT NULL CHECK(Quantity>0),ReferenceNo NVARCHAR(60) NOT NULL,CreatedBy NVARCHAR(50) NOT NULL,CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME());
+
+GO
+-- Supplier tax optional patch
+USE dbMaster;
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.tblSuppliers') AND name='UQ_tblSuppliers_TaxBranch' AND filter_definition NOT LIKE '%<>%0%')
+ DROP INDEX UQ_tblSuppliers_TaxBranch ON dbo.tblSuppliers;
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.tblSuppliers') AND name='UQ_tblSuppliers_TaxBranch')
+ CREATE UNIQUE INDEX UQ_tblSuppliers_TaxBranch ON dbo.tblSuppliers(TaxId,BranchCode) WHERE TaxId IS NOT NULL AND TaxId <> '0';
+COMMIT;
+
+GO
+-- Supplier profile fields
+USE dbMaster;
+IF COL_LENGTH('dbo.tblSuppliers','GoodsServices') IS NULL ALTER TABLE dbo.tblSuppliers ADD GoodsServices NVARCHAR(500) NULL;
+IF COL_LENGTH('dbo.tblSuppliers','ApprovalDate') IS NULL ALTER TABLE dbo.tblSuppliers ADD ApprovalDate DATE NULL;
+ALTER TABLE dbo.tblSuppliers ALTER COLUMN Phone NVARCHAR(150) NULL;

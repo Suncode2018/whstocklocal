@@ -3,6 +3,7 @@ const router = express.Router();
 const sql = require('mssql');
 const bcrypt = require('bcrypt');
 const { poolPromise } = require('../config/db');
+router.param('id',(req,res,next,value)=>{if(!/^[1-9]\d*$/.test(value)||!Number.isSafeInteger(Number(value))||Number(value)>2147483647)return res.status(400).json({error:'รหัสผู้ใช้ไม่ถูกต้อง กรุณารีเฟรชรายการผู้ใช้แล้วลองใหม่'});req.params.id=Number(value);next();});
 
 async function normalizePermissions(pool, value) {
   const requested = [...new Set(String(value || '').split(',').map(code => code.trim().toUpperCase()).filter(Boolean))];
@@ -47,11 +48,11 @@ router.post('/', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const assignedRole = role || 'OPERATOR';
+    const assignedRole = String(role||'USER').trim().toUpperCase();if(!['ADMIN','USER'].includes(assignedRole))return res.status(400).json({error:'ใช้ได้เฉพาะ ADMIN หรือ USER'});
 
     const pool = await poolPromise;
     const normalizedPermissions = await normalizePermissions(pool, permissions);
-    await pool.request()
+    const inserted = await pool.request()
       .input('Username', sql.VarChar, username)
       .input('Fullname', sql.NVarChar, fullname || '')
       .input('PasswordHash', sql.VarChar, hashedPassword)
@@ -59,9 +60,10 @@ router.post('/', async (req, res) => {
       .input('IsActive', sql.Bit, isActive !== undefined ? isActive : 1)
       .input('Permissions', sql.NVarChar(100), normalizedPermissions)
       .query(`INSERT INTO Users (Username, Fullname, PasswordHash, Role, IsActive, Permissions)
+              OUTPUT INSERTED.UserId AS UserId
               VALUES (@Username, @Fullname, @PasswordHash, @Role, @IsActive, @Permissions)`);
 
-    res.json({ success: true, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
+    res.json({ success: true, UserId: inserted.recordset[0].UserId, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
   } catch (err) {
     console.error('API /api/users POST Error:', err);
     res.status(err.statusCode || 500).json({ error: err.message });
@@ -73,6 +75,8 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { fullname, password, role, isActive, permissions } = req.body;
+    if(Number(id)===Number(req.user.id)&&(role!=='ADMIN'||isActive===false||isActive===0))return res.status(400).json({error:'ไม่สามารถลดสิทธิ์หรือปิดบัญชี Admin ที่กำลังใช้งาน'});
+    if(!['ADMIN','USER'].includes(role))return res.status(400).json({error:'ใช้ได้เฉพาะ ADMIN หรือ USER'});
 
     const pool = await poolPromise;
     const normalizedPermissions = await normalizePermissions(pool, permissions);
@@ -84,7 +88,7 @@ router.put('/:id', async (req, res) => {
         .input('UserId', sql.Int, id)
         .input('Fullname', sql.NVarChar, fullname || '')
         .input('PasswordHash', sql.VarChar, hashedPassword)
-        .input('Role', sql.VarChar, role || 'OPERATOR')
+        .input('Role', sql.VarChar, role || 'USER')
         .input('IsActive', sql.Bit, isActive !== undefined ? isActive : 1)
         .input('Permissions', sql.NVarChar(100), normalizedPermissions)
         .query(`UPDATE Users
@@ -95,7 +99,7 @@ router.put('/:id', async (req, res) => {
       await pool.request()
         .input('UserId', sql.Int, id)
         .input('Fullname', sql.NVarChar, fullname || '')
-        .input('Role', sql.VarChar, role || 'OPERATOR')
+        .input('Role', sql.VarChar, role || 'USER')
         .input('IsActive', sql.Bit, isActive !== undefined ? isActive : 1)
         .input('Permissions', sql.NVarChar(100), normalizedPermissions)
         .query(`UPDATE Users
@@ -112,6 +116,7 @@ router.put('/:id', async (req, res) => {
 
 // ลบผู้ใช้งาน
 router.delete('/:id', async (req, res) => {
+  if(Number(req.params.id)===Number(req.user.id))return res.status(400).json({error:'ไม่สามารถลบบัญชีที่กำลังใช้งาน'});
   try {
     const { id } = req.params;
     const pool = await poolPromise;

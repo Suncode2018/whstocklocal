@@ -14,6 +14,8 @@ async function loadWarehouses(showToast = false) {
     const res = await fetch('/api/warehouses', { headers: typeof authHeaders === 'function' ? authHeaders() : {} });
     if (!res.ok) throw new Error('โหลดข้อมูลไม่สำเร็จ');
     const list = await res.json();
+    const warehouseAdmin=typeof wmsNavigation!=='undefined'&&wmsNavigation?.user.role==='ADMIN';
+    document.querySelectorAll('[onclick="openAddWH()"],#warehouseAccessUsers').forEach(button=>button.hidden=!warehouseAdmin);
 
     if (!Array.isArray(list) || list.length === 0) {
       tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">ยังไม่มีข้อมูลคลังสินค้าในระบบ</td></tr>`;
@@ -42,6 +44,7 @@ async function loadWarehouses(showToast = false) {
       `;
     }).join('');
 
+    tbody.querySelectorAll('button').forEach(button=>button.hidden=!warehouseAdmin);
     if (showToast && typeof Swal !== 'undefined') {
       Swal.fire({ icon: 'success', title: 'รีเฟรชข้อมูลเรียบร้อย', timer: 1000, showConfirmButton: false });
     }
@@ -122,3 +125,4 @@ async function deleteWH(id) {
     Swal.fire('ผิดพลาด', err.message, 'error');
   }
 }
+window.addEventListener('wms-navigation',()=>{if(document.getElementById('pane-warehouses')?.style.display!=='none')loadWarehouses()});

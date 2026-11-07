@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WH Stock System - Admin Management Panel</title>
+  
+  <!-- CSS Frameworks & Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/wms.css">
+  <link rel="stylesheet" href="/css/wms-friendly.css">
+
+  <style>
+    /* Global & Layout Structure */
+    :root {
+      --primary-accent: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg-panel: #ffffff;
+      --border-color: #e2e8f0;
+    }
+
+    /* KPI Cards */
+    .stat-card {
+      background: var(--bg-panel);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      border: 1px solid #edf2f7;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    .stat-total .stat-icon { background: #e0e7ff; color: #4338ca; }
+    .stat-rm .stat-icon    { background: #fef3c7; color: #d97706; }
+    .stat-pkg .stat-icon   { background: #e0f2fe; color: #0284c7; }
+    .stat-fg .stat-icon    { background: #dcfce7; color: #16a34a; }
+    .stat-label { font-size: 0.82rem; color: #64748b; font-weight: 600; }
+    .stat-value { margin: 0; font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+
+    /* Modern Panel & Table */
+    .panel-modern {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border-color);
+    }
+    .panel-title { font-weight: 700; color: #0f172a; }
+
+    .search-input-wrap { position: relative; }
+    .search-icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: #94a3b8; font-size: 0.95rem; }
+    .form-control-modern, .form-select-modern {
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      font-size: 0.9rem;
+      background-color: #f8fafc;
+      transition: all 0.2s ease;
+    }
+    .search-input-wrap .form-control-modern { padding-left: 38px; }
+    .form-control-modern:focus, .form-select-modern:focus {
+      background-color: #fff;
+      border-color: var(--primary-accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    .btn-primary-modern {
+      background: var(--primary-accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .btn-primary-modern:hover { background: var(--primary-hover); color: #fff; }
+    .btn-refresh-modern, .btn-clear-modern {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      color: #475569;
+      border-radius: 10px;
+      height: 42px;
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+    .btn-refresh-modern:hover, .btn-clear-modern:hover { background: #f1f5f9; color: #1e293b; }
+
+    .table-container-modern { border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; }
+    .table-modern thead th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .table-modern tbody td { padding: 14px 16px; border-bottom: 1px solid #f8fafc; font-size: 0.9rem; color: #334155; }
+    .table-modern tbody tr:hover { background-color: #f8faff; }
+    
+    .barcode-pill {
+      display: inline-block;
+      background: #eef2ff;
+      color: var(--primary-accent);
+      font-family: monospace;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .code-tag { font-weight: 600; color: #0f172a; }
+  </style>
+
+<style id="adj-modal-layout">
+#productStockAdjustModal .modal-dialog { max-width: 760px; width: calc(100% - 24px); margin: 12px auto; height: calc(100vh - 24px); height: calc(100dvh - 24px); }
+#productStockAdjustModal .modal-content { max-height: 100%; overflow: hidden; border: 0; border-radius: 18px; box-shadow: 0 24px 80px #0f172a33; }
+#productStockAdjustModal .modal-header, #productStockAdjustModal .modal-footer { flex-shrink: 0; padding: 16px 20px; background: #fff; }
+#productStockAdjustModal .modal-body { min-height: 0; overflow-y: auto; padding: 16px 20px; overscroll-behavior: contain; }
+#productStockAdjustModal .modal-title { font-size: 20px; }
+#productStockAdjustModal .adj-caption { color: #64748b; font-size: 13px; line-height: 1.5; }
+#productStockAdjustModal .adj-product { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
+#productStockAdjustModal .adj-product > div { min-width: 0; overflow-wrap: anywhere; }
+#productStockAdjustModal #adjProductLabel { font-size: 14px; line-height: 1.5; }
+#productStockAdjustModal .adj-product-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #eef2ff; color: #4f46e5; font-size: 20px; }
+#productStockAdjustModal #adjFeedback:not(:empty) { padding: 10px 0 0; }
+#productStockAdjustModal .adj-step-title { font-size: 14px; font-weight: 600; margin: 16px 0 10px; display: flex; align-items: center; gap: 8px; }
+#productStockAdjustModal .adj-step-title > span { width: 23px; height: 23px; display: inline-grid; place-items: center; background: #eef2ff; color: #4f46e5; border-radius: 50%; font-size: 12px; }
+#productStockAdjustModal .form-label { font-size: 13px; margin-bottom: 6px; color: #475569; }
+#productStockAdjustModal .form-control, #productStockAdjustModal .form-select { font-size: 14px; min-height: 42px; padding: 9px 12px; border-radius: 10px; }
+#productStockAdjustModal .adj-quantity-grid { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 10px; }
+#productStockAdjustModal .adj-quantity-card { min-width: 0; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
+#productStockAdjustModal .adj-quantity-card input { width: 100%; min-width: 0; border: 0; background: transparent; color: #0f172a; font-size: 23px; line-height: 1.5; font-weight: 700; padding: 0; border-radius: 0; min-height: 36px; }
+#productStockAdjustModal .adj-quantity-card input::placeholder { font-size: 17px; font-weight: 400; color: #94a3b8; }
+#productStockAdjustModal .adj-quantity-new { background: #eef2ff; border: 2px solid #6366f1; }
+#productStockAdjustModal .adj-quantity-new:focus-within { box-shadow: 0 0 0 3px #6366f126; }
+#productStockAdjustModal .adj-quantity-new input:focus { outline: none; box-shadow: none; }
+#productStockAdjustModal .adj-reason-chip { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; color: #475569; background: #fff; font-size: 13px; }
+#productStockAdjustModal .adj-reason-chip:hover, #productStockAdjustModal .adj-reason-chip:focus-visible { border-color: #6366f1; background: #eef2ff; color: #4338ca; }
+#productStockAdjustModal textarea { resize: vertical; max-height: 140px; }
+#productStockAdjustModal .modal-footer { gap: 8px; border-top: 1px solid #e2e8f0; }
+#productStockAdjustModal .modal-footer .btn { min-height: 42px; font-size: 14px; padding: 9px 16px; border-radius: 10px; margin: 0; }
+#productStockAdjustModal summary { cursor: pointer; }
+@media (max-width: 575px) {
+ #productStockAdjustModal .modal-header, #productStockAdjustModal .modal-body, #productStockAdjustModal .modal-footer { padding: 12px 14px; }
+ #productStockAdjustModal .adj-quantity-grid { gap: 6px; grid-template-columns: 1fr 1.2fr; }
+ #productStockAdjustModal .adj-quantity-card:last-child { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; }
+ #productStockAdjustModal .adj-quantity-card:last-child input { width: 50%; text-align: right; font-size: 18px; }
+ #productStockAdjustModal #adjSaveSummary { flex-basis: 100%; }
+ #productStockAdjustModal .modal-footer .btn { flex: 1; }
+}
+</style>
+<style>.supplier-dialog{padding:0;border:0;border-radius:16px;width:min(860px,calc(100vw - 24px));max-height:90dvh;box-shadow:0 20px 70px #0f172a40;color:#152238}.supplier-dialog::backdrop{background:#0f172a80}.supplier-dialog form{margin:0;display:flex;flex-direction:column;max-height:90dvh}.supplier-dialog form[hidden]{display:none}.supplier-dialog-head,.supplier-dialog-footer{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;flex-shrink:0}.supplier-dialog-head{border-bottom:1px solid #e2e8f0}.supplier-dialog-footer{border-top:1px solid #e2e8f0;justify-content:flex-end}.supplier-dialog-body{padding:20px 22px;overflow:auto;min-height:0}.supplier-dialog .form-control{min-height:42px;font-size:14px}.supplier-dialog .form-label{margin-bottom:5px}.supplier-dialog input[type=checkbox]{min-height:0}#pane-suppliers .table td{font-size:14px;padding-top:14px;padding-bottom:14px}#pane-suppliers .table th{white-space:nowrap}@media(max-width:575px){.supplier-dialog-head,.supplier-dialog-footer,.supplier-dialog-body{padding:14px}}</style>
+<style id="supplier-summary-style">.supplier-summary-card{display:flex;align-items:center;gap:15px;padding:17px 20px;min-height:98px;border:1px solid #e5eaf2;border-radius:13px;background:#f9faff}.supplier-summary-icon{display:grid;place-items:center;flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#ecebff;color:#5b50cc;font-size:23px}.supplier-summary-enabled{background:#e8f5ee;color:#268466}.supplier-summary-disabled{background:#edf0f5;color:#7c889b}.supplier-summary-label{font-size:13px;color:#718096}.supplier-summary-value{display:flex;align-items:baseline;gap:7px;margin-top:2px}.supplier-summary-value strong{font-size:27px;line-height:1.2;color:#1c2d45;font-weight:700;font-variant-numeric:tabular-nums}.supplier-summary-value span{font-size:12px;color:#8994a5}@media(max-width:575px){.supplier-summary-card{min-height:78px;padding:13px 16px}}</style>
+<link rel="stylesheet" href="/css/master-extensions.css?v=20261106-supplier-layout">
+<link rel="stylesheet" href="/css/supplier-ui.css?v=20261107-1"><link rel="stylesheet" href="/css/access-groups.css?v=20261107-1"><style>#warehouseAccessUsers[hidden],#whTableBody button[hidden],[onclick="openAddWH()"][hidden]{display:none!important}</style><link rel="stylesheet" href="/css/product-editor.css?v=20261107-1"></head>
+<body class="supplier-ui">
+
+<!-- ========================================================================= -->
+<!-- 1. TOP NAVBAR (แถบนำทางส่วนหัว) -->
+<!-- ========================================================================= -->
+<nav class="navbar navbar-dark navbar-wms px-3">
+  <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-outline-light border-0 p-2" type="button" onclick="toggleSidebar()" aria-label="เปิด/ปิดเมนู">
+        <i class="bi bi-list fs-4 text-white"></i>
+      </button>
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="brand-title">WH Stock System</div>
+        <div class="brand-sub d-none d-sm-block">Admin • จัดการระบบและข้อมูลคลังสินค้า</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="session-badge" style="cursor:default">
+        <i class="bi bi-person-fill"></i> <span id="userName" class="name-txt">-</span>
+        <span class="badge bg-danger ms-1" id="userRole">ADMIN</span>
+      </span>
+      <button class="btn-logout" onclick="doLogout()">
+        <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">ออกจากระบบ</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ========================================================================= -->
+<!-- 2. MAIN CONTAINER & SIDEBAR -->
+<!-- ========================================================================= -->
+<div class="admin-wrapper" id="adminWrapper">
+  <aside class="admin-sidebar" role="tablist">
+    
+    <!-- กลุ่มที่ 1: ข้อมูลคลังสินค้า (Master Data) -->
+    <section class="sidebar-group" data-sidebar-group="warehouse">
+      <button type="button" class="sidebar-section-title" aria-expanded="true" onclick="toggleSidebarGroup('warehouse')">
+        <span>ข้อมูลคลังสินค้า (Master)</span><i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="sidebar-group-items" id="sidebar-group-warehouse">
+        <button role="tab" class="sidebar-menu-item active" id="tab-master" onclick="switchTab('master')">
+          <i class="bi bi-box-seam fs-5 text-info"></i> <span>จัดการสินค้า (Master)</span>
+        </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-bom" onclick="switchTab('bom')"><i class="bi bi-diagram-3 fs-5 text-primary"></i><span>สูตรการผลิต / BOM</span></button>
+        <button role="tab" class="sidebar-menu-item" id="tab-suppliers" onclick="switchTab('suppliers')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้จำหน่าย (Supplier)</span></button>
+<button type="button" class="sidebar-menu-item" id="tab-manufacturer-products" onclick="switchTab('manufacturer-products')"><i class="bi bi-building-gear fs-5 text-primary"></i><span>ผู้ผลิต–สินค้า</span></button>
+<button type="button" class="sidebar-menu-item" id="tab-transport-products" onclick="switchTab('transport-products')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้ขนส่ง–สินค้า</span></button><button type="button" class="sidebar-menu-item" id="tab-transports" onclick="switchTab('transports')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้ขนส่ง (Transport)</span></button>
+<button type="button" class="sidebar-menu-item" id="tab-customers" onclick="switchTab('customers')"><i class="bi bi-people fs-5 text-primary"></i><span>ลูกค้า (Customer)</span></button>
+<button type="button" class="sidebar-menu-item" id="tab-customer-products" onclick="switchTab('customer-products')"><i class="bi bi-person-lines-fill fs-5 text-primary"></i><span>ลูกค้า–สินค้า</span></button>
+        <button role="tab" class="sidebar-menu-item" id="tab-warehouses" onclick="switchTab('warehouses')">
+          <i class="bi bi-buildings fs-5 text-warning"></i> <span>จัดการคลัง (Warehouses)</span>
+        </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')">
+          <i class="bi bi-geo-alt fs-5 text-danger"></i> <span>จัดการโลเคชั่น (Master)</span>
+        </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-shortage-reasons" onclick="switchTab('shortage-reasons')">
+          <i class="bi bi-exclamation-diamond-fill fs-5 text-warning"></i> <span>เหตุผลขาดส่ง (Master)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- กลุ่มที่ 2: งานปฏิบัติการคลัง (Operations) -->
+    <section class="sidebar-group" data-sidebar-group="main-process">
+      <button type="button" class="sidebar-section-title" aria-expanded="true" onclick="toggleSidebarGroup('main-process')">
+        <span>กระบวนการหลัก</span><i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="sidebar-group-items" id="sidebar-group-main-process">
+        <a class="sidebar-menu-item text-decoration-none" id="tab-op-RECEIVE" href="/desktop/receive.html"><i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE (รับสินค้า)</span></a>
+        <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')">
+          <i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY (จัดเก็บ)</span>
+        </button>
+        <a class="sidebar-menu-item" data-navigation-code="CHECK" href="/desktop/check.html"><i class="bi bi-clipboard-check fs-5 text-primary"></i><span>CHECK · ตรวจนับในตำแหน่ง</span></a>
+<button role="tab" class="sidebar-menu-item" id="tab-op-PICK" onclick="switchTab('OP_PICK')">
+          <i class="bi bi-box-arrow-up fs-5 text-danger"></i> <span>PICK (เบิกจ่าย)</span>
+        </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-op-CYCLECOUNT" onclick="switchTab('OP_CYCLECOUNT')">
+          <i class="bi bi-clipboard2-check-fill fs-5 text-primary"></i> <span>CYCLECOUNT (ตรวจนับ)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- กลุ่มที่ 3: รายงาน (Reports) -->
+    <section class="sidebar-group" data-sidebar-group="reports">
+      <button type="button" class="sidebar-section-title" aria-expanded="true" onclick="toggleSidebarGroup('reports')">
+        <span>รายงาน</span><i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="sidebar-group-items" id="sidebar-group-reports">
+        <button role="tab" class="sidebar-menu-item" id="tab-bom-stock" onclick="switchTab('bom-stock')"><i class="bi bi-clipboard2-check fs-5 text-primary"></i><span>ตรวจสต๊อกตามสูตร BOM</span></button>
+        <button role="tab" class="sidebar-menu-item" id="tab-stock" onclick="switchTab('stock')">
+          <i class="bi bi-bar-chart-fill fs-5 text-success"></i> <span>สรุปสต็อก &amp; Export</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- กลุ่มที่ 4: ตั้งค่าระบบ (ADMIN ONLY) -->
+    <section class="sidebar-group" data-sidebar-group="system-settings">
+      <button type="button" class="sidebar-section-title" aria-expanded="true" onclick="toggleSidebarGroup('system-settings')">
+        <span>ตั้งค่าระบบ (ADMIN ONLY)</span><i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="sidebar-group-items" id="sidebar-group-system-settings">
+        <button role="tab" class="sidebar-menu-item" id="tab-users" onclick="switchTab('users')">
+          <i class="bi bi-people-fill fs-5 text-primary"></i> <span>จัดการผู้ใช้งาน (Users)</span>
+        </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-permissions" onclick="switchTab('permissions')">
+          <i class="bi bi-shield-lock-fill fs-5 text-warning"></i> <span>กำหนดสิทธิ์เมนู (Permissions)</span>
+        </button>
+        <button role="tab" class="sidebar-menu-item" id="tab-roles" onclick="switchTab('roles')">
+          <i class="bi bi-person-badge-fill fs-5 text-info"></i> <span>จัดการสิทธิ์บทบาท (Roles)</span>
+        </button>
+      </div>
+    </section>
+
+  </aside>
+  <div class="side-backdrop" onclick="toggleSidebar()"></div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. MAIN CONTENT (พื้นที่แสดงหน้าจอตาม Tab) -->
+  <!-- ========================================================================= -->
+  <main class="admin-content"><div id="pane-customer-products" class="master-extension-pane" style="display:none"><section class="panel-modern"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4"><div><h3 class="fw-bold mb-1">ลูกค้า–สินค้า / Customer Products</h3><div class="muted">จับคู่ลูกค้ากับสินค้า และระบุรหัสสินค้าที่ลูกค้าใช้อ้างอิง</div></div><div class="d-flex gap-2 flex-wrap"><button class="btn btn-outline-secondary" onclick="loadCustomerProducts()">รีเฟรช</button><button id="cpExport" class="btn btn-outline-success" onclick="exportCustomerProducts()" hidden>Export CSV</button><button id="cpAdd" class="btn btn-primary" onclick="openCustomerProduct()" hidden>+ เพิ่มการเชื่อมโยง</button></div></div><div class="row g-3 mb-4 supplier-summary"><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon "><i class="bi bi-person-lines-fill"></i></span><div><span class="supplier-summary-label">คู่ลูกค้า–สินค้าทั้งหมด</span><div class="supplier-summary-value"><strong id="cpTotal">—</strong><span>รายการ</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-enabled"><i class="bi bi-check2-circle"></i></span><div><span class="supplier-summary-label">เปิดใช้งาน</span><div class="supplier-summary-value"><strong id="cpActive">—</strong><span>รายการ</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-disabled"><i class="bi bi-pause-circle"></i></span><div><span class="supplier-summary-label">ปิดใช้งาน</span><div class="supplier-summary-value"><strong id="cpInactive">—</strong><span>รายการ</span></div></div></div></div></div><div class="row g-2 align-items-end mb-3"><div class="col-lg-4"><label for="cpSearch">ค้นหาลูกค้า / สินค้า</label><input id="cpSearch" class="form-control" placeholder="รหัส ชื่อลูกค้า หรือรหัสสินค้าของลูกค้า" oninput="renderCustomerProducts()"></div><div class="col-lg-3"><label for="cpFilterCustomer">ลูกค้า</label><select id="cpFilterCustomer" class="form-select" onchange="renderCustomerProducts()"></select></div><div class="col-lg-3 col-sm-6"><label for="cpFilterCategory">หมวดสินค้า</label><select id="cpFilterCategory" class="form-select" onchange="renderCustomerProducts()"></select></div><div class="col-lg-2 col-sm-6"><label for="cpFilterStatus">สถานะ</label><select id="cpFilterStatus" class="form-select" onchange="renderCustomerProducts()"><option value="">ทุกสถานะ</option><option value="active">เปิดใช้งาน</option><option value="inactive">ปิดใช้งาน</option></select></div></div><p id="cpNotice" class="error" role="status"></p><div class="table-responsive"><table class="table"><thead><tr><th>ลูกค้า</th><th>สินค้าในระบบ</th><th>รหัส / ชื่อสินค้าของลูกค้า</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="cpBody"><tr><td colspan="5">กำลังโหลด...</td></tr></tbody></table></div><div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2"><span id="cpCount" class="muted"></span><div><button id="cpPrev" class="btn btn-outline-secondary btn-sm" onclick="changeCustomerProductPage(-1)">ก่อนหน้า</button> <span id="cpPageInfo"></span> <button id="cpNext" class="btn btn-outline-secondary btn-sm" onclick="changeCustomerProductPage(1)">ถัดไป</button></div></div></section></div>
+<div id="pane-manufacturer-products" class="master-extension-pane" style="display:none"><section class="panel-modern"><span id="sessionName" hidden></span>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3"><div><h3 class="fw-bold mb-1">ผู้ผลิต–สินค้า / Manufacturer Products</h3><div class="muted">กำหนดผู้ผลิตของสินค้าและช่วงวันที่มีผล · บันทึกข้อมูลนี้ไม่เปลี่ยนยอดสต๊อก</div></div><div class="d-flex gap-2 flex-wrap"><button class="btn btn-outline-secondary" onclick="loadManufacturerLinks()"><i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช</button><button class="btn btn-outline-secondary" id="mfManage" onclick="openManufacturerManager()" hidden><i class="bi bi-buildings me-1"></i>ข้อมูลผู้ผลิต</button><button class="btn btn-outline-success" id="mfExport" onclick="exportManufacturerLinks()" hidden><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button><button class="btn btn-primary" id="mfAdd" onclick="openManufacturerLink()" hidden><i class="bi bi-plus-lg me-1"></i>เชื่อมโยงสินค้า</button></div></div>
+<div class="row g-3 mb-4 supplier-summary"><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon "><i class="bi bi-diagram-3"></i></span><div><span class="supplier-summary-label">การเชื่อมโยงทั้งหมด</span><div class="supplier-summary-value"><strong id="mfTotal">—</strong><span>รายการ</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-enabled"><i class="bi bi-check2-circle"></i></span><div><span class="supplier-summary-label">มีผลวันนี้</span><div class="supplier-summary-value"><strong id="mfCurrent">—</strong><span>รายการ</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-disabled"><i class="bi bi-file-earmark-text"></i></span><div><span class="supplier-summary-label">ร่างรอยืนยัน</span><div class="supplier-summary-value"><strong id="mfDraft">—</strong><span>รายการ</span></div></div></div></div></div><section class="extension-table"><div class="row g-2 align-items-end mb-3"><div class="col-lg-4"><label for="mfSearch">ค้นหาผู้ผลิต / สินค้า</label><input class="form-control" id="mfSearch" placeholder="รหัสหรือชื่อสินค้า ผู้ผลิต" oninput="renderManufacturerLinks()"></div><div class="col-lg-2 col-sm-6"><label for="mfCategory">หมวดสินค้า</label><select class="form-select" id="mfCategory" onchange="renderManufacturerLinks()"></select></div><div class="col-lg-2 col-sm-6"><label for="mfFilterMaker">ผู้ผลิต</label><select class="form-select" id="mfFilterMaker" onchange="renderManufacturerLinks()"></select></div><div class="col-lg-2 col-sm-6"><label for="mfDate">มีผล ณ วันที่</label><input type="date" class="form-control" id="mfDate" onchange="renderManufacturerLinks()"></div><div class="col-lg-2 col-sm-6"><label for="mfStatus">สถานะ</label><select class="form-select" id="mfStatus" onchange="renderManufacturerLinks()"><option value="">ทั้งหมด</option><option value="DRAFT">ร่าง</option><option value="CURRENT">มีผล</option><option value="UPCOMING">รอเริ่ม</option><option value="EXPIRED">สิ้นสุดแล้ว</option><option value="CANCELLED">ยกเลิก</option></select></div></div><p id="mfNotice" role="status" class="error mf-notice"></p><div class="table-responsive"><table class="table"><thead><tr><th>ผู้ผลิต</th><th>สินค้า / หมวด</th><th>เริ่มต้น–สิ้นสุด</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="mfBody"><tr><td colspan="5">กำลังโหลดสิทธิ์...</td></tr></tbody></table></div><div class="d-flex justify-content-between align-items-center mt-3"><span id="mfCount" class="muted"></span><div><button class="btn btn-outline-secondary btn-sm" id="mfPrev" onclick="changeManufacturerPage(-1)">ก่อนหน้า</button> <span id="mfPage" class="small"></span> <button class="btn btn-outline-secondary btn-sm" id="mfNext" onclick="changeManufacturerPage(1)">ถัดไป</button></div></div></section></section></div>
+<div id="pane-transport-products" class="master-extension-pane" style="display:none"><section class="panel-modern"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h3 class="fw-bold mb-1">ผู้ขนส่ง–สินค้า</h3><div class="muted">ค่าเริ่มต้น All ครอบคลุมสินค้าปัจจุบันและสินค้าที่เพิ่มใหม่ · เลือกจำกัดรายสินค้าได้</div></div><button class="btn btn-outline-secondary" onclick="loadTransportProducts()">รีเฟรช</button></div><div class="row g-3 mb-4 supplier-summary"><div class="col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon"><i class="bi bi-truck"></i></span><div><span class="supplier-summary-label">ผู้ขนส่งทั้งหมด</span><div class="supplier-summary-value"><strong id="tpTotal">—</strong><span>ราย</span></div></div></div></div><div class="col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon"><i class="bi bi-check2-circle"></i></span><div><span class="supplier-summary-label">All · สินค้าทั้งหมด</span><div class="supplier-summary-value"><strong id="tpAll">—</strong><span>ราย</span></div></div></div></div><div class="col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon"><i class="bi bi-box-seam"></i></span><div><span class="supplier-summary-label">กำหนดรายสินค้า</span><div class="supplier-summary-value"><strong id="tpSelected">—</strong><span>ราย</span></div></div></div></div></div><div class="row g-2 mb-4"><div class="col-md-8"><label for="tpSearch">ค้นหาผู้ขนส่ง / สินค้าที่เชื่อม</label><input id="tpSearch" class="form-control" placeholder="รหัส ชื่อผู้ขนส่ง หรือชื่อสินค้า" oninput="renderTransportProducts()"></div><div class="col-md-4"><label for="tpFilter">ขอบเขตสินค้า</label><select id="tpFilter" class="form-select" onchange="renderTransportProducts()"><option value="">ทั้งหมด</option><option value="ALL">All · สินค้าทั้งหมด</option><option value="SELECTED">เฉพาะสินค้าที่เลือก</option></select></div></div><p id="tpNotice" class="text-danger" role="status"></p><div class="table-responsive"><table class="table"><thead><tr><th>ผู้ขนส่ง</th><th>ขอบเขตสินค้า</th><th>สถานะผู้ขนส่ง</th><th class="text-end">จัดการ</th></tr></thead><tbody id="tpBody"></tbody></table></div><p id="tpCount" class="muted"></p></section></div><div id="pane-transports" style="display:none" class="master-extension-pane"><section class="panel-modern"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h3 class="fw-bold mb-1">ผู้ขนส่ง / Transport Master</h3><div class="muted">จัดการรหัสและชื่อผู้ให้บริการขนส่ง</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadTransports()">รีเฟรช</button><button id="transportExport" class="btn btn-outline-success" onclick="exportTransports()" hidden>Export CSV</button><button id="transportAdd" class="btn btn-primary" onclick="openTransport()" hidden>+ เพิ่มผู้ขนส่ง</button></div></div><div class="row g-3 mb-4 supplier-summary"><div class="col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon "><i class="bi bi-truck"></i></span><div><span class="supplier-summary-label">ผู้ขนส่งทั้งหมด</span><div class="supplier-summary-value"><strong id="transportTotal">—</strong><span>ราย</span></div></div></div></div><div class="col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-enabled"><i class="bi bi-check2-circle"></i></span><div><span class="supplier-summary-label">เปิดใช้งาน</span><div class="supplier-summary-value"><strong id="transportActive">—</strong><span>ราย</span></div></div></div></div><div class="col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-disabled"><i class="bi bi-pause-circle"></i></span><div><span class="supplier-summary-label">ปิดใช้งาน</span><div class="supplier-summary-value"><strong id="transportInactive">—</strong><span>ราย</span></div></div></div></div></div><div class="row g-2 mb-4 align-items-end"><div class="col-md-8"><label for="transportSearch">ค้นหาผู้ขนส่ง</label><input id="transportSearch" class="form-control" placeholder="รหัส หรือชื่อผู้ให้บริการขนส่ง" oninput="renderTransports(true)"></div><div class="col-md-3"><label for="transportStatus">สถานะ</label><select id="transportStatus" class="form-select" onchange="renderTransports(true)"><option value="">ทุกสถานะ</option><option value="1">เปิดใช้งาน</option><option value="0">ปิดใช้งาน</option></select></div><div class="col-md-1"><button class="btn btn-outline-secondary" onclick="clearTransportFilter()">ล้าง</button></div></div><p id="transportNotice" class="text-danger" role="status"></p><div class="table-responsive"><table class="table"><thead><tr><th>รหัสผู้ขนส่ง</th><th>ชื่อผู้ให้บริการขนส่ง</th><th>สถานะ</th><th class="text-end">จัดการ</th></tr></thead><tbody id="transportBody"></tbody></table></div><div class="d-flex justify-content-between align-items-center mt-3"><span id="transportCount" class="muted"></span><div><button id="transportPrev" class="btn btn-outline-secondary btn-sm" onclick="transportPage--;renderTransports()">ก่อนหน้า</button> <span id="transportPageInfo"></span> <button id="transportNext" class="btn btn-outline-secondary btn-sm" onclick="transportPage++;renderTransports()">ถัดไป</button></div></div></section></div>
+<div id="pane-customers" class="master-extension-pane" style="display:none"><section class="panel-modern"><span id="customerSession" hidden></span><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4"><div><h3 class="fw-bold mb-1">ลูกค้า / Customer Master</h3><div class="muted">ข้อมูลบริษัท เลขภาษี ที่อยู่ออกเอกสาร และที่อยู่จัดส่ง</div></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadCustomers()">รีเฟรช</button><button id="customerExport" class="btn btn-outline-success" onclick="exportCustomers()" hidden>Export CSV</button><button id="customerAdd" class="btn btn-primary" onclick="openCustomer()" hidden>+ เพิ่มลูกค้า</button></div></div><div class="row g-3 mb-4 supplier-summary"><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon "><i class="bi bi-people"></i></span><div><span class="supplier-summary-label">ลูกค้าทั้งหมด</span><div class="supplier-summary-value"><strong id="customerTotal">—</strong><span>ราย</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-enabled"><i class="bi bi-check2-circle"></i></span><div><span class="supplier-summary-label">เปิดใช้งาน</span><div class="supplier-summary-value"><strong id="customerActive">—</strong><span>ราย</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-disabled"><i class="bi bi-pause-circle"></i></span><div><span class="supplier-summary-label">ปิดใช้งาน</span><div class="supplier-summary-value"><strong id="customerInactive">—</strong><span>ราย</span></div></div></div></div></div><section class="extension-table"><div class="row g-2 align-items-end mb-3"><div class="col-lg-6"><label for="customerSearch">ค้นหาลูกค้า</label><input class="form-control" id="customerSearch" placeholder="รหัส ชื่อบริษัท เลขภาษี โทรศัพท์ หรือที่อยู่" oninput="renderCustomers()"></div><div class="col-sm-6 col-lg-3"><label for="customerType">กลุ่มสินค้า</label><select class="form-select" id="customerType" onchange="renderCustomers()"></select></div><div class="col-sm-6 col-lg-3"><label for="customerStatus">สถานะ</label><select class="form-select" id="customerStatus" onchange="renderCustomers()"><option value="">ทุกสถานะ</option><option value="active">เปิดใช้งาน</option><option value="inactive">ปิดใช้งาน</option></select></div></div><p id="customerNotice" class="error" role="status"></p><div class="table-responsive"><table class="table"><thead><tr><th>รหัส / ชื่อลูกค้า</th><th>เลขภาษี / สาขา</th><th>ที่อยู่ / ติดต่อ</th><th>กลุ่ม / สถานะ</th><th>จัดการ</th></tr></thead><tbody id="customerBody"><tr><td colspan="5">กำลังโหลดสิทธิ์...</td></tr></tbody></table></div><div class="d-flex justify-content-between align-items-center"><span id="customerCount" class="muted"></span><div><button class="btn btn-outline-secondary btn-sm" id="customerPrev" onclick="customerChangePage(-1)">ก่อนหน้า</button> <span id="customerPage" class="small"></span> <button class="btn btn-outline-secondary btn-sm" id="customerNext" onclick="customerChangePage(1)">ถัดไป</button></div></div></section></section></div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 1: MASTER PRODUCTS (จัดการสินค้า) -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-master" style="display:block">
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3"><div class="stat-card stat-total"><div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div><div class="stat-meta"><span class="stat-label">สินค้าทั้งหมด</span><h3 class="stat-value" id="prodKpiTotal">-</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card stat-rm"><div class="stat-icon"><i class="bi bi-flower1"></i></div><div class="stat-meta"><span class="stat-label">วัตถุดิบ (RM)</span><h3 class="stat-value" id="prodKpiRM">-</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card stat-pkg"><div class="stat-icon"><i class="bi bi-archive-fill"></i></div><div class="stat-meta"><span class="stat-label">บรรจุภัณฑ์ (PKG)</span><h3 class="stat-value" id="prodKpiPKG">-</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card stat-fg"><div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div><div class="stat-meta"><span class="stat-label">สินค้าสำเร็จรูป (FG)</span><h3 class="stat-value" id="prodKpiFG">-</h3></div></div></div>
+      </div>
+
+      <div class="panel-modern">
+        <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3 pb-3 mb-3 border-bottom">
+          <div>
+            <h5 class="panel-title mb-1">📦 จัดการสินค้า (Master)</h5>
+            <div class="panel-subtitle text-muted small">ค้นหา จัดการข้อมูลสินค้า และกำหนดสถานะการใช้งานในระบบคลัง</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-success" onclick="exportProductsToExcel()" title="ส่งออกเป็นไฟล์ Excel / CSV">
+              <i class="bi bi-file-earmark-excel me-1"></i> Export
+            </button>
+            <button class="btn btn-refresh-modern" onclick="loadMasterProducts()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            <button class="btn btn-primary-modern" onclick="openAddProduct()"><i class="bi bi-plus-lg me-1"></i> เพิ่มสินค้าใหม่</button>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-2 align-items-end">
+          <div class="col-md"><label for="prodSearchInput" class="form-label small">ค้นหาสินค้า</label><div class="search-input-wrap"><i class="bi bi-search search-icon"></i><input type="search" id="prodSearchInput" class="form-control form-control-modern" placeholder="พิมพ์หรือสแกนบาร์โค้ด รหัสสินค้า ชื่อไทย/อังกฤษ" aria-describedby="productSearchHelp" oninput="scheduleProductSearch(event)" oncompositionstart="productSearchComposing=true" oncompositionend="productSearchComposing=false; scheduleProductSearch(event)" onkeydown="handleProductSearchKey(event)"></div></div>
+          <div class="col-md-3 col-lg-2"><label for="prodStockFilter" class="form-label small">สถานะสต๊อก</label><select id="prodStockFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกสถานะ</option><option value="available">มีสินค้า</option><option value="empty">หมดสต๊อก</option><option value="low">ต่ำกว่า Min</option></select></div>
+          <div class="col-md-3 col-lg-2"><label for="prodCategoryFilter" class="form-label small">หมวดสินค้า</label><select id="prodCategoryFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกหมวดที่มีสิทธิ์</option></select></div>
+          <div class="col-auto"><button type="button" class="btn btn-clear-modern px-3" onclick="clearProductSearch()"><i class="bi bi-arrow-counterclockwise me-1"></i>ล้าง</button></div>
+        </div>
+        <div id="productSearchHelp" class="small text-muted mb-2">ค้นหาได้หลายคำ เช่น cream 120 · Enter ค้นหาทันที · Esc ล้างคำค้น</div>
+        <div id="productSearchCount" class="small text-muted mb-3" role="status" aria-live="polite">กำลังโหลดสินค้า...</div>
+        <div class="table-responsive table-container-modern">
+          <table class="table table-modern align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width: 60px" class="text-center">#</th>
+                <th style="width: 170px">บาร์โค้ด</th>
+                <th style="width: 150px">รหัสสินค้า</th>
+                <th>ชื่อสินค้า / รายละเอียด</th>
+                <th>ชื่อภาษาไทย (THAI NAME)</th>
+                <th id="prodStockColumn" style="width: 150px" class="text-end" title="ยอดรวมทุกคลังและทุกตำแหน่ง">สต๊อกคงเหลือ<small class="d-block fw-normal text-muted">รวมทุกคลัง</small></th>
+                <th style="width: 100px" class="text-end">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody">
+              <tr><td colspan="7" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลสินค้า...</td></tr>
+            </tbody>
+          </table>
+        </div><div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3"><span class="small text-muted">แสดงหน้าละ 50 รายการ · Export เฉพาะผลค้นหาทั้งหมด</span><nav class="d-flex align-items-center gap-2" aria-label="หน้ารายการสินค้า"><button id="productPrev" type="button" class="btn btn-sm btn-outline-secondary" onclick="changeProductPage(-1)" disabled>ก่อนหน้า</button><span id="productPageInfo" class="small text-muted">หน้า 1 / 1</span><button id="productNext" type="button" class="btn btn-sm btn-outline-secondary" onclick="changeProductPage(1)" disabled>ถัดไป</button></nav></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 2: WAREHOUSES (จัดการคลังสินค้า tblWH) -->
+    <!-- ------------------------------------------------------------- -->
+
+<div id="pane-bom-stock" style="display:none">
+<div class="card-wms p-3 p-md-4 mb-3"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h4 class="fw-bold mb-1">ตรวจสต๊อกตามสูตร BOM</h4><div class="small text-muted">เทียบวัตถุดิบที่ต้องใช้กับสต๊อกพร้อมเบิก · การตรวจไม่จองหรือตัดสต๊อก</div></div><button class="btn btn-outline-secondary" onclick="loadBOMStockMaster()">รีเฟรช</button></div><div id="bsNotice" class="small mt-3" role="status" aria-live="polite">กำลังโหลดสินค้าและสูตร...</div></div>
+<section class="card-wms p-3 p-md-4 mb-3"><form onsubmit="checkBOMStock(event)"><fieldset id="bsFields" disabled><div class="row g-3"><div class="col-lg-6"><label class="form-label small" for="bsFG">สินค้า FG *</label><input id="bsFG" list="bsFGOptions" class="form-control" placeholder="ค้นหาหรือสแกนรหัส FG / บาร์โค้ด" onchange="selectBOMStockFG()" oninput="invalidateBOMStock()" required><datalist id="bsFGOptions"></datalist><div id="bsFGInfo" class="small text-muted mt-2">เลือก FG เพื่อดูสูตรที่เปิดใช้งาน</div></div><div class="col-lg-3"><label class="form-label small" for="bsVersion">สูตรที่ใช้ตรวจ</label><input id="bsVersion" class="form-control bg-light" readonly value="—"></div><div class="col-lg-3"><label class="form-label small" for="bsQty">จำนวน FG ที่ต้องการผลิต *</label><input id="bsQty" class="form-control" type="number" min="0.000001" max="999999999999.999999" step="0.000001" value="1000" oninput="invalidateBOMStock()" required><span id="bsFGUnit" class="small text-muted"></span></div><div class="col-12"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><span class="form-label small mb-0" id="bsWhLabel">คลังที่ใช้วัตถุดิบ * (เลือกได้หลายคลัง)</span><button type="button" class="btn btn-link btn-sm p-0" onclick="selectAllBOMStockWarehouses()">เลือกทุกคลัง</button></div><div id="bsWarehouses" class="d-flex flex-wrap gap-2" role="group" aria-labelledby="bsWhLabel"></div></div></div><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3"><span class="small text-muted">นับพร้อมเบิกเฉพาะโซน A / B / STORAGE หลังหักจอง</span><button id="bsCheck" class="btn btn-primary" type="submit">ตรวจความพร้อม</button></div></fieldset></form></section>
+<div id="bsResult" hidden><div class="row g-3 mb-3"><div class="col-md-4"><div class="card-wms p-3 h-100"><div class="small text-muted">ผลตรวจความพร้อม</div><div id="bsStatus" class="fs-5 fw-bold mt-1"></div></div></div><div class="col-md-4"><div class="card-wms p-3 h-100"><div class="small text-muted">ส่วนประกอบที่ขาด / ตรวจสอบไม่ได้</div><div id="bsMissing" class="fs-5 fw-bold mt-1"></div></div></div><div class="col-md-4"><div class="card-wms p-3 h-100"><div class="small text-muted">ผลิตได้สูงสุดตามสัดส่วนสูตร</div><div id="bsMax" class="fs-5 fw-bold mt-1"></div></div></div></div><section class="card-wms p-3 p-md-4"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><h5 id="bsResultTitle" class="fw-bold mb-1"></h5><div id="bsTime" class="small text-muted"></div></div><div class="d-flex flex-wrap gap-2"><a id="bsEditBOM" class="btn btn-outline-primary" href="/admin/index.html?view=bom" hidden>จัดการสูตร BOM</a><button id="bsExport" class="btn btn-success" onclick="exportBOMStock()" disabled>Export CSV</button></div></div><label class="small mb-3 d-flex align-items-center gap-2"><input id="bsOnlyShort" type="checkbox" class="form-check-input mt-0" onchange="renderBOMStockLines()">แสดงเฉพาะรายการที่ขาด / ตรวจสอบไม่ได้</label><div class="table-responsive"><table class="table align-middle"><thead><tr><th>ส่วนประกอบ / ตำแหน่ง</th><th>หน่วย</th><th class="text-end">ต้องใช้</th><th class="text-end">คงเหลือในโซนเบิก</th><th class="text-end">จองแล้ว</th><th class="text-end">พร้อมใช้</th><th class="text-end">ขาด</th><th>ผลตรวจ</th></tr></thead><tbody id="bsLines"></tbody></table></div><div class="small text-muted">RCV / OUT / ตำแหน่งปิดใช้งาน ดูได้ในรายละเอียด แต่ไม่นับเป็นพร้อมเบิก · ผลตรวจเป็นข้อมูล ณ เวลาที่โหลด</div></section></div></div>
+<div id="pane-bom" style="display:none">
+<section class="card-wms p-3 p-md-4 mb-3"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h4 class="fw-bold mb-1">สูตรการผลิต / BOM</h4><p class="small text-muted mb-0">กำหนดส่วนประกอบของ FG · บันทึกสูตรยังไม่เปลี่ยนยอดสต๊อก</p></div><div class="d-flex gap-2"><button class="btn btn-outline-secondary" onclick="loadBOM()">รีเฟรช</button><button class="btn btn-primary" onclick="newBOM()">+ สร้างสูตร</button></div></div><div id="bomNotice" role="status" aria-live="polite" class="small mt-3"></div></section>
+<section id="bomEditor" class="card-wms p-3 p-md-4 mb-3" hidden><div class="d-flex justify-content-between align-items-center mb-3"><h5 id="bomEditorTitle" class="fw-bold mb-0">สร้างสูตรใหม่</h5><button class="btn-close" onclick="closeBOM()" aria-label="ปิดสูตร"></button></div><fieldset id="bomFields"><div class="row g-3"><div class="col-lg-7"><label class="form-label small" for="bomFG">1. เลือกสินค้าสำเร็จรูป FG *</label><input id="bomFG" class="form-control" list="bomFGOptions" placeholder="พิมพ์หรือสแกนรหัส FG / บาร์โค้ด" onchange="selectBOMFG()"><datalist id="bomFGOptions"></datalist><div id="bomFGInfo" class="small text-muted mt-2"></div></div><div class="col-lg-3 col-8"><label class="form-label small" for="bomBase">2. จำนวน FG ที่ได้ต่อสูตร *</label><input id="bomBase" class="form-control" type="number" min="0.000001" step="0.000001" value="1" oninput="renderBOMLines()"></div><div class="col-lg-2 col-4"><label class="form-label small">หน่วย FG</label><div id="bomFGUnit" class="form-control bg-light">—</div></div><div class="col-12"><label class="form-label small" for="bomNote">หมายเหตุสูตร</label><input id="bomNote" class="form-control" maxlength="500" placeholder="เช่น สูตรมาตรฐาน / งานลูกค้า"></div></div>
+<div class="border-top mt-4 pt-3"><h6 class="fw-bold">3. ส่วนประกอบที่ใช้ต่อสูตร</h6><div id="bomAddRow" class="row g-2 align-items-end mb-3"><div class="col-md-2"><label class="form-label small" for="bomType">ประเภท</label><select id="bomType" class="form-select" onchange="bomComponentOptions()"><option value="RM">วัตถุดิบ (RM)</option><option value="PKG">บรรจุภัณฑ์ (Pack)</option><option value="SEMI">กึ่งสำเร็จรูป (Semi)</option></select></div><div class="col-md-6"><label class="form-label small" for="bomComponent">สินค้า *</label><input id="bomComponent" class="form-control" list="bomComponentOptions" placeholder="ค้นหาหรือสแกนรหัสสินค้า" onchange="bomComponentUnit()"><datalist id="bomComponentOptions"></datalist></div><div class="col-md-3"><label class="form-label small" for="bomQty">จำนวนที่ใช้ <span id="bomComponentUnit"></span> *</label><input id="bomQty" type="number" min="0.000001" step="0.000001" class="form-control" placeholder="จำนวนต่อสูตร"></div><div class="col-md-1"><button class="btn btn-outline-primary w-100" onclick="addBOMLine()" aria-label="เพิ่มส่วนประกอบ">+</button></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>ประเภท / รหัสสินค้า</th><th>ชื่อส่วนประกอบ</th><th class="text-end">ใช้ต่อสูตร</th><th>หน่วย</th><th class="text-end">ใช้ต่อ FG 1 หน่วย</th><th></th></tr></thead><tbody id="bomLines"></tbody></table></div></div></fieldset>
+<div class="bg-light rounded-3 p-3 mt-3"><div class="d-flex flex-wrap align-items-center gap-2"><strong class="small">ทดลองคำนวณจำนวนผลิต</strong><input id="bomPreviewQty" aria-label="จำนวน FG ที่ต้องการผลิต" type="number" min="0.000001" step="0.000001" value="1000" class="form-control form-control-sm" style="max-width:150px" oninput="renderBOMPreview()"><span id="bomPreviewUnit" class="small"></span></div><div id="bomPreview" class="small mt-2"></div><div class="small text-muted mt-2">แสดงตามหน่วย Master ของแต่ละสินค้า ไม่รวมจำนวนต่างหน่วยเข้าด้วยกัน</div></div>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-top pt-3 mt-3"><span id="bomState" class="small text-muted"></span><div class="d-flex gap-2"><button id="bomCopy" class="btn btn-outline-primary" onclick="copyBOM()">คัดลอกเป็นรุ่นใหม่</button><button id="bomSave" class="btn btn-primary" onclick="saveBOM()">บันทึกร่าง</button><button id="bomActivate" class="btn btn-success" onclick="activateBOM()">เปิดใช้งานสูตร</button></div></div></section>
+<section class="card-wms p-3 p-md-4"><div class="row g-2 mb-3"><div class="col-md-9"><label class="form-label small" for="bomSearch">ค้นหาสูตร</label><input id="bomSearch" type="search" class="form-control" placeholder="รหัส FG / ชื่อสินค้า" oninput="renderBOMList()"></div><div class="col-md-3"><label class="form-label small" for="bomFilter">สถานะ</label><select id="bomFilter" class="form-select" onchange="renderBOMList()"><option value="">ทุกสถานะ</option><option value="DRAFT">ร่าง</option><option value="ACTIVE">ใช้งาน</option><option value="ARCHIVED">เก็บประวัติ</option></select></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>สินค้า FG</th><th>รุ่นสูตร</th><th>ผลิตต่อสูตร</th><th>ส่วนประกอบ</th><th>สถานะ</th><th></th></tr></thead><tbody id="bomList"></tbody></table></div></section></div>
+    <div id="pane-suppliers" style="display:none"><section class="panel-modern"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><h4 class="fw-bold mb-1">ผู้จำหน่าย / Supplier Master</h4><div class="small text-muted">ข้อมูลบริษัท การติดต่อ สินค้า/บริการ และการอนุมัติ</div></div><div class="d-flex flex-wrap gap-2"><button class="btn btn-outline-secondary" onclick="loadSuppliers()">รีเฟรช</button><button class="btn btn-outline-success" onclick="exportSuppliers()">Export CSV</button><button class="btn btn-primary" onclick="openSupplierForm()">+ เพิ่ม Supplier</button></div></div><div class="row g-3 mb-4 supplier-summary" aria-label="สรุปผู้จำหน่าย"><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon"><i class="bi bi-truck"></i></span><div><span class="supplier-summary-label">ผู้จำหน่ายทั้งหมด</span><div class="supplier-summary-value"><strong id="supplierTotal">—</strong><span>ราย</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-enabled"><i class="bi bi-check2-circle"></i></span><div><span class="supplier-summary-label">เปิดใช้งาน</span><div class="supplier-summary-value"><strong id="supplierActive">—</strong><span>ราย</span></div></div></div></div><div class="col-12 col-sm-4"><div class="supplier-summary-card"><span class="supplier-summary-icon supplier-summary-disabled"><i class="bi bi-pause-circle"></i></span><div><span class="supplier-summary-label">ปิดใช้งาน</span><div class="supplier-summary-value"><strong id="supplierInactive">—</strong><span>ราย</span></div></div></div></div></div><div id="supplierNotice" role="status" aria-live="polite" class="small mb-3"></div><div class="row g-2 mb-3"><div class="col-lg-6"><label class="form-label small" for="supplierSearch">ค้นหาผู้ขาย</label><input id="supplierSearch" type="search" class="form-control" placeholder="รหัส ชื่อบริษัท สินค้า/บริการ โทรศัพท์ หรือที่อยู่" oninput="renderSuppliers()"></div><div class="col-sm-5 col-lg-3"><label class="form-label small" for="supplierType">กลุ่มสินค้า</label><select id="supplierType" class="form-select" onchange="renderSuppliers()"><option value="">ทุกกลุ่ม</option><option value="RM">วัตถุดิบ (RM)</option><option value="PKG">Pack</option><option value="SEMI">Semi</option><option value="FG">FG</option></select></div><div class="col-sm-5 col-lg-2"><label class="form-label small" for="supplierStatus">สถานะ</label><select id="supplierStatus" class="form-select" onchange="renderSuppliers()"><option value="">ทุกสถานะ</option><option value="active">เปิดใช้งาน</option><option value="inactive">ปิดใช้งาน</option></select></div><div class="col-sm-2 col-lg-1 d-flex align-items-end"><button class="btn btn-outline-secondary w-100" onclick="clearSupplierFilters()" aria-label="ล้างตัวกรอง">ล้าง</button></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>รหัส / ชื่อผู้ขาย</th><th>ติดต่อ / ที่อยู่</th><th>สินค้า / บริการ</th><th>อนุมัติเมื่อ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="supplierBody"></tbody></table></div><div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><span id="supplierCount" class="small text-muted"></span><div class="d-flex gap-2 align-items-center"><button id="supplierPrev" class="btn btn-sm btn-outline-secondary" onclick="changeSupplierPage(-1)">ก่อนหน้า</button><span id="supplierPage" class="small"></span><button id="supplierNext" class="btn btn-sm btn-outline-secondary" onclick="changeSupplierPage(1)">ถัดไป</button></div></div></section><dialog id="supplierDialog" class="supplier-dialog"><form id="supplierForm" onsubmit="saveSupplier(event)" hidden><header class="supplier-dialog-head"><div><h5 id="supplierFormTitle" class="fw-bold mb-1">เพิ่ม Supplier</h5><span class="small text-muted">ช่องที่มี * จำเป็นต้องกรอก</span></div><button type="button" class="btn-close" onclick="closeSupplierForm()" aria-label="ปิดฟอร์ม"></button></header><div class="supplier-dialog-body"><div id="supplierFormNotice" role="alert" class="small text-danger mb-2"></div><fieldset id="supplierFields"><h6 class="fw-bold mb-3">ข้อมูลบริษัท</h6><div class="row g-3"><div class="col-md-6"><label for="sup-supplierCode" class="form-label small">รหัสผู้ขาย *</label><input id="sup-supplierCode" class="form-control" maxlength="30" required placeholder="เช่น 20005"></div><div class="col-md-6"><label for="sup-supplierName" class="form-label small">ชื่อบริษัท / ผู้ขาย *</label><input id="sup-supplierName" class="form-control" maxlength="150" required></div><div class="col-md-6"><label for="sup-taxId" class="form-label small">เลขผู้เสียภาษี</label><input id="sup-taxId" class="form-control" maxlength="13" inputmode="numeric" pattern="(?:0|[0-9]{13})" placeholder="0 หากไม่มีข้อมูล"></div><div class="col-md-6"><label for="sup-branchCode" class="form-label small">รหัสสาขา</label><input id="sup-branchCode" class="form-control" maxlength="5" inputmode="numeric" pattern="[0-9]{5}" placeholder="สำนักงานใหญ่ 00000"></div><div class="col-12"><label for="sup-address" class="form-label small">ที่อยู่</label><textarea id="sup-address" class="form-control" rows="2" maxlength="500"></textarea></div></div><h6 class="fw-bold mt-4 mb-3">การติดต่อ</h6><div class="row g-3"><div class="col-md-6"><label for="sup-contactName" class="form-label small">ผู้ติดต่อ</label><input id="sup-contactName" class="form-control" maxlength="100" ></div><div class="col-md-6"><label for="sup-phone" class="form-label small">โทรศัพท์ / โทรสาร</label><input id="sup-phone" class="form-control" maxlength="150" placeholder="กรอกได้หลายหมายเลข"></div><div class="col-md-6"><label for="sup-email" class="form-label small">อีเมล</label><input id="sup-email" class="form-control" maxlength="150" type="email"></div></div><h6 class="fw-bold mt-4 mb-3">สินค้าและสถานะผู้ขาย</h6><div class="row g-3"><div class="col-12"><label for="sup-goodsServices" class="form-label small">ชนิดสินค้า / บริการ</label><textarea id="sup-goodsServices" class="form-control" rows="2" maxlength="500" placeholder="เช่น วัตถุดิบ สารเคมีเครื่องสำอาง"></textarea></div><div class="col-12"><span class="form-label small d-block">กลุ่มสินค้าที่รับเข้าในระบบ *</span><div class="d-flex flex-wrap gap-3" id="supplierCategoryChoices"></div></div><div class="col-md-6"><label for="sup-approvalDate" class="form-label small">วันที่อนุมัติ</label><input id="sup-approvalDate" class="form-control"  type="date"></div><div class="col-md-6 d-flex align-items-end"><label class="small py-2"><input id="sup-active" type="checkbox" class="form-check-input me-2" checked>เปิดใช้งาน Supplier</label></div></div><div class="small text-muted mt-3">เลขภาษีที่ไม่ทราบใช้ 0 · วันที่อนุมัติแยกจากสถานะเปิดใช้งาน</div></fieldset></div><footer class="supplier-dialog-footer"><button type="button" class="btn btn-outline-secondary" onclick="closeSupplierForm()">ยกเลิก</button><button id="supplierSave" class="btn btn-primary" type="submit">บันทึก Supplier</button></footer></form></dialog>
+<section id="supplierMappingsPanel" class="panel-modern mt-3" hidden><div class="d-flex justify-content-between"><h5 id="supplierMappingTitle" class="fw-bold">จับคู่รหัสสินค้า</h5><button type="button" class="btn-close" onclick="document.getElementById('supplierMappingsPanel').hidden=true" aria-label="ปิด"></button></div><div class="small text-muted mb-3">รหัสผู้ขายต้องไม่ซ้ำภายใน Supplier เดียวกัน · ผู้ขายต่างรายใช้รหัสเดียวกันได้</div><form onsubmit="saveSupplierMapping(event)"><fieldset id="supplierMappingFields"><div class="row g-2 align-items-end"><div class="col-md-3"><label for="supplierMapCode" class="form-label small">รหัสสินค้าผู้ขาย *</label><input id="supplierMapCode" class="form-control" maxlength="60" required></div><div class="col-md-5"><label for="supplierMapProduct" class="form-label small">สินค้าในระบบ *</label><input id="supplierMapProduct" class="form-control" list="supplierProductOptions" required placeholder="เลือกรหัสสินค้า"><datalist id="supplierProductOptions"></datalist></div><div class="col-md-2"><label class="small"><input id="supplierMapActive" type="checkbox" class="form-check-input me-1" checked>ใช้งาน</label></div><div class="col-md-2"><button class="btn btn-primary w-100" type="submit">บันทึกคู่รหัส</button></div></div></fieldset><button type="button" class="btn btn-link btn-sm mt-1" onclick="clearSupplierMapping()">ล้างฟอร์ม / เพิ่มคู่รหัสใหม่</button></form><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>รหัสผู้ขาย</th><th>สินค้าในระบบ</th><th>สถานะ</th><th></th></tr></thead><tbody id="supplierMappingBody"></tbody></table></div></section></div>
+<div id="pane-warehouses" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head mb-3">
+          <div>
+            <h5>🏢 จัดการคลังสินค้า (Warehouses Master)</h5>
+            <div class="sub">Admin จัดการคลัง · กำหนดคลังให้ User ที่เมนูจัดการผู้ใช้งาน → กำหนดสิทธิ์</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="loadWarehouses(true)" title="รีเฟรช">
+              <i class="bi bi-arrow-clockwise"></i> รีเฟรช
+            </button>
+            <button id="warehouseAccessUsers" class="btn btn-outline-primary" onclick="switchTab('users')" hidden><i class="bi bi-person-gear me-1"></i>กำหนดคลังให้ผู้ใช้</button><button class="btn btn-indigo" onclick="openAddWH()">
+              <i class="bi bi-plus-circle me-1"></i> เพิ่มคลังสินค้า
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <div class="search-input-wrap">
+              <i class="bi bi-search search-icon"></i>
+              <input type="search" id="whSearchInput" class="form-control form-control-modern" placeholder="ค้นหาชื่อคลังสินค้า หรือคำอธิบาย..." oninput="filterTable('whTableBody', this.value)">
+            </div>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-clear-modern px-3" onclick="document.getElementById('whSearchInput').value=''; filterTable('whTableBody', '')">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> ล้าง
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive table-container-modern">
+          <table class="table table-modern align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width: 70px" class="text-center">#</th>
+                <th style="width: 200px">ชื่อคลัง (whname)</th>
+                <th>คำอธิบาย (whdescription)</th>
+                <th style="width: 110px" class="text-end">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="whTableBody">
+              <tr><td colspan="4" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลคลังสินค้า...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 3: LOCATIONS (จัดการโลเคชั่น เชื่อมโยง tblWH) -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-locations" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head mb-3">
+          <div>
+            <h5>📍 จัดการโลเคชั่น (Locations Master)</h5>
+            <div class="sub">กำหนดตำแหน่งจัดเก็บผูกกับคลังสินค้า พร้อมขนาดมิติและความจุ</div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-secondary" onclick="loadLocationsMaster(true)"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่น</button>
+          </div>
+        </div>
+
+        <!-- Filter Bar: ค้นหา + ตัวกรองแยกตามคลังสินค้า -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-7">
+            <div class="search-input-wrap">
+              <i class="bi bi-search search-icon"></i>
+              <input type="search" id="locSearchInput" class="form-control form-control-modern" placeholder="ค้นหาโลเคชั่น, โซน หรือคำอธิบาย..." oninput="filterLocationTable()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select id="locWarehouseFilter" class="form-select form-select-modern" onchange="filterLocationTable()">
+              <option value="">ทุกคลังสินค้า (All Warehouses)</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-clear-modern w-100" onclick="document.getElementById('locSearchInput').value=''; document.getElementById('locWarehouseFilter').value=''; filterLocationTable()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> ล้างตัวกรอง
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive table-container-modern">
+          <table class="table table-modern align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width: 50px" class="text-center">#</th>
+                <th style="width: 140px">คลังสินค้า</th>
+                <th style="width: 160px">รหัสโลเคชั่น</th>
+                <th style="width: 110px">โซน</th>
+                <th style="width: 130px">ความจุ (Volume)</th>
+                <th style="width: 150px">ขนาด (ก×ย×ส)</th>
+                <th>คำอธิบาย</th>
+                <th style="width: 100px">สถานะ</th>
+                <th style="width: 100px" class="text-end">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="locationsTableBody">
+              <tr><td colspan="9" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 4: USERS (จัดการผู้ใช้งาน) -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-users" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head mb-3">
+          <div><h5>👥 จัดการผู้ใช้งานระบบ (User Accounts)</h5><div class="sub">เพิ่ม แก้ไข กำหนด Role และสิทธิ์การใช้งานของพนักงาน</div></div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="loadUsers(true)"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            <button class="btn btn-indigo" onclick="openAddUser()"><i class="bi bi-person-plus me-1"></i>เพิ่มผู้ใช้</button>
+          </div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-5"><div class="search-box w-100"><i class="bi bi-search"></i><input type="search" id="userSearch" class="form-control form-control-wms" placeholder="ค้นหาชื่อผู้ใช้, ชื่อ-นามสกุล หรือ Role..." oninput="userFilter('q', this.value)"></div></div>
+          <div class="col-md-4"><select id="userRoleFilter" class="form-select form-control-wms" onchange="userFilter('role', this.value)"><option value="">ทุก Role</option></select></div>
+          <div class="col-md-3 d-flex gap-2" id="userChips"></div>
+        </div>
+        <div class="table-scroll">
+          <table class="table table-wms align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width:60px">ID</th>
+                <th>ผู้ใช้งาน</th>
+                <th style="width:140px">Role</th>
+                <th style="width:160px">Permissions</th>
+                <th style="width:110px">สถานะ</th>
+                <th style="width:150px">เข้าใช้งานล่าสุด</th>
+                <th class="text-end" style="width:110px">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลดข้อมูลผู้ใช้...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 5: PERMISSIONS (กำหนดสิทธิ์เมนู) -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-permissions" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head mb-3">
+          <div><h5>🛡️ กำหนดสิทธิ์เมนู (Permissions Master)</h5><div class="sub">จัดการรหัสสิทธิ์เมนูการทำงานสำหรับ Handheld และระบบหลังบ้าน</div></div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="loadPermissionsMaster()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            <button class="btn btn-indigo" onclick="openAddPermission()"><i class="bi bi-plus-circle me-1"></i>เพิ่มสิทธิ์เมนู</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="table table-wms align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width:60px">#</th>
+                <th style="width:160px">รหัสสิทธิ์ (Code)</th>
+                <th style="width:200px">ชื่อเมนู / หน้าที่</th>
+                <th>คำอธิบาย</th>
+                <th style="width:120px">สถานะ</th>
+                <th class="text-end" style="width:110px">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="permissionsTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลดข้อมูลสิทธิ์...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 6: ROLES (จัดการสิทธิ์บทบาท) -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-roles" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head mb-3">
+          <div>
+            <h5>🛡️ จัดการบทบาทผู้ใช้งาน (Roles Master)</h5>
+            <div class="sub">มีเพียง ADMIN และ USER · กำหนดเมนูและการทำงานเพิ่มเติมได้ในสิทธิ์รายผู้ใช้</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="loadRolesMaster()" title="รีเฟรช">
+              <i class="bi bi-arrow-clockwise"></i> รีเฟรช
+            </button>
+            
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <div class="search-input-wrap">
+              <i class="bi bi-search search-icon"></i>
+              <input type="search" id="roleSearchInput" class="form-control form-control-modern" placeholder="ค้นหาชื่อ Role หรือคำอธิบาย..." oninput="filterTable('rolesTableBody', this.value)">
+            </div>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-clear-modern px-3" onclick="document.getElementById('roleSearchInput').value=''; filterTable('rolesTableBody', '')">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> ล้าง
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive table-container-modern">
+          <table class="table table-modern align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width: 70px" class="text-center">#</th>
+                <th style="width: 180px">รหัส Role (Code)</th>
+                <th style="width: 220px">ชื่อบทบาท</th>
+                <th>คำอธิบาย</th>
+                <th style="width: 130px">สถานะ</th>
+                <th style="width: 110px" class="text-end">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="rolesTableBody">
+              <tr><td colspan="6" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูล Role...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 7: RECEIVE / PO -->
+    <!-- ------------------------------------------------------------- -->
+    
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 8: PUTAWAY -->
+    <!-- ------------------------------------------------------------- -->
+    
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 9: STOCK REPORT -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-stock" style="display:none" data-stock-report="true">
+      <div class="page-head mb-4"><div><h4 class="fw-bold mb-1">รายงานสินค้าคงคลัง</h4><div class="sub">ตรวจสอบยอดคงเหลือและตำแหน่งจัดเก็บสินค้า</div></div><span class="badge bg-primary-subtle text-primary p-2">On-Hand Balance</span></div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-boxes"></i></div><div><div class="stat-label">SKU ทั้งหมด</div><h3 class="stat-value" id="reportSku">—</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-success-subtle text-success"><i class="bi bi-box-seam"></i></div><div><div class="stat-label">ยอดคงเหลือรวม</div><h3 class="stat-value" id="reportQty">—</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-geo-alt"></i></div><div><div class="stat-label">โลเคชั่นที่มีสินค้า</div><h3 class="stat-value" id="reportLocations">—</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card h-100"><div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-triangle"></i></div><div><div class="stat-label">SKU ต่ำกว่า Min</div><h3 class="stat-value" id="reportLow">—</h3></div></div></div>
+      </div>
+      <div class="card-wms p-3 p-md-4">
+        <div class="page-head pb-3 border-bottom"><div><h5>สรุปสต๊อกคงเหลือปัจจุบัน</h5><div class="sub">การ์ดสรุปอ้างอิงข้อมูลทั้งหมด · ตารางและไฟล์ส่งออกอ้างอิงตัวกรอง</div></div><div class="d-flex flex-wrap gap-2"><button id="reportExport" class="btn btn-success" onclick="exportAdminStockCsv()" disabled><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button><button id="reportRefresh" class="btn btn-outline-secondary" onclick="loadSummaryStock()"><i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช</button></div></div>
+        <div class="row g-2 my-3">
+          <div class="col-lg-5"><label class="form-label small" for="reportSearch">ค้นหาสินค้า / ตำแหน่ง</label><input id="reportSearch" type="search" class="form-control" placeholder="รหัสสินค้า บาร์โค้ด ชื่อสินค้า หรือโลเคชั่น" oninput="renderAdminStockReport()"></div>
+          <div class="col-sm-5 col-lg-3"><label class="form-label small" for="reportZone">โซนจัดเก็บ</label><select id="reportZone" class="form-select" onchange="renderAdminStockReport()"><option value="">ทุกโซน</option><option value="A-">โซน A</option><option value="B-">โซน B</option><option value="RCV">จุดรับเข้า (RCV)</option><option value="OUT">พักรอส่ง (OUT)</option></select></div>
+          <div class="col-sm-5 col-lg-3"><label class="form-label small" for="reportStatus">สถานะสต๊อก</label><select id="reportStatus" class="form-select" onchange="renderAdminStockReport()"><option value="">ทุกสถานะ</option><option value="available">มีสินค้า</option><option value="empty">หมดสต๊อก</option><option value="low">ต่ำกว่า Min</option></select></div>
+          <div class="col-sm-2 col-lg-1 d-flex align-items-end"><button class="btn btn-outline-secondary w-100" onclick="clearAdminStockFilters()" title="ล้างตัวกรอง" aria-label="ล้างตัวกรอง"><i class="bi bi-arrow-counterclockwise"></i></button></div>
+        </div>
+        <div id="reportNotice" class="small text-muted mb-3" role="status" aria-live="polite">เลือกรีเฟรชเพื่อโหลดข้อมูลล่าสุด</div>
+        <div class="table-responsive" style="max-height:560px"><table class="table table-wms align-middle mb-0"><caption class="visually-hidden">รายงานยอดคงเหลือแยกตามสินค้า</caption><thead><tr><th>#</th><th>บาร์โค้ด</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>ตำแหน่งจัดเก็บ</th><th class="text-end">ยอดคงเหลือ</th><th>หน่วย</th><th>สถานะ</th><th>อัปเดตล่าสุด</th></tr></thead><tbody id="stockTableBody"><tr><td colspan="9" class="text-center py-5 text-muted">ยังไม่ได้โหลดข้อมูล</td></tr></tbody></table></div>
+        <div class="d-flex flex-wrap justify-content-between gap-2 mt-3 small text-muted"><span id="reportCount">แสดง 0 รายการ</span><span id="reportUpdated">ยังไม่ได้อัปเดต</span></div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3"><label class="small text-muted d-flex align-items-center gap-2">แสดงต่อหน้า<select id="reportPageSize" class="form-select form-select-sm w-auto" onchange="renderAdminStockReport()"><option>25</option><option selected>50</option><option>100</option></select></label><nav aria-label="หน้ารายงานสต๊อก" class="d-flex align-items-center gap-2"><button id="reportPrev" class="btn btn-sm btn-outline-secondary" onclick="changeAdminStockPage(-1)" disabled>ก่อนหน้า</button><span id="reportPageInfo" class="small text-muted" aria-live="polite">หน้า 1 / 1</span><button id="reportNext" class="btn btn-sm btn-outline-secondary" onclick="changeAdminStockPage(1)" disabled>ถัดไป</button></nav></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 10: SCAN DESKTOP (PICK) -->
+    <!-- ------------------------------------------------------------- -->
+    
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 11: CYCLE COUNT -->
+    <!-- ------------------------------------------------------------- -->
+    
+
+    <!-- ------------------------------------------------------------- -->
+    <!-- TAB 12: SHORTAGE REASONS -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="pane-shortage-reasons" style="display:none">
+      <div class="card-wms p-4">
+        <div class="page-head"><div><h5>⚠️ Master เหตุผลขาดส่ง</h5><div class="sub">ตัวเลือกสาเหตุสินค้าขาดส่งสำหรับ Handheld</div></div><div class="d-flex gap-2"><button class="btn btn-indigo" onclick="addShortageReason()"><i class="bi bi-plus-circle me-1"></i>เพิ่มเหตุผล</button></div></div>
+        <div class="table-scroll mt-3"><table class="table table-wms align-middle mb-0"><thead><tr><th>รหัส</th><th>ชื่อเหตุผล</th><th>หมายเหตุ</th><th>ลำดับ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="shortageReasonsTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 4. MODALS (หน้าต่างป๊อปอัปฟอร์มบันทึก) -->
+<!-- ========================================================================= -->
+
+<!-- Modal: จัดการโลเคชั่น (Locations เชื่อม tblWH) -->
+<div class="modal fade" id="locModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-indigo text-white">
+        <h5 class="modal-title" id="locModalTitle">จัดการโลเคชั่น</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalLocWhId">คลังสินค้า (Warehouse) *</label>
+          <select id="modalLocWhId" class="form-select" required></select>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-8">
+            <label class="form-label fw-bold" for="modalLocCode">รหัสโลเคชั่น (LocationCode) *</label>
+            <input type="text" id="modalLocCode" class="form-control text-uppercase" placeholder="เช่น A-01-01, RCV-01" required>
+          </div>
+          <div class="col-4">
+            <label class="form-label fw-bold" for="modalLocZone">โซน (Zone) *</label>
+            <input type="text" id="modalLocZone" class="form-control text-uppercase" placeholder="เช่น A, RCV" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalLocDesc">คำอธิบาย</label>
+          <input type="text" id="modalLocDesc" class="form-control" maxlength="100" placeholder="เช่น แร็คแถว A ชั้น 1">
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-4">
+            <label class="form-label small fw-semibold" for="modalLocWidth">กว้าง (cm)</label>
+            <input type="number" id="modalLocWidth" class="form-control" step="0.1" min="0" placeholder="cm">
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-semibold" for="modalLocLength">ยาว (cm)</label>
+            <input type="number" id="modalLocLength" class="form-control" step="0.1" min="0" placeholder="cm">
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-semibold" for="modalLocHeight">สูง (cm)</label>
+            <input type="number" id="modalLocHeight" class="form-control" step="0.1" min="0" placeholder="cm">
+          </div>
+          <div class="form-text small">หากระบุ ต้องระบุทั้ง กว้าง/ยาว/สูง เพื่อคำนวณปริมาตรรวม</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalLocStatus">สถานะการใช้งาน</label>
+          <select id="modalLocStatus" class="form-select">
+            <option value="1">เปิดใช้งาน (Active)</option>
+            <option value="0">ปิดใช้งาน (Inactive)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-indigo" onclick="saveLocation()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: จัดการคลังสินค้า (tblWH) -->
+<div class="modal fade" id="whModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-indigo text-white">
+        <h5 class="modal-title" id="whModalTitle">จัดการคลังสินค้า</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalWhName">ชื่อคลังสินค้า (whname) *</label>
+          <input type="text" id="modalWhName" class="form-control" maxlength="10" placeholder="ระบุไม่เกิน 10 ตัวอักษร เช่น WH01" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalWhDesc">คำอธิบาย (whdescription)</label>
+          <input type="text" id="modalWhDesc" class="form-control" maxlength="50" placeholder="เช่น คลังสินค้าหลัก, คลังสินค้าสำเร็จรูป">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-indigo" onclick="saveWH()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: กำหนดสิทธิ์เมนู (Permissions) -->
+<div class="modal fade" id="permModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-indigo text-white">
+        <h5 class="modal-title" id="permModalTitle">กำหนดสิทธิ์เมนู</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="modalPermCode">รหัสสิทธิ์ (Code) *</label>
+          <input type="text" id="modalPermCode" class="form-control" placeholder="เช่น RECEIVE, PUTAWAY" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="modalPermName">ชื่อสิทธิ์เมนู *</label>
+          <input type="text" id="modalPermName" class="form-control" placeholder="เช่น รับสินค้าเข้าคลัง" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="modalPermDesc">คำอธิบาย</label>
+          <textarea id="modalPermDesc" class="form-control" rows="2" placeholder="รายละเอียด..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="modalPermStatus">สถานะ</label>
+          <select id="modalPermStatus" class="form-select">
+            <option value="1">เปิดใช้งาน (Active)</option>
+            <option value="0">ปิดใช้งาน (Inactive)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-indigo" onclick="savePermission()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: จัดการบทบาท (Roles) -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-indigo text-white">
+        <h5 class="modal-title" id="roleModalTitle">จัดการบทบาท</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalRoleCode">รหัส Role (Code) *</label>
+          <input type="text" id="modalRoleCode" class="form-control" placeholder="เช่น SUPERVISOR, AUDITOR" required>
+          <div class="form-text small">รหัสตัวพิมพ์ใหญ่ เช่น OPERATOR, VIEWER</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalRoleName">ชื่อบทบาท *</label>
+          <input type="text" id="modalRoleName" class="form-control" placeholder="เช่น หัวหน้างานคลัง..." required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalRoleDesc">คำอธิบาย</label>
+          <textarea id="modalRoleDesc" class="form-control" rows="2" placeholder="รายละเอียดหน้าที่ความรับผิดชอบ..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="modalRoleStatus">สถานะการใช้งาน</label>
+          <select id="modalRoleStatus" class="form-select">
+            <option value="1">เปิดใช้งาน (Active)</option>
+            <option value="0">ปิดใช้งาน (Inactive)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-indigo" onclick="saveRole()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 5. JAVASCRIPT CONTROLLERS -->
+<!-- ========================================================================= -->
+<dialog class="extension-dialog" id="mfLinkDialog"><form id="mfLinkForm" onsubmit="saveManufacturerLink(event)"><div class="dialog-head"><h5 id="mfLinkTitle" class="mb-0 fw-bold"></h5><button type="button" class="btn-close" onclick="closeManufacturerDialog('mfLinkDialog')" aria-label="ปิด"></button></div><div class="dialog-body"><div class="hint mb-3">1. เลือกผู้ผลิตจาก Supplier และสินค้า → 2. ระบุช่วงวันที่ → 3. บันทึกร่าง แล้วตรวจสอบก่อนยืนยัน</div><div id="mfMakerEmptyHint" class="hint mb-3" role="status" hidden></div><div class="d-flex justify-content-end mb-3"><button type="button" id="mfInlineMaker" class="btn btn-outline-primary btn-sm" onclick="openManufacturerManager()" hidden><i class="bi bi-plus-lg me-1"></i>เพิ่มผู้ผลิต</button></div><fieldset id="mfLinkFields"><div class="row g-3"><div class="col-md-6"><label for="mfMaker">ผู้ผลิต / Supplier *</label><select class="form-select" id="mfMaker" required></select></div><div class="col-md-6"><label for="mfProduct">สินค้า *</label><input class="form-control" list="mfProductOptions" id="mfProduct" placeholder="พิมพ์รหัสสินค้าแล้วเลือก" required><datalist id="mfProductOptions"></datalist></div><div class="col-6"><label for="mfStart">วันที่เริ่มต้น *</label><input class="form-control" id="mfStart" type="date" required></div><div class="col-6"><label for="mfEnd">วันที่สิ้นสุด</label><input class="form-control" id="mfEnd" type="date"><div class="muted mt-1">เว้นว่าง = ไม่กำหนดสิ้นสุด · นับรวมวันสิ้นสุด</div></div><div class="col-12"><label for="mfProductCode">รหัสสินค้าของผู้ผลิต</label><input class="form-control" id="mfProductCode" maxlength="60"></div><div class="col-12"><label for="mfNote">หมายเหตุ / เอกสารอ้างอิง</label><textarea class="form-control" id="mfNote" rows="2" maxlength="500"></textarea></div></div></fieldset><p class="error mt-3 mb-0" id="mfLinkError" role="alert"></p></div><div class="dialog-foot"><button type="button" class="btn btn-outline-secondary" onclick="closeManufacturerDialog('mfLinkDialog')">ยกเลิก</button><button id="mfLinkSave" class="btn btn-primary">บันทึกร่าง</button></div></form></dialog>
+<dialog class="extension-dialog" id="mfMakerDialog"><div class="dialog-head"><h5 class="mb-0 fw-bold">ข้อมูลผู้ผลิต</h5><button class="btn-close" onclick="closeManufacturerDialog('mfMakerDialog')" aria-label="ปิด"></button></div><div class="dialog-body"><div class="hint mb-3">ผู้ผลิตแยกจาก Supplier หากเป็นบริษัทเดียวกัน เลือกเชื่อม Supplier เดิมได้</div><form onsubmit="saveManufacturer(event)"><fieldset id="mfMakerFields"><div class="row g-2"><div class="col-4"><label for="mfMakerCode">รหัส *</label><input id="mfMakerCode" class="form-control" maxlength="30" required></div><div class="col-8"><label for="mfMakerName">ชื่อผู้ผลิต *</label><input id="mfMakerName" class="form-control" maxlength="150" required></div><div class="col-12"><label for="mfSupplier">Supplier ที่เป็นบริษัทเดียวกัน</label><select id="mfSupplier" class="form-select" onchange="fillManufacturerFromSupplier()"></select></div><div class="col-6"><label for="mfContact">ผู้ติดต่อ</label><input id="mfContact" class="form-control" maxlength="100"></div><div class="col-6"><label for="mfPhone">โทรศัพท์</label><input id="mfPhone" class="form-control" maxlength="150"></div><div class="col-12"><label><input type="checkbox" id="mfMakerActive" checked> เปิดใช้งาน</label></div></div></fieldset><div class="d-flex gap-2 mt-3"><button type="button" class="btn btn-outline-secondary" onclick="editManufacturer()">ล้าง / เพิ่มใหม่</button><button id="mfMakerSave" class="btn btn-primary">บันทึกผู้ผลิต</button></div><p id="mfMakerError" class="error mt-2" role="alert"></p></form><div id="mfMakerList" class="mt-3"></div></div></dialog>
+<dialog class="extension-dialog" id="mfHistoryDialog"><div class="dialog-head"><h5 class="mb-0 fw-bold">ประวัติการเชื่อมโยง</h5><button class="btn-close" onclick="closeManufacturerDialog('mfHistoryDialog')" aria-label="ปิด"></button></div><div class="dialog-body" id="mfHistoryBody"></div></dialog>
+<dialog class="extension-dialog" id="customerDialog"><form onsubmit="saveCustomer(event)"><div class="dialog-head"><h5 id="customerTitle" class="mb-0 fw-bold"></h5><button type="button" class="btn-close" onclick="closeCustomer()" aria-label="ปิด"></button></div><div class="dialog-body"><fieldset id="customerFields"><div class="row g-3"><div class="col-md-4"><label for="cu-code">รหัสลูกค้า *</label><input id="cu-code" class="form-control" maxlength="30" required></div><div class="col-md-8"><label for="cu-name">ชื่อบริษัท / ลูกค้า *</label><input id="cu-name" class="form-control" maxlength="200" required></div><div class="col-md-7"><label for="cu-taxId">เลขภาษี 13 หลัก (ไม่ระบุใช้ 0)</label><input id="cu-taxId" class="form-control" inputmode="numeric" maxlength="13"><div id="customerTaxSource" class="muted mt-1"></div></div><div class="col-md-5"><label for="cu-branchCode">รหัสสาขา</label><input id="cu-branchCode" class="form-control" value="00000" maxlength="5"><div class="muted mt-1">สำนักงานใหญ่ใช้ 00000</div></div><div class="col-12"><label for="cu-billingAddress">ที่อยู่ออกเอกสาร</label><textarea id="cu-billingAddress" class="form-control" rows="2" maxlength="1000"></textarea></div><div class="col-12"><div class="d-flex justify-content-between"><label for="cu-shippingAddress">ที่อยู่จัดส่ง</label><button type="button" class="btn btn-link btn-sm p-0" onclick="copyCustomerAddress()">ใช้ที่อยู่เดียวกัน</button></div><textarea id="cu-shippingAddress" class="form-control" rows="2" maxlength="1000"></textarea></div><div class="col-md-6"><label for="cu-contactName">ผู้ติดต่อ</label><input id="cu-contactName" class="form-control" maxlength="100"></div><div class="col-md-6"><label for="cu-phone">โทรศัพท์</label><input id="cu-phone" class="form-control" maxlength="150"></div><div class="col-12"><label for="cu-email">อีเมล</label><input id="cu-email" class="form-control" type="email" maxlength="150"></div><div class="col-12"><label>กลุ่มสินค้า *</label><div id="customerTypes" class="d-flex gap-3 flex-wrap"></div></div><div class="col-12"><label for="cu-note">หมายเหตุ</label><textarea id="cu-note" class="form-control" rows="2" maxlength="1000"></textarea></div><div class="col-12"><label><input type="checkbox" id="cu-active" checked> เปิดใช้งาน</label></div></div></fieldset><p class="error mt-3 mb-0" id="customerError" role="alert"></p></div><div class="dialog-foot"><button type="button" class="btn btn-outline-secondary" onclick="closeCustomer()">ยกเลิก</button><button id="customerSave" class="btn btn-primary">บันทึก</button></div></form></dialog>
+<dialog id="cpDialog" class="extension-dialog"><form onsubmit="saveCustomerProduct(event)"><div class="dialog-head"><h5 id="cpTitle" class="mb-0"></h5><button type="button" class="btn-close" onclick="closeCustomerProduct()" aria-label="ปิด"></button></div><div class="dialog-body"><div class="hint mb-3">เลือกลูกค้า → เลือกสินค้าในกลุ่มที่ลูกค้ารับ → ระบุรหัสของลูกค้าหากมี</div><fieldset id="cpFields"><div class="row g-3"><div class="col-12"><label for="cpCustomer">ลูกค้า *</label><select id="cpCustomer" class="form-select" required onchange="document.getElementById('cpProduct').value='';customerProductOptions()"></select></div><div class="col-12"><label for="cpProduct">สินค้าในระบบ *</label><input id="cpProduct" class="form-control" list="cpProductOptions" placeholder="พิมพ์รหัสสินค้าแล้วเลือกจากรายการ" required><datalist id="cpProductOptions"></datalist></div><div class="col-md-6"><label for="cpCode">รหัสสินค้าของลูกค้า</label><input id="cpCode" class="form-control" maxlength="60" placeholder="ไม่บังคับ"></div><div class="col-md-6"><label for="cpName">ชื่อสินค้าของลูกค้า</label><input id="cpName" class="form-control" maxlength="255" placeholder="ชื่อที่ลูกค้าใช้อ้างอิง"></div><div class="col-12"><label for="cpNote">หมายเหตุ</label><textarea id="cpNote" class="form-control" rows="2" maxlength="500"></textarea></div><div class="col-12"><label><input id="cpEnabled" type="checkbox" checked> เปิดใช้งาน</label></div></div></fieldset><p id="cpError" class="error mt-3" role="alert"></p></div><div class="dialog-foot"><button type="button" class="btn btn-outline-secondary" onclick="closeCustomerProduct()">ยกเลิก</button><button id="cpSave" class="btn btn-primary">บันทึก</button></div></form></dialog><dialog id="cpHistory" class="extension-dialog"><div class="dialog-head"><h5 class="mb-0">ประวัติลูกค้า–สินค้า</h5><button class="btn-close" onclick="document.getElementById('cpHistory').close()" aria-label="ปิด"></button></div><div id="cpHistoryBody" class="dialog-body"></div></dialog><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/common.js?v=20261107-dialogs"></script>
+<script src="/js/admin-stock.js?v=20261107-box-details"></script>
+<script src="/js/admin-products.js?v=20261107-product-editor"></script>
+<script src="/js/admin-locations.js?v=20261107-capacity"></script>
+<script src="/js/shortage-reasons.js?v=20261106-two-roles"></script>
+<script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
+<script src="/js/admin-users.js?v=20261106-real-user-id"></script>
+<script src="/js/admin-permissions.js?v=20261106-two-roles"></script>
+<script src="/js/admin-roles.js?v=20261106-two-roles"></script>
+<script src="/js/bom-stock.js?v=20261106-two-roles"></script>
+<script src="/js/admin-bom.js?v=20261107-dialogs"></script>
+<script src="/js/admin-suppliers.js?v=20261106-supplier-scopes"></script>
+<script src="/js/admin-warehouses.js?v=20261107-assigned-wh"></script>
+
+<script src="/js/manufacturer-products.js?v=20261107-dialogs"></script>
+<script src="/js/customer-products.js?v=20261107-1"></script>
+<dialog id="transportDialog" class="extension-dialog"><form onsubmit="saveTransport(event)"><div class="dialog-head"><h5 id="transportTitle" class="mb-0"></h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('transportDialog').close()"></button></div><div class="dialog-body"><div class="mb-3"><label for="transportCode">รหัสผู้ขนส่ง *</label><input id="transportCode" class="form-control" maxlength="30" required></div><div class="mb-3"><label for="transportName">ชื่อผู้ให้บริการขนส่ง *</label><input id="transportName" class="form-control" maxlength="200" required></div><label for="transportEnabled">สถานะ</label><select id="transportEnabled" class="form-select"><option value="1">เปิดใช้งาน</option><option value="0">ปิดใช้งาน</option></select><p id="transportError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('transportDialog').close()">ยกเลิก</button><button id="transportSave" type="submit" class="btn btn-primary">บันทึก</button></div></form></dialog><dialog id="tpDialog" class="extension-dialog"><form onsubmit="saveTransportProducts(event)"><div class="dialog-head"><h5 class="mb-0">เชื่อมผู้ขนส่ง–สินค้า</h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('tpDialog').close()"></button></div><div class="dialog-body"><p id="tpCompany" class="fw-bold"></p><label for="tpMode">สินค้าที่ขนส่งได้</label><select id="tpMode" class="form-select mb-3" onchange="changeTransportProductMode()"><option value="ALL">All · สินค้าทั้งหมด (ค่าเริ่มต้น)</option><option value="SELECTED">เฉพาะสินค้าที่เลือก</option></select><p id="tpAllHint" class="alert alert-light border">ใช้กับสินค้าทั้งหมด รวมสินค้าที่เพิ่มภายหลัง ไม่ต้องเพิ่มการเชื่อมทีละ SKU</p><div id="tpChoices" hidden><label for="tpProductSearch">ค้นหาสินค้า</label><input id="tpProductSearch" class="form-control mb-2" placeholder="รหัส ชื่อสินค้า หรือหมวด RM / PKG / SEMI / FG" oninput="renderTransportProductOptions()"><p id="tpPicked" class="small muted"></p><div id="tpProductOptions" style="max-height:280px;overflow:auto;border:1px solid #e2e6f1;border-radius:12px"></div></div><p id="tpError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('tpDialog').close()">ยกเลิก</button><button id="tpSave" type="submit" class="btn btn-primary">บันทึกการเชื่อมโยง</button></div></form></dialog><script src="/js/transport-products.js?v=20261107-1"></script><script src="/js/transports.js?v=20261107-1"></script>
+<script src="/js/customers.js?v=20261106-supplier-layout"></script>
+<script>
+(function () {
+  const payload = requireAuth(['ADMIN','USER']);
+  if (!payload) return;
+  initSidebarGroups(payload.role);
+  const displayName = [payload.fullname, payload.fullName, payload.Fullname, payload.FullName, payload.username, payload.Username].find(value => value != null && String(value).trim() && String(value).trim().toLowerCase() !== 'undefined') || 'ผู้ดูแลระบบ';
+  document.getElementById('userName').textContent = displayName;
+  document.getElementById('userRole').textContent = payload.role || 'ADMIN';
+  
+  if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed');
+  
+  // โหลดข้อมูลเริ่มต้น
+  loadSummaryStock();
+  loadMasterProducts();
+  loadLocationsMaster();
+  const initialView=new URLSearchParams(location.search).get("view");if(initialView)switchTab(initialView);
+})();
+
+function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
+function sidebarGroupKey(role) { return `wmsSidebarGroups:${String(role || 'USER').toUpperCase()}`; }
+
+function setSidebarGroup(groupName, expanded, persist = true) {
+  const group = document.querySelector(`[data-sidebar-group="${groupName}"]`);
+  if (!group) return;
+  const heading = group.querySelector('.sidebar-section-title');
+  const items = group.querySelector('.sidebar-group-items');
+  group.classList.toggle('is-collapsed', !expanded);
+  heading.setAttribute('aria-expanded', String(expanded));
+  items.hidden = !expanded;
+  heading.querySelector('i').className = `bi ${expanded ? 'bi-chevron-down' : 'bi-chevron-right'}`;
+  if (persist) {
+    try {
+      const key = sidebarGroupKey(document.getElementById('userRole')?.textContent);
+      const state = JSON.parse(localStorage.getItem(key) || '{}');
+      state[groupName] = expanded;
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (_) {}
+  }
+}
+
+function toggleSidebarGroup(groupName) {
+  const group = document.querySelector(`[data-sidebar-group="${groupName}"]`);
+  setSidebarGroup(groupName, group.classList.contains('is-collapsed'));
+}
+
+function initSidebarGroups(role) {
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(sidebarGroupKey(role)) || '{}'); } catch (_) {}
+  document.querySelectorAll('.sidebar-group[data-sidebar-group]').forEach(group => {
+    const name = group.dataset.sidebarGroup;
+    setSidebarGroup(name, state[name] !== false, false);
+  });
+}
+
+// สลับ Tab หน้าจอหลัก
+function switchTab(tab) {
+const destinations={OP_RECEIVE:'receive',receiving:'receive',OP_PUTAWAY:'putaway',putaway:'putaway',OP_PICK:'pick',OP_LOAD:'load',OP_CYCLECOUNT:'cycle-count',cyclecount:'cycle-count',OP_CHECK:'cycle-count',OP_TRANSFER:'transfer'};if(destinations[tab]){location.assign('/desktop/'+destinations[tab]+'.html');return;}
+
+  const operation = tab.startsWith('OP_') ? tab.slice(3) : null;
+  const paneTab = operation ? (operation === 'CYCLECOUNT' ? 'cyclecount' : (operation === 'RECEIVE' ? 'receiving' : (operation === 'PUTAWAY' ? 'putaway' : 'scan'))) : tab;
+  
+  const allPanes = ['transport-products','transports','receiving','scan','putaway','stock','master','locations','shortage-reasons','cyclecount','users','permissions','roles','warehouses','suppliers','manufacturer-products','customers','customer-products','bom','bom-stock'];
+  allPanes.forEach(t => {
+    const p = document.getElementById('pane-' + t);
+    if (p) p.style.display = (t === paneTab) ? 'block' : 'none';
+  });
+
+  document.querySelectorAll('.admin-sidebar .sidebar-menu-item').forEach(button => button.classList.remove('active'));
+  const activeButton = document.getElementById(operation ? 'tab-op-' + operation : 'tab-' + tab);
+  if (activeButton) activeButton.classList.add('active');
+  
+  const activeGroup = activeButton?.closest('.sidebar-group');
+  if (activeGroup?.classList.contains('is-collapsed')) setSidebarGroup(activeGroup.dataset.sidebarGroup, true);
+  
+  // เรียกฟังก์ชันโหลดข้อมูลตาม Tab
+  if (tab === 'stock') loadSummaryStock();
+  if (tab === 'master') loadMasterProducts();
+  if (tab === 'locations') loadLocationsMaster();
+  if (tab === 'suppliers') loadSuppliers();
+  if (tab === 'manufacturer-products') loadManufacturerLinks();
+  if (tab === 'transport-products') loadTransportProducts();
+  if (tab === 'transports') loadTransports();
+  if (tab === 'customers') loadCustomers();
+  if (tab === 'customer-products') loadCustomerProducts();
+  if (tab === 'bom') loadBOM();
+  if (tab === 'bom-stock') initBOMStock();
+  if (tab === 'warehouses' && typeof loadWarehouses === 'function') loadWarehouses();
+  if (tab === 'shortage-reasons') loadShortageReasonMaster();
+  if (tab === 'users' && typeof loadUsers === 'function') loadUsers();
+  if (tab === 'permissions' && typeof loadPermissionsMaster === 'function') loadPermissionsMaster();
+  
+  if (tab === 'roles') {
+    if (typeof loadRolesMaster === 'function') loadRolesMaster();
+    else if (typeof loadRoles === 'function') loadRoles();
+  }
+
+
+  
+  if (window.innerWidth < 992) document.getElementById('adminWrapper').classList.add('sidebar-collapsed');
+}
+
+function filterTable(tbodyId, q) {
+  q = (q || '').trim().toLowerCase();
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr => {
+    tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function doLogout() {
+  Swal.fire({
+    title: 'ออกจากระบบ?',
+    text: 'ต้องการออกจากระบบใช่หรือไม่',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    confirmButtonText: 'ออกจากระบบ',
+    cancelButtonText: 'อยู่ต่อ'
+  }).then(r => { if (r.isConfirmed) logout(); });
+}
+</script>
+<script src="/js/supplier-ui.js?v=20261107-grouped-sidebar"></script>
+<script src="/js/navigation-guard.js?v=20261107-dialogs"></script>
+</body>
+</html>

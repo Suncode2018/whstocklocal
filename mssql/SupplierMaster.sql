@@ -8,7 +8,7 @@ CREATE TABLE dbo.tblSuppliers (
  CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(), UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME()
 );
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.tblSuppliers') AND name='UQ_tblSuppliers_TaxBranch')
- CREATE UNIQUE INDEX UQ_tblSuppliers_TaxBranch ON dbo.tblSuppliers(TaxId,BranchCode) WHERE TaxId IS NOT NULL;
+ CREATE UNIQUE INDEX UQ_tblSuppliers_TaxBranch ON dbo.tblSuppliers(TaxId,BranchCode) WHERE TaxId IS NOT NULL AND TaxId <> '0';
 IF OBJECT_ID('dbo.tblSupplierProducts','U') IS NULL
 CREATE TABLE dbo.tblSupplierProducts (
  MappingId INT IDENTITY PRIMARY KEY, SupplierId INT NOT NULL REFERENCES dbo.tblSuppliers(SupplierId),
@@ -18,3 +18,19 @@ CREATE TABLE dbo.tblSupplierProducts (
 );
 USE dbWMS;
 IF COL_LENGTH('dbo.InboundOrders','SupplierId') IS NULL ALTER TABLE dbo.InboundOrders ADD SupplierId INT NULL;
+
+USE dbMaster;
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.tblSuppliers') AND name='UQ_tblSuppliers_TaxBranch' AND filter_definition NOT LIKE '%<>%0%')
+ DROP INDEX UQ_tblSuppliers_TaxBranch ON dbo.tblSuppliers;
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.tblSuppliers') AND name='UQ_tblSuppliers_TaxBranch')
+ CREATE UNIQUE INDEX UQ_tblSuppliers_TaxBranch ON dbo.tblSuppliers(TaxId,BranchCode) WHERE TaxId IS NOT NULL AND TaxId <> '0';
+COMMIT;
+
+GO
+-- Supplier profile fields
+USE dbMaster;
+IF COL_LENGTH('dbo.tblSuppliers','GoodsServices') IS NULL ALTER TABLE dbo.tblSuppliers ADD GoodsServices NVARCHAR(500) NULL;
+IF COL_LENGTH('dbo.tblSuppliers','ApprovalDate') IS NULL ALTER TABLE dbo.tblSuppliers ADD ApprovalDate DATE NULL;
+ALTER TABLE dbo.tblSuppliers ALTER COLUMN Phone NVARCHAR(150) NULL;
