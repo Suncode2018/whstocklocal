@@ -5,7 +5,7 @@ const inboundTypes={RM:{label:'รับวัตถุดิบ (RM)',hint:'ร
 const inboundEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let inboundSourceMode='EXISTING_PO';
 let inboundType='RM',inboundMaster=null,inboundOrders=[],inboundDraft=[],inboundRequest=null,inboundSaving=false,inboundReceiptKey=null,inboundDetail=null;
-const inboundUuid=()=>crypto.randomUUID();
+const inboundUuid=()=>wmsUuid();
 async function inboundApi(path,options={}){const r=await fetch('/api/inbound'+path,{...options,headers:{...authHeaders(),...(options.headers||{})}});const b=await r.json().catch(()=>({}));if(!r.ok||b.success===false){const e=Error(b.message||(r.status===404?'บริการรับสินค้ายังไม่พร้อม กรุณารีสตาร์ทเซิร์ฟเวอร์':'โหลดข้อมูลไม่สำเร็จ'));e.status=r.status;throw e;}return b;}
 function inboundMessage(text,error=false){const el=document.getElementById('inboundNotice');el.textContent=text;el.className='small mb-3 '+(error?'text-danger':'text-muted');}
 async function initInboundPage(){const t=new URLSearchParams(location.search).get('type');if(inboundTypes[t])inboundType=t;selectInboundType(inboundType,true);document.getElementById('inboundNew').disabled=true;try{inboundMaster=await inboundApi('/master');document.getElementById('inboundNew').disabled=false;applyInboundTypeAccess();const select=document.getElementById('inboundWh');inboundMaster.warehouses.forEach(w=>select.add(new Option(w.whname+(String(w.whdescription||'').trim()?' · '+String(w.whdescription).trim():''),w.whid)));await loadInboundOrders();}catch(e){inboundMessage(e.message,true)}}
