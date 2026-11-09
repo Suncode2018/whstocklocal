@@ -1,5 +1,6 @@
 const roles={managers:['ADMIN','USER'],readers:['ADMIN','USER']};
 const catalog=[
+{code:'REPORTS',name:'ศูนย์รายงานและแดชบอร์ด',group:'รายงาน',roles:['ADMIN','USER'],modes:['DESKTOP'],path:()=>'/desktop/reports.html',reads:[]},
 {code:'CHECK',name:'CHECK · ตรวจนับในตำแหน่ง',group:'งานคลัง',roles:['ADMIN','USER'],modes:['DESKTOP','HH'],path:u=>u.mode==='HH'?'/handheld/check.html':'/desktop/check.html',reads:['/checks']},
 {code:'TRANSPORT_PRODUCTS',name:'ผู้ขนส่ง–สินค้า',group:'ข้อมูลหลัก',roles:['ADMIN','USER'],modes:['DESKTOP'],path:u=>u.role==='ADMIN'?'/admin/index.html?view=transport-products':'/desktop/master.html?view=transport-products',reads:['/transport-products']},
 {code:'TRANSPORT',name:'ผู้ขนส่ง / Transport',group:'ข้อมูลหลัก',roles:['ADMIN','USER'],modes:['DESKTOP'],path:u=>u.role==='ADMIN'?'/admin/index.html?view=transports':'/desktop/master.html?view=transports',reads:['/transports']},

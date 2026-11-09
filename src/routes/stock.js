@@ -46,7 +46,9 @@ router.get('/balance', async (req, res) => {
   }
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query(balanceQuery.replace('/*WAREHOUSE_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'SourceWhId')+' OR '+require('../middleware/warehouse-scope').predicate(req,'DestinationWhId')) + ' ORDER BY p.ProductCode, p.ProductId');
+    const result = await pool.request().query(balanceQuery.replace('/*WAREHOUSE_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'SourceWhId')+' OR '+require('../middleware/warehouse-scope').predicate(req,'DestinationWhId')));
+    // Avoid a SQL sort memory grant over the wide STRING_AGG result.
+    result.recordset.sort((a,b)=>String(a.ProductCode||'').localeCompare(String(b.ProductCode||''),'en',{sensitivity:'base'})||a.ProductId-b.ProductId);
     res.set('Cache-Control', 'no-store');
     res.json({ success: true, data: req.navigation?.user.Role==='ADMIN'||req.navigation?.profile.DESKTOP.includes('STOCK')?result.recordset:require('../middleware/product-scope').filter(req,result.recordset) });
   } catch (err) {

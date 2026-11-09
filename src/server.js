@@ -42,6 +42,8 @@ app.use('/api/rm-sub-transfers',require('./routes/rm-sub-transfers'));
 app.use('/api/rm-picking',require('./routes/rm-picking'));
 app.use('/api/picking', require('./routes/picking'));
 app.use('/api/suppliers', require('./routes/suppliers'));
+app.use('/api/inbound-plans',require('./routes/inbound-plans'));
+app.use('/api/delivery-plans',require('./routes/delivery-plans'));
 app.use('/api/deliveries', require('./routes/deliveries'));
 
 app.use('/api/stock-transfers', require('./routes/stock-transfers'));

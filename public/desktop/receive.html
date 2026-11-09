@@ -64,7 +64,7 @@
   <div class="side-backdrop" onclick="toggleSidebar()"></div>
 
   <main class="admin-content p-3 p-lg-4">
-    <div class="mb-3"><h4 class="fw-bold mb-1">รับสินค้าเข้าคลัง</h4><div class="text-muted small">เลือกประเภทสินค้า → สร้างใบรับ → ตรวจรับจริง</div></div>
+    <div class="mb-3"><div class="d-flex justify-content-between flex-wrap gap-2"><h4 class="fw-bold mb-1">รับสินค้าเข้าคลัง</h4><a class="btn btn-outline-primary" href="/desktop/inbound-plans.html"><i class="bi bi-calendar3 me-1"></i>แผนรับเข้าคลังล่วงหน้า</a></div><div class="text-muted small">เลือกประเภทสินค้า → สร้างใบรับ → ตรวจรับจริง</div></div>
     <div class="receipt-category-groups"><section id="inboundPurchaseGroup" class="receipt-category-group"><div class="receipt-category-heading"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>รับสินค้าตาม PO</span><small>มี PO / สร้าง PO</small></div><div class="inbound-types" role="group" aria-label="รับสินค้าตาม PO">
       <button type="button" id="inbound-menu-RM" class="inbound-type-card" onclick="selectInboundType('RM')" aria-pressed="false" title="วัตถุดิบสำหรับผลิต"><span class="inbound-type-icon bg-success-subtle text-success" aria-hidden="true"><i class="bi bi-flower1"></i></span><span class="inbound-type-label">รับ RM<small>วัตถุดิบ</small></span><span id="inbound-count-RM" class="inbound-type-count">— ใบรับ</span></button>
       <button type="button" id="inbound-menu-PKG" class="inbound-type-card" onclick="selectInboundType('PKG')" aria-pressed="false" title="ขวด หลอด ฝา กล่อง และฉลาก"><span class="inbound-type-icon bg-primary-subtle text-primary" aria-hidden="true"><i class="bi bi-box-seam"></i></span><span class="inbound-type-label">รับ PKG<small>บรรจุภัณฑ์</small></span><span id="inbound-count-PKG" class="inbound-type-count">— ใบรับ</span></button>
@@ -87,7 +87,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261107-http-uuid"></script>
-<script src="/js/warehouse-inbound.js?v=20261107-http-uuid"></script><script src="/js/inbound-linked-search.js?v=20261107"></script>
+<script src="/js/warehouse-inbound.js?v=20261107-plan-link"></script><script src="/js/inbound-linked-search.js?v=20261107"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const p = requireAuth();
@@ -104,6 +104,7 @@
     Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ออกจากระบบ' }).then(r => { if (r.isConfirmed) logout(); });
   }
 </script>
+<script src="/js/plan-to-inbound.js?v=20261107"></script>
 <script src="/js/warehouse-menu.js?v=20261106-two-roles"></script>
 <script src="/js/supplier-ui.js?v=20261107-grouped-sidebar"></script>
 <script src="/js/navigation-guard.js?v=20261107-dialogs"></script>

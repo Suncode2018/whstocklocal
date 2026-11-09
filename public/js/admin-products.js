@@ -1,6 +1,11 @@
 let productCategoryCache=[],productRightsSignature='';
-function applyProductCategoryVisibility(){const select=document.getElementById('prodCategoryFilter');if(select){const selected=select.value,visible=productCategoryCache.filter(c=>productCategoryAllowed(c.CategoryId,'VIEW'));select.innerHTML='<option value="">ทุกหมวดที่มีสิทธิ์</option>'+visible.map(c=>'<option value="'+Number(c.CategoryId)+'">'+productHtml(c.CategoryName)+' ('+productHtml(c.CategoryCode)+')</option>').join('');select.value=visible.some(c=>String(c.CategoryId)===selected)?selected:'';select.disabled=!visible.length;}
-for(const code of ['RM','PKG','FG']){const card=document.getElementById('prodKpi'+code)?.closest('.col-6');if(card){const category=productCategoryCache.find(c=>c.CategoryCode===code);card.hidden=!category||!productCategoryAllowed(category.CategoryId,'VIEW');}}
+function applyProductCategoryVisibility(){
+ const template=document.getElementById('prodKpiPKG')?.closest('.col-6');
+ for(const code of ['SEMI','BULK'])if(template&&!document.getElementById('prodKpi'+code)){
+ const card=template.cloneNode(true);card.innerHTML=card.innerHTML.replaceAll('prodKpiPKG','prodKpi'+code).replace('บรรจุภัณฑ์ (PKG)',code==='SEMI'?'กึ่งสำเร็จรูป (SEMI)':'ผลิตภัณฑ์ Bulk (BULK)');const icon=card.querySelector('.stat-icon i');if(icon)icon.className=code==='SEMI'?'bi bi-layers':'bi bi-droplet';template.parentElement.append(card);
+ }
+const select=document.getElementById('prodCategoryFilter');if(select){const selected=select.value,visible=productCategoryCache.filter(c=>productCategoryAllowed(c.CategoryId,'VIEW'));select.innerHTML='<option value="">ทุกหมวดที่มีสิทธิ์</option>'+visible.map(c=>'<option value="'+Number(c.CategoryId)+'">'+productHtml(c.CategoryName)+' ('+productHtml(c.CategoryCode)+')</option>').join('');select.value=visible.some(c=>String(c.CategoryId)===selected)?selected:'';select.disabled=!visible.length;}
+for(const code of ['RM','PKG','FG','SEMI','BULK']){const card=document.getElementById('prodKpi'+code)?.closest('.col-6');if(card){const category=productCategoryCache.find(c=>c.CategoryCode===code);card.hidden=!category||!productCategoryAllowed(category.CategoryId,'VIEW');}}
 }
 window.addEventListener('wms-navigation',e=>{const menu=e.detail.menus.find(m=>m.code==='PRODUCTS'),signature=JSON.stringify({role:e.detail.user.role,categories:menu?.categories||[]});applyProductCategoryVisibility();if(signature!==productRightsSignature){productRightsSignature=signature;if(menu&&document.getElementById('productTableBody'))loadMasterProducts();}});
 function productCategoryAllowed(category,action){if(typeof wmsNavigation==='undefined'||!wmsNavigation)return false;if(wmsNavigation.user.role==='ADMIN')return true;return !!wmsNavigation.menus.find(m=>m.code==='PRODUCTS')?.categories?.find(c=>Number(c.id)===Number(category))?.actions?.[action]}
@@ -23,15 +28,27 @@ let productSearchComposing = false;
 let productLoadVersion = 0;
 const productText = value => String(value ?? '').normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'').toLocaleLowerCase().trim().replace(/\s+/g,' ');
 const productHtml = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function findProductResults(products, query, category, stockStatus = '') {
+function productSearchFields(p,mode='code') {
+ const source=p.SourceMaster||{};
+ const codes=[p.ProductCode??p.ItemCode,p.ProID1??source.Code1,p.ProID2??source.Code2,p.ProID3??source.Code3,p.ProID4??source.Code4];
+ const names=[p.ProductName??p.ItemName,p.ThaiName,p.ProductName1??source.Name1,p.ProductName2??source.Name2];
+ return (mode==='name'?names:mode==='barcode'?[p.Barcode]:codes).map(productText).filter(Boolean);
+}
+function changeProductSearchMode(){
+ const mode=document.getElementById('prodSearchMode')?.value||'code',input=document.getElementById('prodSearchInput');
+ const hints={code:'ProductCode / ProID1 / ProID2 / ProID3 / ProID4',name:'ProductName / ThaiName / ProductName1 / ProductName2',barcode:'Barcode · พิมพ์หรือสแกนบาร์โค้ด'};
+ if(input)input.placeholder=mode==='code'?'พิมพ์รหัสสินค้า':mode==='name'?'พิมพ์ชื่อสินค้า ไทย/อังกฤษ หรือชื่อบางส่วน':'พิมพ์หรือสแกนบาร์โค้ด';
+ const help=document.getElementById('productSearchHelp');if(help)help.textContent=hints[mode]+' · ค้นหาได้หลายคำ · Enter ค้นหาทันที · Esc ล้างตัวกรอง';
+ clearTimeout(productSearchTimer);renderProductResults();input?.focus();
+}
+function findProductResults(products, query, category, stockStatus = '', searchMode='code') {
   const q=productText(query);const words=q.split(' ').filter(Boolean);
   return products.map((p,index)=>{
-    const code=productText(p.ProductCode || p.ItemCode),barcode=productText(p.Barcode);
-    const text=[code,barcode,productText(p.ProductName || p.ItemName),productText(p.ThaiName)].join(' ');
-    const score=q && (code===q || barcode===q)?0:q && (code.startsWith(q) || barcode.startsWith(q))?1:2;
+    const fields=productSearchFields(p,searchMode);
+    const score=q&&fields.some(value=>value===q)?0:q&&fields.some(value=>value.startsWith(q))?1:2;
     const quantity=Number(p.TotalStock ?? 0), min=Number(p.MinStock ?? 0);
     const stockMatch=!stockStatus || (p.TotalStock!=null && (stockStatus==='available'?quantity>0:stockStatus==='empty'?quantity<=0:stockStatus==='low'?min>0 && quantity<min:false));
-    return {p,index,score,match:stockMatch && (!category || String(p.CategoryId)===category) && words.every(word=>text.includes(word))};
+    return {p,index,score,match:stockMatch && (!category || String(p.CategoryId)===category) && words.every(word=>fields.some(value=>value.includes(word)))};
   }).filter(row=>row.match).sort((a,b)=>a.score-b.score || a.index-b.index).map(row=>row.p);
 }
 async function loadMasterProducts() {
@@ -45,13 +62,14 @@ async function loadMasterProducts() {
     if(!res.ok)throw Error('โหลดสินค้าไม่สำเร็จ');
     const payload=await res.json();const products=Array.isArray(payload)?payload:payload.data;
     if(!Array.isArray(products))throw Error('รูปแบบข้อมูลสินค้าไม่ถูกต้อง');
+    await supplementProductReferences(products);if(version!==productLoadVersion)return;
     // Attach live stock for filters; retain the legacy category fallback for older servers.
     if(document.getElementById('prodStockFilter') || (document.getElementById('prodCategoryFilter') && products.some(p=>p.CategoryId==null))){
       const r=await fetch('/api/stock/balance',{headers:authHeaders()});
       if(!r.ok)throw Error('โหลดสถานะสต๊อกไม่สำเร็จ กรุณารีเฟรชอีกครั้ง');
       const balance=await r.json();if(balance.success===false || !Array.isArray(balance.data))throw Error('ข้อมูลสต๊อกไม่ถูกต้อง');
       const stocks=new Map(balance.data.map(p=>[p.ProductId,p]));
-      products.forEach(p=>{const stock=stocks.get(p.ProductId);if(!stock)throw Error('ไม่พบยอดสต๊อกของสินค้าบางรายการ กรุณารีเฟรช');p.TotalStock=Number(stock.TotalStock);p.TransitStock=Number(stock.TransitStock||0);p.OwnedStock=Number(stock.OwnedStock??stock.TotalStock);p.StockUOM=stock.UOM || p.PackageType || '';p.MinStock=Number(stock.MinStock || 0);if(p.CategoryId==null)p.CategoryId=stock.CategoryId;});
+      products.forEach(p=>{if(p.MasterStatus==='DRAFT'){p.TotalStock=null;return;}const stock=stocks.get(p.ProductId);if(!stock){if(p.MasterStatus==='DRAFT'){p.TotalStock=null;return;}throw Error('ไม่พบยอดสต๊อกของสินค้าบางรายการ กรุณารีเฟรช');}p.TotalStock=Number(stock.TotalStock);p.TransitStock=Number(stock.TransitStock||0);p.OwnedStock=Number(stock.OwnedStock??stock.TotalStock);p.StockUOM=stock.UOM || p.PackageType || '';p.MinStock=Number(stock.MinStock || 0);if(p.CategoryId==null)p.CategoryId=stock.CategoryId;});
     }
     if(version!==productLoadVersion)return;
     masterProducts=products;renderProductResults();loadProductKPI();
@@ -86,7 +104,7 @@ function renderProductResults(keepPage=false) {
   const tbody=document.getElementById('productTableBody');if(!tbody)return;
   const query=document.getElementById('prodSearchInput')?.value || '';
   const category=document.getElementById('prodCategoryFilter')?.value || '';
-  productResults=findProductResults(masterProducts,query,category,document.getElementById('prodStockFilter')?.value || '');
+  productResults=findProductResults(masterProducts,query,category,document.getElementById('prodStockFilter')?.value || '',document.getElementById('prodSearchMode')?.value || 'code');
   if(!keepPage)productPage=1;
   const paginated=Boolean(document.getElementById('productPageInfo'));
   const size=paginated?50:Math.max(1,productResults.length);
@@ -97,10 +115,33 @@ function renderProductResults(keepPage=false) {
   if(!productResults.length){tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-muted">'+(masterProducts.length?'ไม่พบสินค้าที่ตรงกับ '+productHtml(query?'“'+query+'”':'ตัวกรองที่เลือก')+' · ลองใช้คำสั้นลงหรือล้างตัวกรอง':'ไม่พบข้อมูลสินค้าในระบบ')+'</td></tr>';return;}
   tbody.innerHTML=productResults.slice(offset,offset+size).map((p,index)=>{
     const id=Number(p.ProductId || p.Id);
-    return '<tr><td class="text-center text-muted">'+(offset+index+1)+'</td><td>'+(p.Barcode?'<span class="barcode-pill">'+productHtml(p.Barcode)+'</span>':'—')+'</td><td><span class="code-tag">'+productHtml(p.ProductCode || p.ItemCode || '—')+'</span></td><td class="fw-semibold">'+productHtml(p.ProductName || p.ItemName || '—')+'</td><td>'+productHtml(p.ThaiName || '—')+'</td>'+productStockQuantityCell(p)+'<td class="text-end">'+(document.getElementById('pane-stock')&&productCategoryAllowed(p.CategoryId,'CONFIRM')?'<button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="openProductStockAdjust('+id+')" title="ปรับยอดสต๊อก"><i class="bi bi-sliders me-1"></i>Adj</button>':'')+'<button type="button" class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editProductFromList('+id+')" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct('+id+')" title="ลบ"><i class="bi bi-trash"></i></button></td></tr>';
+    return '<tr><td class="text-center text-muted">'+(offset+index+1)+'</td><td>'+(p.Barcode?'<span class="barcode-pill">'+productHtml(p.Barcode)+'</span>':'—')+'</td><td>'+renderProductCodes(p)+'</td><td>'+renderProductNames(p)+'</td><td>'+productSQLValue(productSQLField(p,'ThaiName',null))+'</td>'+productStockQuantityCell(p)+'<td class="text-end">'+(document.getElementById('pane-stock')&&productCategoryAllowed(p.CategoryId,'CONFIRM')?'<button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="openProductStockAdjust('+id+')" title="ปรับยอดสต๊อก"><i class="bi bi-sliders me-1"></i>Adj</button>':'')+'<button type="button" class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editProductFromList('+id+')" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct('+id+')" title="ลบ"><i class="bi bi-trash"></i></button></td></tr>';
   }).join('');
 }
+// Preserve SQL field values: fallback only when a column is absent, never for NULL/empty.
+function productSQLField(p,key,fallback){const actual=Object.keys(p).find(k=>k.toLowerCase()===key.toLowerCase());return actual===undefined?fallback:p[actual]}
+function productSQLValue(value){return value===null?'<span class="product-sql-empty">NULL</span>':value===undefined||String(value).trim()===''?'<span class="product-sql-empty">—</span>':productHtml(value)}
+function renderProductCodes(p){
+ const source=p.SourceMaster||{};
+ const values=[['ProductCode',productSQLField(p,'ProductCode',p.ItemCode)],...[1,2,3,4].map(i=>['ProID'+i,productSQLField(p,'ProID'+i,source['Code'+i])])];
+ return '<div class="product-code-list">'+values.map(([label,value])=>'<div class="product-code-item"><span class="'+(label==='ProductCode'?'code-tag':'product-reference-code')+'">'+productSQLValue(value)+'</span></div>').join('')+'</div>';
+}
+function renderProductNames(p){
+ const source=p.SourceMaster||{},values=[['ProductName',productSQLField(p,'ProductName',p.ItemName)],['ProductName1',productSQLField(p,'ProductName1',source.Name1)],['ProductName2',productSQLField(p,'ProductName2',source.Name2)]];
+ return '<div class="product-name-list">'+values.map(([label,value])=>'<div class="product-name-item"><div class="'+(label==='ProductName'?'fw-semibold':'product-secondary-name')+'">'+productSQLValue(value)+'</div></div>').join('')+'</div>'+(p.MasterStatus==='DRAFT'?'<span class="badge bg-warning text-dark mt-2">ร่าง</span>':'');
+}
+async function supplementProductReferences(products){
+ // Older running Node processes may serve the previous /products response shape.
+ if(products.some(p=>['ProID1','ProID2','ProID3','ProID4'].some(k=>Object.hasOwn(p,k))))return;
+ if(products.some(p=>[1,2,3,4].some(i=>Object.hasOwn(p.SourceMaster||{},'Code'+i))))return;
+ const response=await fetch('/api/products/source-master',{headers:authHeaders()});
+ if(!response.ok)throw Error('API ยังส่งรหัสอ้างอิงไม่ครบ กรุณารีสตาร์ทเซิร์ฟเวอร์');
+ const body=await response.json();if(!Array.isArray(body.data))throw Error('ข้อมูลรหัสอ้างอิงไม่ถูกต้อง');
+ const byProduct=new Map();for(const entry of body.data){if(entry.ProductId!=null&&!byProduct.has(Number(entry.ProductId)))byProduct.set(Number(entry.ProductId),entry);}
+ for(const product of products){const entry=byProduct.get(Number(product.ProductId));if(!entry)continue;for(let i=1;i<=4;i++)product['ProID'+i]=entry['Code'+i]||'';}
+}
 function productStockQuantityCell(p) {
+  if(p.MasterStatus==='DRAFT')return document.getElementById('prodStockColumn')?'<td class="text-end text-muted"><span class="badge bg-light text-secondary">ร่าง · ยังไม่เปิดรับ–จ่าย</span></td>':'';
   if (!document.getElementById('prodStockColumn')) return '';
   const known = p.TotalStock != null && Number.isFinite(Number(p.TotalStock));
   const qty = known ? Number(p.TotalStock) : null;
@@ -110,6 +151,8 @@ function productStockQuantityCell(p) {
 function exportProductsToExcel() {
   clearTimeout(productSearchTimer);renderProductResults(true);
   if(!productResults.length){Swal.fire('ไม่พบข้อมูล','ไม่มีผลค้นหาสำหรับส่งออก','info');return;}
+  const exportRows=productResults.filter(p=>productCategoryAllowed(p.CategoryId,'EXPORT'));
+  if(!exportRows.length){Swal.fire('ไม่มีสิทธิ์ส่งออก','ไม่มีสินค้าที่อนุญาตให้ส่งออก','info');return;}
   const records=[['บาร์โค้ด','รหัสสินค้า','ชื่อสินค้า','ชื่อภาษาไทย','สต๊อกคงเหลือ (รวมทุกคลัง)','หน่วย'],...exportRows.map(p=>[p.Barcode,p.ProductCode || p.ItemCode,p.ProductName || p.ItemName,p.ThaiName,p.TotalStock ?? '',p.StockUOM || p.PackageType || ''])];
   const cell=value=>'"'+String(value??'').replace(/^(\s*[=+@-]|[\t\r\n])/,"'$&").replace(/"/g,'""')+'"';
   const blob=new Blob(['\uFEFF'+records.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'});
@@ -124,6 +167,7 @@ async function loadProductKPI() {
     const json = await res.json();
     const kpi = json.data || json;
 
+    for(const [code,key]of [['SEMI','TotalSEMI'],['BULK','TotalBULK']])if(document.getElementById('prodKpi'+code))document.getElementById('prodKpi'+code).textContent=Number(kpi[key]||0).toLocaleString('th-TH');
     if (document.getElementById('prodKpiTotal')) document.getElementById('prodKpiTotal').textContent = Number(kpi.TotalCount || 0).toLocaleString('th-TH');
     if (document.getElementById('prodKpiRM')) document.getElementById('prodKpiRM').textContent = Number(kpi.TotalRM || 0).toLocaleString('th-TH');
     if (document.getElementById('prodKpiPKG')) document.getElementById('prodKpiPKG').textContent = Number(kpi.TotalPKG || 0).toLocaleString('th-TH');
@@ -139,7 +183,7 @@ async function openAddProduct() {
   let modalEl = document.getElementById('productModal');
   if (!modalEl) { createProductModalDOM(); modalEl = document.getElementById('productModal'); }
 
-  setupProductCategory();document.getElementById('productModalTitle').textContent = 'เพิ่มสินค้าใหม่';
+  setupProductMasterFields();setupProductCategory();document.getElementById('productModalTitle').textContent = 'เพิ่มสินค้าใหม่';
   document.getElementById('modalProductBarcode').value = '';
   document.getElementById('modalProductCode').value = '';
   document.getElementById('modalProductCode').disabled = false;
@@ -157,16 +201,16 @@ async function openEditProduct(p) {
   let modalEl = document.getElementById('productModal');
   if (!modalEl) { createProductModalDOM(); modalEl = document.getElementById('productModal'); }
 
-  setupProductCategory(p.CategoryId);const pCode = p.ProductCode || p.ItemCode || '';
-  document.getElementById('productModalTitle').textContent = 'แก้ไขสินค้า: ' + pCode;
+  setupProductMasterFields(p);setupProductCategory(p.CategoryId);const pCode = p.ProductCode || p.ItemCode || '';
+  document.getElementById('productModalTitle').textContent = 'แก้ไขสินค้า: ' + (pCode||'#'+editingProductId);
   document.getElementById('modalProductBarcode').value = p.Barcode || '';
   document.getElementById('modalProductCode').value = pCode;
-  document.getElementById('modalProductCode').disabled = true; // ล็อคไม่ให้แก้รหัสสินค้า
+  document.getElementById('modalProductCode').disabled = p.MasterStatus!=='DRAFT';
   document.getElementById('modalProductName').value = p.ProductName || p.ItemName || '';
   document.getElementById('modalProductThaiName').value = p.ThaiName || '';
 
   if(!await setupProductUnit(p.UnitId))return;
-  if(!await setupProductSupplier(p.SupplierId))return;if(!await setupProductRMSpec(editingProductId))return;setupProductVolume(p.UnitVolumeCm3);await loadProductPackVersions(editingProductId);switchProductEditorTab('Basic');
+  if(!await setupProductSupplier(p.SupplierId))return;if(!await setupProductRMSpec(editingProductId))return;setupProductVolume(p.UnitVolumeCm3);await loadProductEditorPackVersions(editingProductId,p.UnitId);switchProductEditorTab('Basic');
   bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
@@ -177,15 +221,17 @@ async function saveProduct() {
   const productName = document.getElementById('modalProductName').value.trim();
   const thaiName = document.getElementById('modalProductThaiName').value.trim();
 
-  if (!productCode || !productName) {
+  const masterStatus=document.getElementById('modalProductStatus').value;
+  if (!productName || (masterStatus==='READY'&&!productCode)) {
     switchProductEditorTab('Basic');
     Swal.fire('แจ้งเตือน', 'กรุณากรอกรหัสสินค้าและชื่อสินค้า', 'warning');
     return;
   }
 
   const payload = {
+    ...productMasterFieldsPayload(),masterStatus,
     categoryId:Number(document.getElementById('modalProductCategory').value),
-    unitId:Number(document.getElementById('modalProductUnit').value),
+    unitId:document.getElementById('modalProductUnit').value?Number(document.getElementById('modalProductUnit').value):null,
     unitVolumeCm3:document.getElementById('productUnitVolume').value.trim()||null,
     supplierId:document.getElementById('modalProductSupplier').value?Number(document.getElementById('modalProductSupplier').value):null,
     productCode,
@@ -194,9 +240,9 @@ async function saveProduct() {
     barcode: barcode || null
   };
 
-  if(!Number.isInteger(payload.unitId)||payload.unitId<=0){await Swal.fire('เลือกหน่วยนับ','กรุณาเลือกหน่วยนับจากรายการก่อนบันทึก','warning');document.getElementById('modalProductUnit').focus();return;}
+  if(masterStatus==='READY'&&(!Number.isInteger(payload.unitId)||payload.unitId<=0)){await Swal.fire('เลือกหน่วยนับ','กรุณาเลือกหน่วยนับจากรายการก่อนบันทึก','warning');document.getElementById('modalProductUnit').focus();return;}
   if(document.getElementById('modalProductSupplier').disabled||document.getElementById('modalProductSupplier').dataset.ready!=='true'){await Swal.fire('โหลดผู้จำหน่ายไม่สำเร็จ','กรุณาเปิดฟอร์มใหม่เพื่อโหลดรายการผู้จำหน่ายก่อนบันทึก','warning');return;}
-  if(productRMVisible()){if(!productRMSpecReady){await Swal.fire('โหลดหน่วยบรรจุไม่สำเร็จ','กรุณาเปิดฟอร์มสินค้าใหม่','warning');return;}if(document.getElementById('productRMEnabled').checked){payload.rmPackSpec={packUnit:document.getElementById('productRMPack').value.trim(),contentPerPack:document.getElementById('productRMPer').value,contentUnit:document.getElementById('productRMContentUnit').value.trim().toUpperCase(),basePerContentUnit:document.getElementById('productRMFactor').value,...(productRMSpecRevision==null?{}:{revision:productRMSpecRevision})};if(!payload.rmPackSpec.packUnit||!payload.rmPackSpec.contentUnit||!(Number(payload.rmPackSpec.contentPerPack)>0)||!(Number(payload.rmPackSpec.basePerContentUnit)>0)){switchProductEditorTab('RM');await Swal.fire('ตรวจหน่วยบรรจุ','กรอกหน่วย จำนวนต่อภาชนะ และอัตราแปลงมากกว่า 0','warning');return;}}}
+  if(productRMVisible()){if(!productRMSpecReady){await Swal.fire('โหลดหน่วยบรรจุไม่สำเร็จ','กรุณาเปิดฟอร์มสินค้าใหม่','warning');return;}if(document.getElementById('productRMEnabled').checked){if(!payload.unitId){switchProductEditorTab('Basic');await Swal.fire('เลือกหน่วยสต๊อก','ต้องเลือกหน่วยสต๊อกก่อนกำหนดหน่วยบรรจุ RM','warning');return;}payload.rmPackSpec={packUnit:document.getElementById('productRMPack').value.trim(),contentPerPack:document.getElementById('productRMPer').value,contentUnit:document.getElementById('productRMContentUnit').value.trim().toUpperCase(),basePerContentUnit:document.getElementById('productRMFactor').value,...(productRMSpecRevision==null?{}:{revision:productRMSpecRevision})};if(!payload.rmPackSpec.packUnit||!payload.rmPackSpec.contentUnit||!(Number(payload.rmPackSpec.contentPerPack)>0)||!(Number(payload.rmPackSpec.basePerContentUnit)>0)){switchProductEditorTab('RM');await Swal.fire('ตรวจหน่วยบรรจุ','กรอกหน่วย จำนวนต่อภาชนะ และอัตราแปลงมากกว่า 0','warning');return;}}}
   const url = editingProductId ? `/api/products/${editingProductId}` : '/api/products';
   const method = editingProductId ? 'PUT' : 'POST';
 
@@ -261,8 +307,8 @@ async function deleteProduct(id) {
 }
 
 // 8. สร้าง DOM Modal จัดการสินค้า
-function createProductModalDOM(){if(document.getElementById('productModal'))return;const div=document.createElement('div');div.innerHTML=`<div class="modal fade product-editor" id="productModal" tabindex="-1" aria-labelledby="productModalTitle"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div class="d-flex align-items-center gap-3"><span class="product-editor-icon"><i class="bi bi-box-seam"></i></span><div><h5 class="modal-title" id="productModalTitle">จัดการข้อมูลสินค้า</h5><p class="mb-0 small text-muted mt-1">ข้อมูลหลัก หน่วยบรรจุ และปริมาตรสำหรับจัดเก็บ</p></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิดฟอร์มสินค้า"></button></div><div class="product-editor-tabs" role="tablist" aria-label="ส่วนข้อมูลสินค้า"><button type="button" id="productBasicTab" role="tab" aria-controls="productBasicPane" onclick="switchProductEditorTab('Basic')">1. ข้อมูลสินค้า</button><button type="button" id="productRMTab" role="tab" aria-controls="productRMPane" onclick="switchProductEditorTab('RM')" hidden>2. หน่วยบรรจุ RM</button><button type="button" id="productPackTab" role="tab" aria-controls="productPackPane" onclick="switchProductEditorTab('Pack')">รุ่นอัตราบรรจุ</button><button type="button" id="productVolumeTab" role="tab" aria-controls="productVolumePane" onclick="switchProductEditorTab('Volume')">ปริมาตรจัดเก็บ</button></div><div class="modal-body"><section id="productBasicPane" role="tabpanel" aria-labelledby="productBasicTab"><div class="product-editor-section-title">ข้อมูลที่ใช้ค้นหาและรับสินค้า <span>* จำเป็น</span></div><div id="productBasicFields" class="product-editor-grid"><div><label for="modalProductCode" class="form-label">รหัสสินค้า *</label><input id="modalProductCode" class="form-control" placeholder="เช่น T188880078" maxlength="50" required><div class="form-text">แก้ไขรหัสไม่ได้หลังสร้างสินค้า</div></div><div><label for="modalProductBarcode" class="form-label">บาร์โค้ด <span class="text-muted fw-normal">(ถ้ามี)</span></label><input id="modalProductBarcode" class="form-control" maxlength="50" placeholder="สแกนหรือพิมพ์บาร์โค้ด"></div><div class="product-editor-wide"><label for="modalProductName" class="form-label">ชื่อสินค้า อังกฤษ / สากล *</label><input id="modalProductName" class="form-control" maxlength="255" placeholder="เช่น NIACINAMIDE" required></div><div class="product-editor-wide"><label for="modalProductThaiName" class="form-label">ชื่อภาษาไทย</label><input id="modalProductThaiName" class="form-control" maxlength="255" placeholder="ชื่อภาษาไทยหรือคำอธิบายเพิ่มเติม"></div><div class="product-editor-wide"><hr class="my-1"></div><div><label for="modalProductUnit" class="form-label">หน่วยสต๊อกหลัก *</label><select id="modalProductUnit" class="form-select" onchange="updateProductRMPreview();updateProductVolumeLabel()" required aria-describedby="modalProductUnitHint"><option value="">เลือกหน่วยนับ</option></select><div id="modalProductUnitHint" class="form-text">เช่น KG · ใช้คุมยอดสต๊อกทั้งหมด สินค้าที่ใช้งานแล้วอาจเปลี่ยนหน่วยไม่ได้</div></div><div><label for="modalProductSupplier" class="form-label">ผู้จำหน่ายหลัก</label><select id="modalProductSupplier" class="form-select" aria-describedby="modalProductSupplierHint"><option value="">ไม่ระบุผู้จำหน่ายหลัก</option></select><div id="modalProductSupplierHint" class="form-text">เลือกจาก Supplier Master หรือเว้นว่างหากผลิตเอง</div></div></div></section><section id="productRMPane" role="tabpanel" aria-labelledby="productRMTab" hidden><div class="product-editor-section-title">กำหนดวิธีรับและแบ่งเบิกวัตถุดิบ</div><p class="small text-muted">ค่า Master เป็นค่าเริ่มต้น รอบรับตาม PO ระบุปริมาณจริงต่อกล่องได้แยกกัน</p></section><section id="productPackPane" role="tabpanel" aria-labelledby="productPackTab" hidden><div id="productPackVersionsRoot"></div></section><section id="productVolumePane" role="tabpanel" aria-labelledby="productVolumeTab" hidden><div class="product-editor-section-title">ตรวจพื้นที่จัดเก็บสินค้า</div><p class="small text-muted">ใช้คำนวณความจุใน PUTAWAY · สินค้าคุมเป็น KG ต้องระบุปริมาตรต่อ 1 KG</p></section></div><div class="modal-footer"><span class="product-editor-footer-note"><i class="bi bi-info-circle me-1"></i>บันทึกข้อมูลสินค้าไม่เปลี่ยนยอดสต๊อก</span><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="saveProduct()"><i class="bi bi-check2 me-1"></i>บันทึกข้อมูล</button></div></div></div></div>`;document.body.appendChild(div);document.querySelector('#productModal .product-editor-tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=[...document.querySelectorAll('#productModal [role=tab]')].filter(t=>!t.hidden),index=tabs.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next].click();tabs[next].focus();});switchProductEditorTab('Basic');}
-function switchProductEditorTab(name){for(const key of ['Basic','RM','Pack','Volume']){const pane=document.getElementById('product'+key+'Pane'),tab=document.getElementById('product'+key+'Tab');if(!pane||!tab)continue;pane.hidden=key!==name;tab.setAttribute('aria-selected',String(key===name));tab.tabIndex=key===name?0:-1;}const body=document.querySelector('#productModal .modal-body');if(body)body.scrollTop=0;}
+function createProductModalDOM(){if(document.getElementById('productModal'))return;const div=document.createElement('div');div.innerHTML=`<div class="modal fade product-editor" id="productModal" tabindex="-1" aria-labelledby="productModalTitle"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div class="d-flex align-items-center gap-3"><span class="product-editor-icon"><i class="bi bi-box-seam"></i></span><div><h5 class="modal-title" id="productModalTitle">จัดการข้อมูลสินค้า</h5><p class="mb-0 small text-muted mt-1">ข้อมูลหลัก หน่วยบรรจุ และปริมาตรสำหรับจัดเก็บ</p></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิดฟอร์มสินค้า"></button></div><div class="product-editor-tabs" role="tablist" aria-label="ส่วนข้อมูลสินค้า"><button type="button" id="productBasicTab" role="tab" aria-controls="productBasicPane" onclick="switchProductEditorTab('Basic')">1. ข้อมูลสินค้า</button><button type="button" id="productRefsTab" role="tab" aria-controls="productRefsPane" onclick="switchProductEditorTab('Refs')">2. รหัสอ้างอิง</button><button type="button" id="productRMTab" role="tab" aria-controls="productRMPane" onclick="switchProductEditorTab('RM')" hidden>3. หน่วยบรรจุ RM</button><button type="button" id="productPackTab" role="tab" aria-controls="productPackPane" onclick="switchProductEditorTab('Pack')">4. รุ่นอัตราบรรจุ</button><button type="button" id="productVolumeTab" role="tab" aria-controls="productVolumePane" onclick="switchProductEditorTab('Volume')">5. ปริมาตรจัดเก็บ</button></div><div class="modal-body"><section id="productBasicPane" role="tabpanel" aria-labelledby="productBasicTab"><div class="product-editor-section-title">ข้อมูลที่ใช้ค้นหาและรับสินค้า <span>* จำเป็น</span></div><div id="productBasicFields" class="product-editor-grid"><div><label for="modalProductCode" class="form-label">รหัสสินค้า *</label><input id="modalProductCode" class="form-control" placeholder="เช่น T188880078" maxlength="50" required><div class="form-text">แก้ไขรหัสไม่ได้หลังสร้างสินค้า</div></div><div><label for="modalProductBarcode" class="form-label">บาร์โค้ด <span class="text-muted fw-normal">(ถ้ามี)</span></label><input id="modalProductBarcode" class="form-control" maxlength="50" placeholder="สแกนหรือพิมพ์บาร์โค้ด"></div><div class="product-editor-wide"><label for="modalProductName" class="form-label">ชื่อแสดงผลหลัก *</label><input id="modalProductName" class="form-control" maxlength="2000" placeholder="เช่น NIACINAMIDE" required></div><div class="product-editor-wide"><label for="modalProductThaiName" class="form-label">ชื่อภาษาไทย</label><input id="modalProductThaiName" class="form-control" maxlength="255" placeholder="ชื่อภาษาไทยหรือคำอธิบายเพิ่มเติม"></div><div class="product-editor-wide"><hr class="my-1"></div><div><label for="modalProductUnit" class="form-label">หน่วยสต๊อกหลัก *</label><select id="modalProductUnit" class="form-select" onchange="updateProductRMPreview();updateProductVolumeLabel()" required aria-describedby="modalProductUnitHint"><option value="">เลือกหน่วยนับ</option></select><div id="modalProductUnitHint" class="form-text">เช่น KG · ใช้คุมยอดสต๊อกทั้งหมด สินค้าที่ใช้งานแล้วอาจเปลี่ยนหน่วยไม่ได้</div></div><div><label for="modalProductSupplier" class="form-label">ผู้จำหน่ายหลัก</label><select id="modalProductSupplier" class="form-select" aria-describedby="modalProductSupplierHint"><option value="">ไม่ระบุผู้จำหน่ายหลัก</option></select><div id="modalProductSupplierHint" class="form-text">เลือกจาก Supplier Master หรือเว้นว่างหากผลิตเอง</div></div></div></section><section id="productRefsPane" role="tabpanel" aria-labelledby="productRefsTab" hidden><div class="product-editor-section-title">รหัสอ้างอิงจาก Master</div><p class="small text-muted">ProID1–ProID4 แก้ไขได้แยกกัน ไม่เปลี่ยนรหัสหลักที่ใช้รับ–จ่าย</p><div id="productReferenceFields" class="product-editor-grid"></div></section><section id="productRMPane" role="tabpanel" aria-labelledby="productRMTab" hidden><div class="product-editor-section-title">กำหนดวิธีรับและแบ่งเบิกวัตถุดิบ</div><p class="small text-muted">ค่า Master เป็นค่าเริ่มต้น รอบรับตาม PO ระบุปริมาณจริงต่อกล่องได้แยกกัน</p></section><section id="productPackPane" role="tabpanel" aria-labelledby="productPackTab" hidden><div id="productPackVersionsRoot"></div></section><section id="productVolumePane" role="tabpanel" aria-labelledby="productVolumeTab" hidden><div class="product-editor-section-title">ตรวจพื้นที่จัดเก็บสินค้า</div><p class="small text-muted">ใช้คำนวณความจุใน PUTAWAY · สินค้าคุมเป็น KG ต้องระบุปริมาตรต่อ 1 KG</p></section></div><div class="modal-footer"><span class="product-editor-footer-note"><i class="bi bi-info-circle me-1"></i>บันทึกข้อมูลสินค้าไม่เปลี่ยนยอดสต๊อก</span><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="saveProduct()"><i class="bi bi-check2 me-1"></i>บันทึกข้อมูล</button></div></div></div></div>`;document.body.appendChild(div);document.querySelector('#productModal .product-editor-tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=[...document.querySelectorAll('#productModal [role=tab]')].filter(t=>!t.hidden),index=tabs.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next].click();tabs[next].focus();});switchProductEditorTab('Basic');}
+function switchProductEditorTab(name){for(const key of ['Basic','Refs','RM','Pack','Volume']){const pane=document.getElementById('product'+key+'Pane'),tab=document.getElementById('product'+key+'Tab');if(!pane||!tab)continue;pane.hidden=key!==name;tab.setAttribute('aria-selected',String(key===name));tab.tabIndex=key===name?0:-1;}const body=document.querySelector('#productModal .modal-body');if(body)body.scrollTop=0;}
 // Stock adjustment from the Admin product list.
 let productAdjustmentContext = null;
 let productAdjustmentSaving = false;
@@ -401,3 +447,40 @@ function useCalculatedProductVolume(){const value=calculateProductVolume();if(va
 
 function setupProductSupplierSearch(select){if(document.getElementById('modalProductSupplierSearch'))return;const input=document.createElement('input');input.id='modalProductSupplierSearch';input.type='search';input.className='form-control mb-2';input.placeholder='พิมพ์ชื่อหรือรหัสผู้จำหน่ายเพื่อค้นหา';input.setAttribute('aria-label','ค้นหาผู้จำหน่ายด้วยชื่อหรือรหัส');input.autocomplete='off';const count=document.createElement('div');count.id='modalProductSupplierCount';count.className='form-text mb-1';count.setAttribute('role','status');select.before(input);select.after(count);input.addEventListener('input',filterProductSupplierOptions);input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();select.focus();}if(event.key==='Escape'&&input.value){event.preventDefault();event.stopPropagation();input.value='';filterProductSupplierOptions();}});}
 function filterProductSupplierOptions(){const select=document.getElementById('modalProductSupplier'),input=document.getElementById('modalProductSupplierSearch');if(!select?._supplierOptions)return;const selected=select.value,tokens=input.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean),matches=select._supplierOptions.filter(o=>o.value&&tokens.every(t=>o.text.toLocaleLowerCase().includes(t)));const visible=select._supplierOptions.filter(o=>!o.value||o.value===selected||matches.includes(o));select.replaceChildren(...visible.map(o=>{const option=new Option(o.text,o.value);option.disabled=o.disabled;return option;}));select.value=selected;document.getElementById('modalProductSupplierCount').textContent='พบ '+matches.length+' ผู้จำหน่าย'+(tokens.length&&selected&&!matches.some(o=>o.value===selected)?' · คงรายการที่เลือกไว้':'');}
+
+let productMasterRevision;
+function setupProductMasterFields(p={}){
+ const root=document.getElementById('productBasicFields');
+ if(!document.getElementById('modalName1')){
+ const names=document.createElement('div');names.className='product-editor-wide';names.innerHTML='<div class="product-editor-section-title mt-2">ชื่อสินค้าในฐานข้อมูล</div><div class="row g-3"><div class="col-md-6"><label for="modalName1" class="form-label">PRODUCT NAME1</label><textarea id="modalName1" class="form-control" rows="2" maxlength="2000" placeholder="ชื่อหลักจาก Master ช่องที่ 1"></textarea></div><div class="col-md-6"><label for="modalName2" class="form-label">PRODUCT NAME2</label><textarea id="modalName2" class="form-control" rows="2" maxlength="2000" placeholder="ชื่อเพิ่มเติมจาก Master ช่องที่ 2"></textarea></div></div>';root.insertBefore(names,document.getElementById('modalProductUnit').parentElement);
+ document.getElementById('productReferenceFields').innerHTML=[1,2,3,4].map(i=>'<div><label for="modalProID'+i+'" class="form-label">ProID'+i+'</label><input id="modalProID'+i+'" class="form-control" maxlength="500" placeholder="รหัสอ้างอิงช่องที่ '+i+'"></div>').join('')+'<div><label for="modalPhysicalForm" class="form-label">ลักษณะสินค้า</label><input id="modalPhysicalForm" class="form-control" maxlength="50" list="editorPhysicalForms"><datalist id="editorPhysicalForms"><option value="Liquid"><option value="Powder"><option value="Solid"><option value="Semi-Liquid"><option value="Semi-Solid"></datalist></div>';
+ const status=document.createElement('div');status.className='product-editor-wide product-editor-state';status.innerHTML='<div><span class="small text-muted">สถานะข้อมูลสินค้า</span><p id="productEditorStatusHint" class="small mb-0"></p></div><div><label for="modalProductStatus" class="visually-hidden">สถานะข้อมูลสินค้า</label><select id="modalProductStatus" class="form-select" onchange="updateProductEditorState()"><option value="DRAFT">ร่าง</option><option value="READY">พร้อมใช้งาน</option><option value="INACTIVE">ปิดใช้งาน</option></select></div>';root.prepend(status);
+ }
+ productMasterRevision=p.Revision;
+ document.getElementById('modalName1').value=p.ProductName1||'';document.getElementById('modalName2').value=p.ProductName2||'';
+ for(let i=1;i<=4;i++)document.getElementById('modalProID'+i).value=p['ProID'+i]||'';
+ document.getElementById('modalPhysicalForm').value=p.PhysicalForm||'';
+ const status=document.getElementById('modalProductStatus');status.disabled=!p.ProductId;status.value=p.MasterStatus||'READY';status.querySelector('option[value="DRAFT"]').disabled=!!p.ProductId&&p.MasterStatus!=='DRAFT';
+ updateProductEditorState();
+}
+function updateProductEditorState(){
+ const draft=document.getElementById('modalProductStatus').value==='DRAFT';
+ document.getElementById('productEditorStatusHint').textContent=draft?'บันทึกข้อมูลก่อนได้ · กำหนดรหัสและหน่วยนับให้ครบก่อนเปิดรับ–จ่าย':'พร้อมใช้งานต้องมีรหัสหลักที่ไม่ซ้ำและหน่วยสต๊อก';
+ document.getElementById('modalProductCode').required=!draft;document.getElementById('modalProductUnit').required=!draft;
+}
+async function loadProductEditorPackVersions(id,unitId){
+ if(!unitId){await loadProductPackVersions(null);document.getElementById('productPackVersionsRoot').innerHTML='<div class="p-4 border rounded-3 bg-light"><h6>กำหนดหน่วยสต๊อกก่อนเพิ่มรุ่นอัตราบรรจุ</h6><p class="small text-muted mb-0">เลือกหน่วยในแท็บข้อมูลสินค้า แล้วบันทึกและเปิดแก้ไขอีกครั้ง</p></div>';return;}
+ await loadProductPackVersions(id);
+}
+
+function productMasterFieldsPayload(){return{...(productMasterRevision?{masterRevision:productMasterRevision}:{}),productName1:document.getElementById('modalName1').value,productName2:document.getElementById('modalName2').value,...Object.fromEntries([1,2,3,4].map(i=>['proID'+i,document.getElementById('modalProID'+i).value])),physicalForm:document.getElementById('modalPhysicalForm').value}}
+
+function toggleProductSummary(){
+ const cards=document.getElementById('productSummaryCards'),button=document.getElementById('productSummaryToggle');
+ if(!cards||!button)return;
+ const expanded=button.getAttribute('aria-expanded')!=='true';
+ cards.hidden=!expanded;button.setAttribute('aria-expanded',String(expanded));
+ button.querySelector('span').textContent=expanded?'ซ่อนสรุป':'แสดงสรุป';
+ button.querySelector('i').className=expanded?'bi bi-eye-slash':'bi bi-eye';
+ button.querySelector('.product-summary-chevron').className='bi product-summary-chevron '+(expanded?'bi-chevron-up':'bi-chevron-down');
+}
