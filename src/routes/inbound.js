@@ -245,7 +245,8 @@ router.get('/', async (req, res) => {
                 w.whname,
                 COUNT(l.LineId) AS TotalLines,
                 SUM(l.OrderedQuantity) AS OrderedQuantity,
-                SUM(l.ReceivedQuantity) AS ReceivedQuantity
+                SUM(l.ReceivedQuantity) AS ReceivedQuantity,
+                CASE WHEN ${require('../services/inbound-storage-status')('o.InboundId')} THEN 1 ELSE 0 END AS HasStored
             FROM dbWMS.dbo.InboundOrders o
             JOIN dbWMS.dbo.InboundLines l
                 ON l.InboundId=o.InboundId
@@ -405,7 +406,11 @@ router.post('/', async (req, res) => {
             b.lines.some(
                 l => !Number.isInteger(l.productId) || !qty(l.quantity)
             ) ||
-            new Set(b.lines.map(l => l.productId)).size !== b.lines.length
+            new Set(b.lines.map(l =>
+                b.sourceMode === 'PRODUCTION'
+                    ? `${l.productId}|${(l.anaNo || '').trim()}|${(l.lotNo || '').trim()}`
+                    : String(l.productId)
+            )).size !== b.lines.length
         ) {
             fail(
                 400,
@@ -535,7 +540,9 @@ router.post('/', async (req, res) => {
                     l.packContentPerPack == null
                 ) {
                     l.packContentPerPack = saved.find(
-                        x => x.ProductId === l.productId
+                        x =>
+                            x.ProductId === l.productId &&
+                            (x.AnaNo || '') === (l.anaNo || '').trim()
                     )?.ContentPerPack;
                 }
             }
@@ -553,7 +560,7 @@ router.post('/', async (req, res) => {
                 l.packCount == null && l.PackCount == null
                     ? null
                     : Number(l.ContentPerPack ?? l.packContentPerPack ?? 0)
-            ]).sort((a, b) => a[0] - b[0]);
+            ]).sort((a, b) => a[0] - b[0] || (a[4] || '').localeCompare(b[4] || '') || (a[5] || '').localeCompare(b[5] || ''));
 
             if ((h.PlanId || null) !== (b.planId || null)) {
                 fail(409, 'แผนต่างจากคำขอเดิม');
@@ -1304,7 +1311,7 @@ router.post('/:id/receive', async (req, res) => {
                 (line.OrderedQuantity - line.ReceivedQuantity) * 100
             )
         ) {
-            fail(409, 'จำนวนรับเกินยอดคงค้าง กรุณารีเฟรชข้อมูล');
+            fail(409, 'จำนวนรับเกินยอดค้างของแถวนี้ (ANA '+(line.AnaNo||'—')+' / LOT '+(line.ProductionLotNo||'—')+'): ตามเอกสาร '+line.OrderedQuantity+' รับแล้ว '+line.ReceivedQuantity+' ค้าง '+Number((line.OrderedQuantity-line.ReceivedQuantity).toFixed(2))+' หน่วยสต๊อก กรุณาตรวจแถวที่เลือกหรือเปิดใบรับใหม่เพื่อรีเฟรช');
         }
 
         const pack = (

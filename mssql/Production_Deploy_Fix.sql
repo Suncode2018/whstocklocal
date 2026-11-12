@@ -417,7 +417,7 @@ BEGIN
         SupplierProductCode NVARCHAR(60) NULL,
         UnitPrice DECIMAL(18,4) NULL,
         CONSTRAINT CK_InboundLines_Received CHECK(ReceivedQuantity >= 0 AND ReceivedQuantity <= OrderedQuantity),
-        CONSTRAINT UQ_InboundLines_Product UNIQUE(InboundId, ProductId)
+        CONSTRAINT UQ_InboundLines_AnaLot UNIQUE(InboundId, ProductId, AnaNo, ProductionLotNo)
     );
 END
 ELSE

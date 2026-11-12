@@ -26,7 +26,7 @@ CREATE TABLE dbo.InboundLines (
  OrderedQuantity DECIMAL(18,2) NOT NULL CHECK(OrderedQuantity>0),
  ReceivedQuantity DECIMAL(18,2) NOT NULL DEFAULT 0,
  CONSTRAINT CK_InboundLines_Received CHECK(ReceivedQuantity>=0 AND ReceivedQuantity<=OrderedQuantity),
- CONSTRAINT UQ_InboundLines_Product UNIQUE(InboundId,ProductId)
+ CONSTRAINT UQ_InboundLines_AnaLot UNIQUE(InboundId, ProductId, AnaNo, ProductionLotNo)
 );
 IF OBJECT_ID('dbo.InboundReceipts','U') IS NULL
 CREATE TABLE dbo.InboundReceipts (

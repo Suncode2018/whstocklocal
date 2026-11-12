@@ -15,12 +15,12 @@ router.use((req, res, next) => {
 // Aggregate before joining products so multiple locations never duplicate totals.
 const balanceQuery = `
   WITH LocationStock AS (
-    SELECT ProductId, LocationCode, SUM(Quantity) AS Quantity, MAX(UpdatedAt) AS LastUpdated
+    SELECT ProductId, LocationCode, CASE WHEN EXISTS(SELECT 1 FROM dbMaster.dbo.Locations l WHERE l.whid=tblStock.whid AND l.LocationCode=tblStock.LocationCode AND UPPER(l.Zone)='DAMAGE') THEN 1 ELSE 0 END IsDamage, SUM(Quantity) AS Quantity, MAX(UpdatedAt) AS LastUpdated
     FROM [dbWMS].[dbo].[tblStock]
     WHERE /*WAREHOUSE_SCOPE*/
-    GROUP BY ProductId, LocationCode
+    GROUP BY ProductId, whid, LocationCode
   ), StockBalance AS (
-    SELECT ProductId, SUM(Quantity) AS TotalStock, MAX(LastUpdated) AS LastUpdated,
+    SELECT ProductId, SUM(Quantity) AS TotalStock, SUM(CASE WHEN IsDamage=1 THEN Quantity ELSE 0 END) DamageStock, MAX(LastUpdated) AS LastUpdated,
       STRING_AGG(CAST(CONCAT(LocationCode, N' (', Quantity, N')') AS NVARCHAR(MAX)), N', ')
         WITHIN GROUP (ORDER BY LocationCode) AS LocationDetails
     FROM LocationStock
@@ -31,7 +31,7 @@ const balanceQuery = `
     p.ProductName, p.ProductName AS ItemName, p.ThaiName, p.Barcode,
     p.CategoryId, p.IsActive, p.MinStock, p.MaxStock,
     COALESCE(u.UnitCode, p.PackageType, N'') AS UOM,
-    COALESCE(s.TotalStock, 0) AS TotalStock, COALESCE(t.TransitStock,0) AS TransitStock, COALESCE(s.TotalStock,0)+COALESCE(t.TransitStock,0) AS OwnedStock,
+    COALESCE(s.TotalStock, 0) AS TotalStock, COALESCE(s.DamageStock,0) DamageStock, COALESCE(s.TotalStock,0)-COALESCE(s.DamageStock,0) UsableStock, COALESCE(t.TransitStock,0) AS TransitStock, COALESCE(s.TotalStock,0)+COALESCE(t.TransitStock,0) AS OwnedStock,
     COALESCE(s.LocationDetails, N'') AS LocationDetails, s.LastUpdated
   FROM [dbMaster].[dbo].[tblProducts] p
   LEFT JOIN [dbMaster].[dbo].[tblUnits] u ON u.UnitId = p.UnitId
@@ -53,11 +53,12 @@ router.get('/balance', async (req, res) => {
     res.json({ success: true, data: req.navigation?.user.Role==='ADMIN'||req.navigation?.profile.DESKTOP.includes('STOCK')?result.recordset:require('../middleware/product-scope').filter(req,result.recordset) });
   } catch (err) {
     console.error('Stock balance query failed:', err.code);
-    res.status(500).json({ success: false, message: 'ไม่สามารถโหลดรายงานสต๊อกจากฐานข้อมูลได้' });
+    require('../services/sql-timeout-diagnostics')(poolPromise,'GET /stock/balance',err);
+    res.status(err.code==='ETIMEOUT'?503:500).json({ success: false, message: err.code==='ETIMEOUT'?'ฐานข้อมูลตอบช้าในการโหลดยอดสต๊อก กรุณากดรีเฟรชอีกครั้ง':'ไม่สามารถโหลดรายงานสต๊อกจากฐานข้อมูลได้' });
   }
 });
 
-router.get('/containers/:productId',async(req,res)=>{try{const id=Number(req.params.productId);if(!Number.isInteger(id)||id<=0||id>2147483647)return res.status(400).json({success:false,message:'รหัสสินค้าไม่ถูกต้อง'});const p=await poolPromise,product=(await p.request().input('P',sql.Int,id).query('SELECT p.ProductId,p.ProductCode,p.ProductName,p.CategoryId,u.UnitCode FROM dbMaster.dbo.tblProducts p LEFT JOIN dbMaster.dbo.tblUnits u ON u.UnitId=p.UnitId WHERE ProductId=@P')).recordset[0];const stockAllowed=req.navigation?.user.Role==='ADMIN'||require('../middleware/navigation').hasAction(req.navigation.profile,req.navigation.mode,'STOCK','VIEW');if(!product||!stockAllowed&&!require('../middleware/product-scope').can(req,product.CategoryId,'VIEW'))return res.status(403).json({success:false,message:'ไม่มีสิทธิ์ดูสต๊อกสินค้านี้'});const pred=require('../middleware/warehouse-scope').predicate(req,'c.WhId');const rows=(await p.request().input('P',sql.Int,id).query(`SELECT c.ContainerId,c.ContainerCode,c.WhId,w.whname,w.whdescription,c.LocationCode,c.Status,c.LotNo,c.CapacityBase,c.RemainingBase,c.ExpiryDate,COALESCE(r.ReceivedAt,c.CreatedAt) ReceivedAt,o.ReferenceNo PONo,o.ReceiveNo,o.SupplierName,COALESCE(rp.PackUnit,s.PackUnit,N'ภาชนะ') PackUnit,CASE WHEN o.InboundId IS NULL THEN 1 ELSE 0 END LegacyRegistration FROM dbWMS.dbo.RMContainers c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.WhId LEFT JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=c.InboundReceiptId LEFT JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId LEFT JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId LEFT JOIN dbWMS.dbo.RMInboundPacks rp ON rp.LineId=l.LineId LEFT JOIN dbMaster.dbo.tblRMPackSpecs s ON s.ProductId=c.ProductId WHERE c.ProductId=@P AND c.RemainingBase>0 AND (`+pred+`) ORDER BY COALESCE(r.ReceivedAt,c.CreatedAt),c.ContainerId;SELECT whid,LocationCode,Quantity FROM dbWMS.dbo.tblStock c WHERE ProductId=@P AND (`+require('../middleware/warehouse-scope').predicate(req,'c.whid')+`);`)).recordsets;res.json({success:true,product,containers:rows[0],stock:rows[1]})}catch(e){res.status(500).json({success:false,message:'โหลดรายละเอียดกล่องไม่สำเร็จ'})}});
+router.get('/containers/:productId',async(req,res)=>{try{const id=Number(req.params.productId);if(!Number.isInteger(id)||id<=0||id>2147483647)return res.status(400).json({success:false,message:'รหัสสินค้าไม่ถูกต้อง'});const p=await poolPromise,product=(await p.request().input('P',sql.Int,id).query('SELECT p.ProductId,p.ProductCode,p.ProductName,p.CategoryId,u.UnitCode FROM dbMaster.dbo.tblProducts p LEFT JOIN dbMaster.dbo.tblUnits u ON u.UnitId=p.UnitId WHERE ProductId=@P')).recordset[0];const stockAllowed=req.navigation?.user.Role==='ADMIN'||require('../middleware/navigation').hasAction(req.navigation.profile,req.navigation.mode,'STOCK','VIEW');if(!product||!stockAllowed&&!require('../middleware/product-scope').can(req,product.CategoryId,'VIEW'))return res.status(403).json({success:false,message:'ไม่มีสิทธิ์ดูสต๊อกสินค้านี้'});const pred=require('../middleware/warehouse-scope').predicate(req,'c.WhId');const rows=(await p.request().input('P',sql.Int,id).query(`SELECT c.ContainerId,c.ContainerCode,c.WhId,w.whname,w.whdescription,c.LocationCode,c.Status,c.LotNo,c.CapacityBase,c.RemainingBase,c.ExpiryDate,COALESCE(r.ReceivedAt,c.CreatedAt) ReceivedAt,o.ReferenceNo PONo,o.ReceiveNo,o.SupplierName,COALESCE(rp.PackUnit,s.PackUnit,N'ภาชนะ') PackUnit,CASE WHEN o.InboundId IS NULL THEN 1 ELSE 0 END LegacyRegistration FROM dbWMS.dbo.RMContainers c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.WhId LEFT JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=c.InboundReceiptId LEFT JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId LEFT JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId LEFT JOIN dbWMS.dbo.RMInboundPacks rp ON rp.LineId=l.LineId LEFT JOIN dbMaster.dbo.tblRMPackSpecs s ON s.ProductId=c.ProductId WHERE c.ProductId=@P AND c.RemainingBase>0 AND (`+pred+`) ORDER BY COALESCE(r.ReceivedAt,c.CreatedAt),c.ContainerId;SELECT c.whid,w.whname,w.whdescription,c.LocationCode,CASE WHEN EXISTS(SELECT 1 FROM dbMaster.dbo.Locations l WHERE l.whid=c.whid AND l.LocationCode=c.LocationCode AND UPPER(l.Zone)='DAMAGE') THEN 1 ELSE 0 END IsDamage,SUM(c.Quantity) Quantity FROM dbWMS.dbo.tblStock c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.whid WHERE c.ProductId=@P AND (`+require('../middleware/warehouse-scope').predicate(req,'c.whid')+`) GROUP BY c.whid,w.whname,w.whdescription,c.LocationCode ORDER BY w.whname,c.LocationCode;`)).recordsets;const packing=(await p.request().input('P',sql.Int,id).query(`SELECT TOP 1 v.VersionNo,v.EffectiveFrom,v.PackUnit,v.UnitsPerPack,v.StockUnitLabel,v.NetVolumeMlPerUnit,v.NetWeightGramsPerUnit,v.OuterPackUnit,v.PacksPerOuter FROM dbMaster.dbo.tblProductPackVersions v JOIN dbMaster.dbo.tblProducts p ON p.ProductId=v.ProductId AND p.UnitId=v.StockUnitId WHERE v.ProductId=@P AND v.IsActive=1 AND v.EffectiveFrom<=CONVERT(date,DATEADD(hour,7,SYSUTCDATETIME())) ORDER BY v.EffectiveFrom DESC,v.VersionNo DESC`)).recordset[0]||null;res.set('Cache-Control','no-store');const lots=await require('../services/stock-lot-details').load(p,sql,id,rows[1]);res.json({success:true,product,packing,containers:rows[0],stock:rows[1],lots})}catch(e){res.status(500).json({success:false,message:'โหลดรายละเอียดกล่องไม่สำเร็จ'})}});
 router.get('/lookup', async (req, res) => {
   const code = String(req.query.code || req.query.barcode || '').trim();
   if (!code || code.length > 100) return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสสินค้าหรือบาร์โค้ดไม่เกิน 100 ตัวอักษร' });
@@ -77,7 +78,7 @@ router.get('/lookup', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json({ success: true, product: {
       itemCode: product.ItemCode, itemName: product.ItemName, barcode: product.Barcode,
-      uom: product.UOM, totalQuantity: product.TotalStock, transitQuantity:product.TransitStock, ownedQuantity:product.OwnedStock, locations: locations.recordset
+      uom: product.UOM, totalQuantity: product.TotalStock, damageQuantity:product.DamageStock, usableQuantity:product.UsableStock, transitQuantity:product.TransitStock, ownedQuantity:product.OwnedStock, locations: locations.recordset
     } });
   } catch (err) {
     console.error('Stock lookup query failed:', err.code);
@@ -99,7 +100,7 @@ router.get('/adjustment-context/:productId', requireStockAdmin, async (req, res)
       SELECT p.ProductId,p.ProductCode,p.ProductName,p.ThaiName,p.Barcode,p.IsActive,
         COALESCE(u.UnitCode,p.PackageType,N'') AS UOM
       FROM dbMaster.dbo.tblProducts p LEFT JOIN dbMaster.dbo.tblUnits u ON u.UnitId=p.UnitId WHERE p.ProductId=@ProductId;
-      SELECT whid,whname FROM dbMaster.dbo.tblWH ORDER BY whid;
+      SELECT whid,whname,whdescription FROM dbMaster.dbo.tblWH ORDER BY whid;
       SELECT whid,LocationCode FROM dbMaster.dbo.Locations WHERE IsActive=1 ORDER BY whid,LocationCode;
       SELECT whid,LocationCode,Quantity FROM dbWMS.dbo.tblStock WHERE ProductId=@ProductId;
     `);
@@ -149,6 +150,9 @@ router.post('/adjust', requireStockAdmin, async (req, res) => {
     await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
     await new sql.Request(transaction).input('Wh',sql.Int,whid).query('SELECT whid FROM dbMaster.dbo.tblWH WITH(UPDLOCK,HOLDLOCK) WHERE whid=@Wh');
     if(Number(quantity)!==Number(expectedQuantity)&&(await new sql.Request(transaction).input('Wh',sql.Int,whid).input('P',sql.Int,productId).input('Loc',sql.NVarChar(50),locationCode).query('SELECT TOP 1 ContainerId FROM dbWMS.dbo.RMContainers WITH(UPDLOCK,HOLDLOCK) WHERE WhId=@Wh AND ProductId=@P AND LocationCode=@Loc AND RemainingBase>0')).recordset.length)throw Object.assign(Error('RM นี้ควบคุมระดับภาชนะ ไม่สามารถปรับยอดรวมแยกจากยอดภาชนะ'),{status:409});
+    const damage=(await new sql.Request(transaction).input('W',sql.Int,whid).input('L',sql.NVarChar(50),locationCode.trim()).query("SELECT Zone FROM dbMaster.dbo.Locations WHERE whid=@W AND LocationCode=@L")).recordset[0];
+    if(String(damage?.Zone).toUpperCase()==='DAMAGE'&&!require('../services/damage-locations').isAdmin(req))throw Object.assign(Error('เฉพาะ ADMIN ปรับยอดสินค้า DAMAGE ได้'),{status:403});
+    await require('../services/damage-locations').authorize(()=>new sql.Request(transaction),req);
     const result = await new sql.Request(transaction)
       .input('ProductId',sql.Int,productId).input('WhId',sql.Int,whid)
       .input('LocationCode',sql.NVarChar(50),locationCode.trim())
@@ -160,6 +164,7 @@ router.post('/adjust', requireStockAdmin, async (req, res) => {
     res.json({success:true,...result.recordset[0]});
   } catch (err) {
     if (transaction) { try { await transaction.rollback(); } catch (_) {} }
+    if(err.number===51070)err.status=403;
     if(err.status) return res.status(err.status).json({success:false,message:err.message});
     const number = err.number || err.originalError?.info?.number;
     if ([50001,50002,50003,50004].includes(number)) return res.status(number===50004?409:400).json({success:false,message:err.message});

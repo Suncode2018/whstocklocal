@@ -159,7 +159,7 @@
 <link rel="stylesheet" href="/css/admin-login-theme.css?v=20261106-1">
 <link rel="stylesheet" href="/css/master-extensions.css?v=20261106-supplier-layout">
 <link rel="stylesheet" href="/css/supplier-ui.css?v=20261107-1"><link rel="stylesheet" href="/css/access-groups.css?v=20261107-1"><style>#warehouseAccessUsers[hidden],#whTableBody button[hidden],[onclick="openAddWH()"][hidden]{display:none!important}</style><link rel="stylesheet" href="/css/product-editor.css?v=20261108-unified-editor"><link rel="stylesheet" href="/css/bom-editor.css?v=20261108">
-<link rel="stylesheet" href="/css/product-summary.css?v=20261108-values-only">
+<link rel="stylesheet" href="/css/product-summary.css?v=20261112-values-only">
 </head>
 <body class="admin-login-theme supplier-ui">
 
@@ -681,7 +681,7 @@
           </div>
           <div class="col-4">
             <label class="form-label fw-bold" for="modalLocZone">โซน (Zone) *</label>
-            <input type="text" id="modalLocZone" class="form-control text-uppercase" placeholder="เช่น A, RCV" required>
+            <input type="text" id="modalLocZone" class="form-control text-uppercase" list="locationZoneTypes" placeholder="เลือกหรือพิมพ์โซน" required><datalist id="locationZoneTypes"><option value="A">จัดเก็บปกติ A</option><option value="B">จัดเก็บปกติ B</option><option value="RCV">รับเข้า</option><option value="OUT">พักส่ง</option><option value="DAMAGE">สินค้าชำรุด · นำออกเฉพาะ Admin</option></datalist><div class="small text-muted mt-2">DAMAGE: ดูยอดได้ตามสิทธิ์ · ย้ายเข้าได้ · นำออกหรือปรับยอดเฉพาะ ADMIN</div>
           </div>
         </div>
         <div class="mb-3">
@@ -713,7 +713,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button type="button" class="btn btn-indigo" onclick="saveLocation()">บันทึก</button>
+        <button type="button" class="btn btn-indigo" id="locSaveButton" onclick="saveLocation()">บันทึก</button>
       </div>
     </div>
   </div>
@@ -830,9 +830,9 @@
 <dialog id="cpDialog" class="extension-dialog"><form onsubmit="saveCustomerProduct(event)"><div class="dialog-head"><h5 id="cpTitle" class="mb-0"></h5><button type="button" class="btn-close" onclick="closeCustomerProduct()" aria-label="ปิด"></button></div><div class="dialog-body"><div class="hint mb-3">เลือกลูกค้า → เลือกสินค้าในกลุ่มที่ลูกค้ารับ → ระบุรหัสของลูกค้าหากมี</div><fieldset id="cpFields"><div class="row g-3"><div class="col-12"><label for="cpCustomer">ลูกค้า *</label><select id="cpCustomer" class="form-select" required onchange="document.getElementById('cpProduct').value='';customerProductOptions()"></select></div><div class="col-12"><label for="cpProduct">สินค้าในระบบ *</label><input id="cpProduct" class="form-control" list="cpProductOptions" placeholder="พิมพ์รหัสสินค้าแล้วเลือกจากรายการ" required><datalist id="cpProductOptions"></datalist></div><div class="col-md-6"><label for="cpCode">รหัสสินค้าของลูกค้า</label><input id="cpCode" class="form-control" maxlength="60" placeholder="ไม่บังคับ"></div><div class="col-md-6"><label for="cpName">ชื่อสินค้าของลูกค้า</label><input id="cpName" class="form-control" maxlength="255" placeholder="ชื่อที่ลูกค้าใช้อ้างอิง"></div><div class="col-12"><label for="cpNote">หมายเหตุ</label><textarea id="cpNote" class="form-control" rows="2" maxlength="500"></textarea></div><div class="col-12"><label><input id="cpEnabled" type="checkbox" checked> เปิดใช้งาน</label></div></div></fieldset><p id="cpError" class="error mt-3" role="alert"></p></div><div class="dialog-foot"><button type="button" class="btn btn-outline-secondary" onclick="closeCustomerProduct()">ยกเลิก</button><button id="cpSave" class="btn btn-primary">บันทึก</button></div></form></dialog><dialog id="cpHistory" class="extension-dialog"><div class="dialog-head"><h5 class="mb-0">ประวัติลูกค้า–สินค้า</h5><button class="btn-close" onclick="document.getElementById('cpHistory').close()" aria-label="ปิด"></button></div><div id="cpHistoryBody" class="dialog-body"></div></dialog><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261107-http-uuid"></script>
-<script src="/js/admin-stock.js?v=20261107-box-details"></script>
-<script src="/js/product-pack-versions.js?v=20261107-1"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/admin-products.js?v=20261108-values-only"></script>
-<script src="/js/admin-locations.js?v=20261107-capacity"></script>
+<script src="/js/packing-levels.js?v=20261112-3"></script><script src="/js/admin-stock.js?v=20261113-damage"></script>
+<script src="/js/product-pack-versions.js?v=20261112-three-level"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/admin-products.js?v=20261113-damage"></script>
+<script src="/js/admin-locations.js?v=20261113-damage"></script>
 <script src="/js/shortage-reasons.js?v=20261106-two-roles"></script>
 <script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
 <script src="/js/admin-users.js?v=20261107-manual-reset"></script>

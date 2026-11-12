@@ -3,6 +3,7 @@
    ============================================================ */
 
 let editingLocationId = null;
+let locationSaving = false;
 let warehousesCache = [];
 
 // ฟังก์ชัน Fetch แบบปลอดภัย (ลองทั้ง 2 Path กรณีตั้ง Route ต่างกัน)
@@ -62,6 +63,7 @@ async function loadLocationsMaster(showToast = false) {
       const code = loc.LocationCode || '-';
       const zone = loc.Zone || '-';
       const desc = loc.Description || '-';
+      const damageLocked=zone.toUpperCase()==='DAMAGE'&&!(typeof wmsNavigation!=='undefined'&&String(wmsNavigation?.user?.role||wmsNavigation?.user?.Role).toUpperCase()==='ADMIN');
       const isActive = loc.IsActive !== false && loc.IsActive !== 0;
 
       const w = loc.CapacityWidthCm ? parseFloat(loc.CapacityWidthCm) : 0;
@@ -80,16 +82,16 @@ async function loadLocationsMaster(showToast = false) {
           <td class="text-center text-muted fw-semibold">${index + 1}</td>
           <td><span class="badge bg-secondary-subtle text-dark border">${whName}</span></td>
           <td><strong class="text-indigo font-monospace fs-6">${code}</strong></td>
-          <td><span class="badge bg-light text-dark border">${zone}</span></td>
+          <td><span class="badge bg-light text-dark border">${zone==='DAMAGE'?'DAMAGE · ชำรุด':zone}</span></td>
           <td><span class="small">${vol} cm³</span></td>
           <td><span class="text-muted small">${w && l && h ? `${w}×${l}×${h} cm` : '-'}</span></td>
           <td>${desc}</td>
           <td>${statusBadge}</td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick='openEditLocation(${locDataStr})' title="แก้ไข">
+            <button class="btn btn-sm btn-outline-primary border-0 me-1" ${damageLocked?'disabled':''} onclick='openEditLocation(${locDataStr})' title="แก้ไข">
               <i class="bi bi-pencil-square fs-6"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteLocation(${id})" title="ลบ">
+            <button class="btn btn-sm btn-outline-danger border-0" ${damageLocked?'disabled':''} onclick="deleteLocation(${id})" title="ลบ">
               <i class="bi bi-trash fs-6"></i>
             </button>
           </td>
@@ -148,6 +150,7 @@ function openEditLocation(loc) {
 }
 
 async function saveLocation() {
+  if(locationSaving)return;
   const whid = parseInt(document.getElementById('modalLocWhId').value, 10);
   const locationCode = document.getElementById('modalLocCode').value.trim().toUpperCase();
   const zone = document.getElementById('modalLocZone').value.trim().toUpperCase();
@@ -189,6 +192,7 @@ async function saveLocation() {
   const url = editingLocationId ? `${baseUrl}/${editingLocationId}` : baseUrl;
   const method = editingLocationId ? 'PUT' : 'POST';
 
+  locationSaving=true;const saveButton=document.getElementById('locSaveButton');if(saveButton){saveButton.disabled=true;saveButton.textContent='กำลังบันทึก...';}
   try {
     const res = await fetch(url, {
       method,
@@ -196,6 +200,11 @@ async function saveLocation() {
       body: JSON.stringify(payload)
     });
     const data = await res.json();
+    if(res.status===409){
+      const duplicate=data.code==='DUPLICATE_LOCATION';
+      await Swal.fire({icon:'warning',title:duplicate?'รหัสโลเคชั่นซ้ำ':'ไม่สามารถปิดใช้งานโลเคชั่นได้',text:data.error,confirmButtonText:'กลับไปตรวจสอบ'});
+      if(duplicate){document.getElementById('modalLocCode').focus();document.getElementById('modalLocCode').select();}return;
+    }
     if (!res.ok) throw new Error(data.error || 'บันทึกไม่สำเร็จ');
 
     bootstrap.Modal.getInstance(document.getElementById('locModal')).hide();
@@ -203,7 +212,7 @@ async function saveLocation() {
     loadLocationsMaster();
   } catch (err) {
     Swal.fire('ผิดพลาด', err.message, 'error');
-  }
+  } finally {locationSaving=false;if(saveButton){saveButton.disabled=false;saveButton.textContent='บันทึก';}}
 }
 
 async function deleteLocation(id) {
@@ -225,6 +234,7 @@ async function deleteLocation(id) {
       headers: typeof authHeaders === 'function' ? authHeaders() : {}
     });
     const data = await res.json();
+    if(res.status===409){await Swal.fire({icon:'warning',title:'ไม่สามารถปิดใช้งานโลเคชั่นได้',text:data.error,confirmButtonText:'รับทราบ'});return;}
     if (!res.ok) throw new Error(data.error || 'ลบไม่สำเร็จ');
 
     Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', timer: 1500, showConfirmButton: false });
