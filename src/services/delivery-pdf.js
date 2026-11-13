@@ -11,6 +11,7 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  const company=require('./company-profile').documentCompany(order);
  const copyLabels=['ต้นฉบับ (สำหรับลูกค้า)','สำเนาที่ 1 (สำหรับลูกค้า)','สำเนาที่ 2 (สำหรับ'+text(company.NameTH)+')'];
  let copyLabel=copyLabels[0];
+ function copyColor(){return copyLabel===copyLabels[2]?'#dc2626':'#172033';}
  const left=36,width=doc.page.width-72,right=left+width,bottom=778;let y=36;
  const status={DRAFT:'ร่าง - ยังไม่ยืนยันส่งจริง',SENT:'ส่งสินค้าแล้ว',RECEIVED:'ปลายทางรับสินค้าแล้ว',CANCELLED:'ยกเลิกเอกสาร'}[order.Status]||text(order.Status);
  const type={WAREHOUSE:'ส่งระหว่างคลัง',FACTORY:'ส่งโรงงาน',CUSTOMER:'ส่งลูกค้า',CLINIC:'ส่งคลินิก',FULFILLMENT:'ส่ง Fulfillment'}[order.DeliveryType]||'';
@@ -30,9 +31,9 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  doc.rect(left+width/2-57,83,114,39).fill('#eef0f3');write('ใบส่งสินค้าชั่วคราว',left+width/2-57,88,114,10,true,{align:'center'});write('DELIVERY ORDER',left+width/2-57,105,114,9,true,{align:'center'});
  const billing=text(order.BillingAddress||order.ShippingAddress);
  const customer=['ลูกค้า / CUSTOMER',text(order.DestinationName),order.BranchName?text(order.BranchName):'', 'ที่อยู่ : '+billing,order.ShippingAddress&&text(order.ShippingAddress)!==billing?'จัดส่ง : '+text(order.ShippingAddress):'', 'โทร / Tel : '+text(order.Phone||'-'),'เลขผู้เสียภาษี / TAX ID : '+text(order.TaxId||'-')].filter(Boolean).join('\n');
- const meta=['เลขที่ / NO. : '+text(order.DeliveryNo),'วันที่ / DATE : '+deliveryDate(order.DeliveryDate),'เครดิต / CREDIT : -','ครบกำหนดชำระ / DUE DATE : -',copyLabel].join('\n');
- y=Math.max(139,55+height(company.AddressTH+'\nโทร : '+company.Phone+'\nเลขผู้เสียภาษี : '+company.TaxId,205,9),55+height(company.AddressEN+'\nTel : '+company.Phone+'\nTax ID : '+company.TaxId,205,9));write(customer,left,y,310,10);write(meta,left+330,y,width-330,9);y+=Math.max(height(customer,310,10),height(meta,width-330,9))+15;
- }else{write('ใบส่งสินค้าชั่วคราว / DELIVERY ORDER',left,y,width,14,true);const subtitle=text(order.DeliveryNo)+' | '+text(order.DestinationName)+'\n'+copyLabel;write(subtitle,left,y+26,width,10);y+=26+height(subtitle,width,10)+12;}
+ const meta=['เลขที่ / NO. : '+text(order.DeliveryNo),'วันที่ / DATE : '+deliveryDate(order.DeliveryDate),'เครดิต / CREDIT : -','ครบกำหนดชำระ / DUE DATE : -'].join('\n');
+ y=Math.max(139,55+height(company.AddressTH+'\nโทร : '+company.Phone+'\nเลขผู้เสียภาษี : '+company.TaxId,205,9),55+height(company.AddressEN+'\nTel : '+company.Phone+'\nTax ID : '+company.TaxId,205,9));write(customer,left,y,310,10);write(meta,left+330,y,width-330,9);const metaHeight=height(meta,width-330,9);write(copyLabel,left+330,y+metaHeight,width-330,9,false,{color:copyColor()});y+=Math.max(height(customer,310,10),metaHeight+height(copyLabel,width-330,9))+15;
+ }else{write('ใบส่งสินค้าชั่วคราว / DELIVERY ORDER',left,y,width,14,true);const subtitle=text(order.DeliveryNo)+' | '+text(order.DestinationName);write(subtitle,left,y+26,width,10);const subtitleHeight=height(subtitle,width,10);write(copyLabel,left,y+26+subtitleHeight,width,10,false,{color:copyColor()});y+=26+subtitleHeight+height(copyLabel,width,10)+12;}
  }
  // Keep the A4 table width fixed; give quantities more room by reducing the description column.
  const columns=[left,left+27,left+239,left+309,left+345,left+405,left+458,right];
