@@ -1,7 +1,105 @@
 # WH Stock Windows Service — Port 5555
 
-ใช้บนเครื่อง DESKTOP-RT67GE0 โดยติดตั้ง Node.js แบบทั้งเครื่อง (64-bit, Node.js 18 ขึ้นไป)
+รองรับ LAPTOP-T4RLHQUE และ DESKTOP-RT67GE0 โดยติดตั้ง Node.js แบบทั้งเครื่อง (64-bit, Node.js 18 ขึ้นไป)
 สคริปต์ใช้ WinSW 2.12.0 จาก GitHub ทางการ และไม่ต้องติดตั้ง npm package เพิ่มสำหรับ Service
+
+## สรุปติดตั้งบน LAPTOP-T4RLHQUE
+
+เปิด **PowerShell แบบ Run as administrator บน LAPTOP-T4RLHQUE**
+
+### 1. อัปเดตโปรแกรม
+
+```powershell
+cd C:\code\whstocklocal
+git status
+git pull --ff-only origin main
+npm ci
+```
+
+หากมีไฟล์แก้ไขค้าง ให้จัดการงานนั้นก่อน pull ไม่ใช้คำสั่งทิ้งไฟล์อัตโนมัติ
+
+### 2. ตรวจไฟล์ .env
+
+แก้เฉพาะค่าที่เกี่ยวข้อง และเก็บ DB_USER, DB_PASSWORD, JWT_SECRET เดิมไว้:
+
+```dotenv
+PORT=5555
+APP_HOST=LAPTOP-T4RLHQUE
+DB_SERVER=LAPTOP-T4RLHQUE
+DB_DATABASE=dbMaster
+DB_PORT=1433
+DB_ENCRYPT=false
+DB_TRUST_SERVER_CERTIFICATE=true
+```
+
+ต้องมีทั้ง dbMaster และ dbWMS โดย SQL Login เข้าถึงได้ทั้งสองฐาน
+หากมีข้อมูลเดิมบน Laptop แล้ว ไม่ต้อง Restore ทับ
+Git pull ไม่ย้าย .env หรือข้อมูลฐานข้อมูล และไม่ติดตั้ง migration ให้อัตโนมัติ
+ไม่ต้องแก้ src/config/db.js หรือ src/server.js
+
+### 3. ตรวจและติดตั้ง Service พอร์ต 5555
+
+```powershell
+node createport/install.js check --host LAPTOP-T4RLHQUE --db-server LAPTOP-T4RLHQUE
+node createport/install.js install --host LAPTOP-T4RLHQUE --db-server LAPTOP-T4RLHQUE
+node createport/install.js status
+```
+
+ต้องระบุ host และ db-server เพราะค่าเริ่มต้นของสคริปต์เป็น DESKTOP-RT67GE0
+หากมี Service WHStock5555 บน Laptop อยู่แล้ว ให้ใช้ขั้นตอนอัปเดตด้านล่าง
+
+เปิดเว็บ:
+
+- บน Laptop: http://localhost:5555
+- เครื่องอื่นในเครือข่าย: http://LAPTOP-T4RLHQUE:5555
+
+### 4. อัปเดตเมื่อมี Service บน Laptop แล้ว
+
+ทำช่วงที่ไม่มีผู้ใช้บันทึกรายการ ใน PowerShell แบบผู้ดูแล:
+
+```powershell
+cd C:\code\whstocklocal
+git status
+git pull --ff-only origin main
+node createport/install.js stop --host LAPTOP-T4RLHQUE
+npm ci
+```
+
+หากรุ่นใหม่มี migration ให้สำรองฐานข้อมูล อ่าน README ของ migration และรันเฉพาะที่จำเป็น
+ตรวจ DB_SERVER ใน .env ก่อนรัน migration เพราะคำสั่งที่เรียกเองไม่ได้รับ environment ของ Service
+อย่ารันไฟล์ SQL ทั้งโฟลเดอร์ เพราะอาจมีสคริปต์ Reset หรือลบข้อมูล
+จากนั้นเริ่ม Service และกด Ctrl+F5 ที่หน้าเว็บ:
+
+```powershell
+node createport/install.js start --host LAPTOP-T4RLHQUE
+node createport/install.js status
+```
+
+หากต้องการเพียงรีสตาร์ท:
+
+```powershell
+node createport/install.js restart --host LAPTOP-T4RLHQUE
+```
+
+คำสั่ง start/stop/restart/uninstall บน Laptop ต้องระบุ --host LAPTOP-T4RLHQUE ทุกครั้ง
+status และ logs ไม่ต้องระบุ host โดย logs แสดงตำแหน่งโฟลเดอร์ log
+
+### 5. ติดตั้งใหม่เมื่อ Service เดิมชี้เครื่องหรือโฟลเดอร์ผิด
+
+```powershell
+node createport/install.js uninstall --host LAPTOP-T4RLHQUE
+node createport/install.js install --host LAPTOP-T4RLHQUE --db-server LAPTOP-T4RLHQUE
+```
+
+Uninstall ไม่ลบโค้ด .env หรือฐานข้อมูล
+Dev พอร์ต 3000 ใช้คู่กับ Service 5555 ได้ แต่ถ้าชี้ฐานข้อมูลเดียวกันจะใช้ยอดสต๊อกชุดเดียวกัน
+หากต้องการให้ npm start ของ Dev ใช้พอร์ต 3000 ให้คง PORT=3000 ใน .env ได้ เพราะ Service กำหนด PORT=5555 แยกไว้
+ไม่เปิด npm start ที่พอร์ต 5555 ซ้ำกับ Service
+
+## ขั้นตอนสำหรับ DESKTOP-RT67GE0
+
+คำสั่งด้านล่างใช้ค่าเริ่มต้นของสคริปต์สำหรับ DESKTOP-RT67GE0
+หากใช้บน Laptop ให้เพิ่ม --host LAPTOP-T4RLHQUE และตอน check/install เพิ่ม --db-server LAPTOP-T4RLHQUE
 
 ## เตรียมก่อนติดตั้ง
 
