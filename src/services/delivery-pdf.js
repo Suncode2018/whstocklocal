@@ -32,7 +32,16 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  y=Math.max(139,55+height(company.AddressTH+'\nโทร : '+company.Phone+'\nเลขผู้เสียภาษี : '+company.TaxId,205,9),55+height(company.AddressEN+'\nTel : '+company.Phone+'\nTax ID : '+company.TaxId,205,9));write(customer,left,y,310,10);write(meta,left+330,y,width-330,9);y+=Math.max(height(customer,310,10),height(meta,width-330,9))+15;
  }else{write('ใบส่งสินค้าชั่วคราว / DELIVERY ORDER',left,y,width,14,true);write(text(order.DeliveryNo)+' | '+text(order.DestinationName),left,y+26,width,10);y+=55;}
  }
- const columns=[left,left+27,left+267,left+309,left+345,left+405,left+458,right];
+ // Keep the A4 table width fixed; give quantities more room by reducing the description column.
+ const columns=[left,left+27,left+239,left+309,left+345,left+405,left+458,right];
+ function writeQuantity(value,top){
+  const label=Number(value).toLocaleString('th-TH',{maximumFractionDigits:2});
+  const padding=5,cellWidth=columns[3]-columns[2]-padding*2;
+  doc.font('ThaiBold').fontSize(11);
+  const measured=doc.widthOfString(label);
+  const size=measured>cellWidth?11*(cellWidth-1)/measured:11;
+  write(label,columns[2]+padding,top,cellWidth,size,true,{align:'right',lineBreak:false});
+ }
  function tableHeader(){const heads=['ลำดับ\nITEM','รายการ\nDESCRIPTION','จำนวน\nQTY','หน่วย\nUNIT','หน่วยละ\nUNIT PRICE','ส่วนลด\nDISCOUNT','จำนวนเงิน\nAMOUNT'];doc.rect(left,y,width,35).fill('#f3f4f6');for(let i=0;i<heads.length;i++)write(heads[i],columns[i]+2,y+5,columns[i+1]-columns[i]-4,i===0?6:8,true,{align:'center'});doc.strokeColor('#555').lineWidth(.6).rect(left,y,width,35).stroke();y+=35;}
  function newPage(withTable=true){doc.addPage();header(false);if(withTable)tableHeader();}
  header(true);if(y+75>bottom)newPage();else tableHeader();
@@ -40,7 +49,7 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
   const l=lines[i];const detail=text(l.ProductName)+'\n'+text(l.ProductCode)+(l.PackDescription?'\n'+text(l.PackDescription):'');const blocks=detail.split('\n');let parts=[];
   // Bound very long individual descriptions without clipping; continuation rows retain the item number.
   let part='';for(const character of Array.from(detail)){const trial=part+character;if(part&&height(trial,columns[2]-columns[1]-14)>190){parts.push(part);part=character}else part=trial;}if(part)parts.push(part);
-  let first=true;for(const part of parts){const rowHeight=Math.max(32,height(part,columns[2]-columns[1]-14)+16);if(y+rowHeight>bottom)newPage();doc.strokeColor('#777').lineWidth(.5);for(const x of columns)doc.moveTo(x,y).lineTo(x,y+rowHeight).stroke();write(first?String(i+1):'ต่อ',columns[0]+5,y+8,columns[1]-columns[0]-10,10,false,{align:'center'});write(part,columns[1]+7,y+7,columns[2]-columns[1]-14,11,first);write(first?Number(l.Quantity).toLocaleString('th-TH',{maximumFractionDigits:2}):'',columns[2]+5,y+8,columns[3]-columns[2]-10,11,true,{align:'right'});write(first?text(l.UOM||'-'):'',columns[3]+4,y+8,columns[4]-columns[3]-8,10,false,{align:'center'});for(let c=4;c<7;c++)write(first?'-':'',columns[c]+2,y+8,columns[c+1]-columns[c]-4,10,false,{align:'center'});y+=rowHeight;first=false;}
+  let first=true;for(const part of parts){const rowHeight=Math.max(32,height(part,columns[2]-columns[1]-14)+16);if(y+rowHeight>bottom)newPage();doc.strokeColor('#777').lineWidth(.5);for(const x of columns)doc.moveTo(x,y).lineTo(x,y+rowHeight).stroke();write(first?String(i+1):'ต่อ',columns[0]+5,y+8,columns[1]-columns[0]-10,10,false,{align:'center'});write(part,columns[1]+7,y+7,columns[2]-columns[1]-14,11,first);if(first)writeQuantity(l.Quantity,y+8);write(first?text(l.UOM||'-'):'',columns[3]+4,y+8,columns[4]-columns[3]-8,10,false,{align:'center'});for(let c=4;c<7;c++)write(first?'-':'',columns[c]+2,y+8,columns[c+1]-columns[c]-4,10,false,{align:'center'});y+=rowHeight;first=false;}
  }
  const reference=[order.PoNo?'อ้างอิง : '+text(order.PoNo):'',order.SoNo?text(order.SoNo):''].filter(Boolean).join('\n');
  if(y+height(reference,230,10)+150>bottom)newPage();
