@@ -1,4 +1,5 @@
 const reportHubItems=[
+{title:'รายงานรับ–ส่งประจำวัน',icon:'calendar-check',description:'รายการรับจริงและส่งจริง แยกหมวดสินค้า คลัง และกลุ่มรับ/ส่ง',code:'REPORTS',path:'/desktop/daily-operations.html'},
 {title:'Dashboard งานคลังประจำวัน',icon:'speedometer2',description:'แผนรับ–ส่งวันนี้ งาน RCV / OUT ค้าง และแจ้งเตือนงานเกินกำหนด',planned:true},
 {title:'สต๊อกคงเหลือ / Export',icon:'boxes',description:'ยอดคงเหลือและตำแหน่งจัดเก็บ พร้อมค้นหาสินค้าและส่งออกข้อมูล',code:'STOCK',path:'/desktop/stock.html'},
 {title:'ประวัติเคลื่อนไหวสินค้า',icon:'arrow-left-right',description:'ยกมา รับ โอน เบิก ส่ง ปรับยอด และยอดคงเหลือ พร้อมผู้ทำรายการ',planned:true},

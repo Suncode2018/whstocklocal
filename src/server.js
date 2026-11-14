@@ -46,6 +46,7 @@ app.use('/api/inbound-plans',require('./routes/inbound-plans'));
 app.use('/api/delivery-plans',require('./routes/delivery-plans'));
 app.use('/api/deliveries', require('./routes/deliveries'));
 
+app.use('/api/daily-operations',require('./routes/daily-operations'));
 app.use('/api/stock-transfers', require('./routes/stock-transfers'));
 app.use('/api/bom-stock', require('./routes/bom-stock'));
 app.use('/api/bom', require('./routes/bom'));

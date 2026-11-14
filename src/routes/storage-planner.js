@@ -22,13 +22,14 @@ const snapshotSql=`
  FROM dbWMS.dbo.InboundReceipts r JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId
  WHERE o.ReceiveType='FG' AND o.IsCancelled=0;
  SELECT p.ProductId,v.PackUnit,v.UnitsPerPack,v.StockUnitLabel FROM dbMaster.dbo.tblProducts p CROSS APPLY(SELECT TOP 1 PackUnit,UnitsPerPack,StockUnitLabel FROM dbMaster.dbo.tblProductPackVersions v WHERE v.ProductId=p.ProductId AND v.StockUnitId=p.UnitId AND v.IsActive=1 AND v.EffectiveFrom<=CONVERT(date,DATEADD(hour,7,SYSUTCDATETIME())) ORDER BY EffectiveFrom DESC,VersionNo DESC)v;
+ SELECT WhId,ProductId,LocationCode,SUM(ReceivedQuantity-StoredQuantity) AS ReservedQuantity FROM dbWMS.dbo.WarehouseTransferReceipts GROUP BY WhId,ProductId,LocationCode;
 
 
 `;
 function receiptPending(records){
  const plans=records[4],receipts=records[6];
- records[1]=records[1].map(s=>({...s,...records[7].find(v=>v.ProductId===s.ProductId)}));
- return records[1].flatMap(source=>{
+ records[1]=records[1].map(s=>({...s,...records[7].find(v=>v.ProductId===s.ProductId),StockQuantity:Math.max(0,Number(s.StockQuantity)-Number(records[8]?.find(r=>r.WhId===s.whid&&r.ProductId===s.ProductId&&r.LocationCode===s.FromLocationCode)?.ReservedQuantity||0))}));
+ return records[1].flatMap(source=>{if(source.StockQuantity<=0)return [];
   // Determine FG by receipt evidence, rather than assuming numeric category IDs.
   const matching=receipts.filter(r=>r.whid===source.whid&&r.ProductId===source.ProductId&&r.FromLocationCode===source.FromLocationCode);
   if(!matching.length)return [{...source,ReceiptId:null}];

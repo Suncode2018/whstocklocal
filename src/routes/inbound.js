@@ -1606,9 +1606,8 @@ router.post('/:id/cancel', async (req, res) => {
     let tx;
 
     try {
-        if (req.user.role !== 'ADMIN') {
-            fail(403, 'เฉพาะ Admin ยกเลิกใบรับได้');
-        }
+        // Category CONFIRM permission and warehouse scope are checked by router.param.
+        const pendingOnly = req.user.role !== 'ADMIN';
 
         const reason = req.body?.reason;
 
@@ -1655,7 +1654,8 @@ router.post('/:id/cancel', async (req, res) => {
             q,
             Number(req.params.id),
             String(req.user.username || req.user.id).slice(0, 100),
-            reason.trim()
+            reason.trim(),
+            { pendingOnly }
         );
 
         await tx.commit();
