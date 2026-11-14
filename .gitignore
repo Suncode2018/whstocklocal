@@ -35,3 +35,18 @@ desktop.ini
 temp/
 tmp/
 *.xlsx
+# Local environment files (keep the shared example)
+.env.*
+!.env.example
+
+# SQL Server database backups and physical database files
+**/dbMasterBACKUP
+**/dbWMSBACKUP
+*.bak
+*.trn
+*.mdf
+*.ndf
+*.ldf
+
+# Local service runtime output
+createport/logs/
