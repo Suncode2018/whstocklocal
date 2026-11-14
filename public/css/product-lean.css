@@ -1,0 +1,8 @@
+
+.product-lean-filters{display:grid!important;grid-template-columns:180px minmax(240px,1fr) 170px;gap:12px!important;margin:0 0 14px!important;padding:16px;background:#f8f9ff;border:1px solid #e4e4f4;border-radius:14px;}
+.product-lean-filters>div{width:auto!important;max-width:none!important;padding:0!important;margin:0!important;}
+.product-lean-filters>div:has(#prodSearchInput){grid-column:span 2;}
+.product-lean-filters .form-control,.product-lean-filters .form-select{min-height:44px!important;height:44px!important;}
+.product-clinic-filter label{display:block;}.product-lean-filters>div:last-child{align-self:end;}.product-lean-filters .btn{min-height:44px;}
+@media(max-width:900px){.product-lean-filters{grid-template-columns:1fr 1fr;}.product-lean-filters>div:has(#prodSearchInput){grid-column:auto;}}
+@media(max-width:550px){.product-lean-filters{grid-template-columns:1fr;}}

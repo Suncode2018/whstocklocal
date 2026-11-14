@@ -1,0 +1,13 @@
+
+#plannerLocations{display:grid;gap:16px;padding:4px;}
+#plannerLocations .planner-location{margin:0;border:2px solid #dce2ef;border-left:6px solid #9b9fba;border-radius:16px;padding:18px;background:#fff;box-shadow:0 3px 9px #1e293b08;}
+.location-heading{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.location-symbol{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#f0edff;color:#6351cf;font-size:22px;flex-shrink:0;}
+.location-identity{flex:1;min-width:160px;}.location-identity strong{display:block;font-size:18px;color:#172c4a;overflow-wrap:anywhere;}
+.location-zone{font-size:12px;color:#6b7280;}.location-state{font-size:12px;font-weight:600;padding:5px 10px;border-radius:20px;background:#edf0f5;color:#566174;}
+.location-drop-note{margin-top:12px;padding:10px 12px;border:1px dashed #ccd3e3;border-radius:9px;font-size:13px;color:#61718c;background:#fafbfe;}
+#plannerLocations .planner-location.ready{border-left-color:#7460ed;}.ready .location-state{background:#eeeaff;color:#5741bc;}
+#plannerLocations .planner-location.allocated{border-color:#32967d;background:#f6fcf9;}.allocated .location-state{background:#ddf4e9;color:#17694f;}
+#plannerLocations .planner-location.planner-drop-hover{border-color:#6550de;background:#f0ecff;outline:3px dashed #9b8de6;outline-offset:2px;}
+
+.location-display-name{font-size:15px;font-weight:500;color:#566580;}

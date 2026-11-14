@@ -46,11 +46,15 @@ router.get('/balance', async (req, res) => {
   }
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query(balanceQuery.replace('/*WAREHOUSE_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'SourceWhId')+' OR '+require('../middleware/warehouse-scope').predicate(req,'DestinationWhId')));
+    const compact=req.query.compact==='1';
+    const query=compact?balanceQuery.replace(/STRING_AGG\([\s\S]*?WITHIN GROUP \(ORDER BY LocationCode\) AS LocationDetails/,"CAST(N'' AS NVARCHAR(1)) AS LocationDetails"):balanceQuery;
+    const result = await pool.request().query(query.replace('/*WAREHOUSE_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'SourceWhId')+' OR '+require('../middleware/warehouse-scope').predicate(req,'DestinationWhId')));
     // Avoid a SQL sort memory grant over the wide STRING_AGG result.
-    result.recordset.sort((a,b)=>String(a.ProductCode||'').localeCompare(String(b.ProductCode||''),'en',{sensitivity:'base'})||a.ProductId-b.ProductId);
+    if(!compact)result.recordset.sort((a,b)=>String(a.ProductCode||'').localeCompare(String(b.ProductCode||''),'en',{sensitivity:'base'})||a.ProductId-b.ProductId);
     res.set('Cache-Control', 'no-store');
-    res.json({ success: true, data: req.navigation?.user.Role==='ADMIN'||req.navigation?.profile.DESKTOP.includes('STOCK')?result.recordset:require('../middleware/product-scope').filter(req,result.recordset) });
+    const visible=req.navigation?.user.Role==='ADMIN'||req.navigation?.profile.DESKTOP.includes('STOCK')?result.recordset:require('../middleware/product-scope').filter(req,result.recordset);
+    const fields=['ProductId','CategoryId','TotalStock','DamageStock','UsableStock','TransitStock','OwnedStock','UOM','MinStock'];
+    res.json({success:true,data:compact?visible.map(row=>Object.fromEntries(fields.map(key=>[key,row[key]]))):visible});
   } catch (err) {
     console.error('Stock balance query failed:', err.code);
     require('../services/sql-timeout-diagnostics')(poolPromise,'GET /stock/balance',err);

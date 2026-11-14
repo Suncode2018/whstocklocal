@@ -72,3 +72,19 @@ async function wmsConfirm(message,confirmText,cancelText){const discard=/ละ�
 async function wmsPrompt(message){const result=await wmsDialog({title:'ระบุเหตุผลยกเลิก',message,input:true,danger:true,confirmText:'ยืนยันยกเลิก',cancelText:'กลับไปตรวจสอบ'});return result.confirmed?result.value:null}
 async function wmsAlert(message){await wmsDialog({title:'แจ้งเตือน',message,alert:true,confirmText:'รับทราบ'})}
 (()=>{if(!document.getElementById('wmsDialogTheme')){const link=document.createElement('link');link.id='wmsDialogTheme';link.rel='stylesheet';link.href='/css/dialogs.css?v=20261107-1';document.head.append(link)}const themeSwal=()=>{if(window.Swal&&!window.Swal.wmsThemed){window.Swal=window.Swal.mixin({confirmButtonText:'รับทราบ',cancelButtonText:'กลับไปตรวจสอบ',confirmButtonColor:'#5540df',cancelButtonColor:'#667085',customClass:{popup:'wms-swal',confirmButton:'wms-swal-confirm',cancelButton:'wms-swal-cancel'}});window.Swal.wmsThemed=true}};themeSwal();document.addEventListener('DOMContentLoaded',themeSwal,{once:true})})();
+
+// Share identical simultaneous reads only. No persistent cache of stock or permissions.
+const wmsPendingReads=new Map();
+let wmsReadEpoch=0;
+function wmsFetch(input,options={}){
+ const method=String(options.method||'GET').toUpperCase();
+ if(method!=='GET'){wmsReadEpoch++;wmsPendingReads.clear();return fetch(input,options);}
+ if(typeof input!=='string'||options.signal)return fetch(input,options);
+ const url=new URL(input,window.location.href);
+ if(url.origin!==window.location.origin||!url.pathname.startsWith('/api/'))return fetch(input,options);
+ const headers=[...new Headers(options.headers||{}).entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+ const key=JSON.stringify([wmsReadEpoch,url.href,headers,options.credentials||'same-origin',options.cache||'default']);
+ let pending=wmsPendingReads.get(key);
+ if(!pending){pending=fetch(input,options);wmsPendingReads.set(key,pending);const clear=()=>{if(wmsPendingReads.get(key)===pending)wmsPendingReads.delete(key)};pending.then(clear,clear);}
+ return pending.then(response=>response.clone());
+}

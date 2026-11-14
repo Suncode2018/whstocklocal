@@ -28,13 +28,18 @@ const snapshotSql=`
 `;
 function receiptPending(records){
  const plans=records[4],receipts=records[6];
- records[1]=records[1].map(s=>({...s,...records[7].find(v=>v.ProductId===s.ProductId),StockQuantity:Math.max(0,Number(s.StockQuantity)-Number(records[8]?.find(r=>r.WhId===s.whid&&r.ProductId===s.ProductId&&r.LocationCode===s.FromLocationCode)?.ReservedQuantity||0))}));
+ const key=(wh,product,loc)=>JSON.stringify([wh,product,loc]);
+ const packs=new Map(records[7].map(v=>[v.ProductId,v]));
+ const transit=new Map((records[8]||[]).map(r=>[key(r.WhId,r.ProductId,r.LocationCode),r]));
+ const receiptGroups=new Map();for(const r of receipts){const k=key(r.whid,r.ProductId,r.FromLocationCode);if(!receiptGroups.has(k))receiptGroups.set(k,[]);receiptGroups.get(k).push(r);}
+ const legacyGroups=new Set(plans.filter(h=>!h.InboundReceiptId&&(h.Status==='OPEN'||Number(h.MovedQuantity)>0)).map(h=>key(h.WhId,h.ProductId,h.FromLocationCode)));
+ records[1]=records[1].map(s=>({...s,...packs.get(s.ProductId),StockQuantity:Math.max(0,Number(s.StockQuantity)-Number(transit.get(key(s.whid,s.ProductId,s.FromLocationCode))?.ReservedQuantity||0))}));
  return records[1].flatMap(source=>{if(source.StockQuantity<=0)return [];
   // Determine FG by receipt evidence, rather than assuming numeric category IDs.
-  const matching=receipts.filter(r=>r.whid===source.whid&&r.ProductId===source.ProductId&&r.FromLocationCode===source.FromLocationCode);
+  const matching=(receiptGroups.get(key(source.whid,source.ProductId,source.FromLocationCode))||[]);
   if(!matching.length)return [{...source,ReceiptId:null}];
   const remaining=matching.reduce((n,r)=>n+Number(r.Quantity)-Number(r.MovedQuantity),0);
-  const legacy=plans.some(h=>h.WhId===source.whid&&h.ProductId===source.ProductId&&h.FromLocationCode===source.FromLocationCode&&!h.InboundReceiptId&&(h.Status==='OPEN'||Number(h.MovedQuantity)>0));
+  const legacy=legacyGroups.has(key(source.whid,source.ProductId,source.FromLocationCode));
   if(legacy||Math.abs(remaining-Number(source.StockQuantity))>0.005)return [{...source,ReceiptId:null,LotReconciliationRequired:true}];
   return matching.filter(r=>Number(r.Quantity)>Number(r.MovedQuantity)).map(r=>({...source,ReceiptId:r.ReceiptId,ReceiveNo:r.ReceiveNo,AnaNo:r.AnaNo,LotNo:r.LotNo,StockQuantity:Number(r.Quantity)-Number(r.MovedQuantity),ReservedQuantity:Number(r.ReservedQuantity)}));
  });

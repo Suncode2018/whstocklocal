@@ -246,7 +246,8 @@ router.get('/', async (req, res) => {
                 COUNT(l.LineId) AS TotalLines,
                 SUM(l.OrderedQuantity) AS OrderedQuantity,
                 SUM(l.ReceivedQuantity) AS ReceivedQuantity,
-                CASE WHEN ${require('../services/inbound-storage-status')('o.InboundId')} THEN 1 ELSE 0 END AS HasStored
+                CASE WHEN ${require('../services/inbound-storage-status')('o.InboundId')} THEN 1 ELSE 0 END AS HasStored,
+                CASE WHEN ${require('../services/inbound-downstream-status')('o.InboundId')} THEN 1 ELSE 0 END AS HasDownstream
             FROM dbWMS.dbo.InboundOrders o
             JOIN dbWMS.dbo.InboundLines l
                 ON l.InboundId=o.InboundId
