@@ -28,3 +28,13 @@ API /api/daily-operations?date=YYYY-MM-DD
 
 หลังอัปเดตรีสตาร์ท npm start และ Ctrl+F5
 ยังไม่ติดตั้งที่ DESKTOP-RT67GE0 และไม่ได้เปลี่ยนรายการสต๊อกจริง
+
+
+## ส่งมอบคลินิกโดยตรง
+ติดตั้ง `mssql/ClinicHandover.sql` ใน dbWMS ก่อนใช้งาน และรีสตาร์ทแอป
+- สร้างใบส่งคลินิก: จองยอดสต๊อกร่วม
+- เตรียมไป OUT: ยอดรวมยังเท่าเดิม
+- ยืนยันจ่าย / ส่งมอบ: ระบุผู้รับมอบ ตรวจรายการ แล้วตัด OUT ครั้งเดียว ไม่บังคับรถหรือผู้ขนส่ง
+- บันทึกผู้รับปลายทาง: เก็บหลักฐาน ไม่ตัดซ้ำ ไม่สร้างสต๊อกคลินิก
+API: POST /api/deliveries/:id/dispatch พร้อม checked=true, handoverTo, handoverNote
+ข้อมูลผู้รับมอบเก็บใน DeliveryOrders.HandoverTo/HandoverNote/DispatchMethod และประวัติ DeliveryAudit
