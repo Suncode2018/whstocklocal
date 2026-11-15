@@ -15,7 +15,7 @@ const snapshotSql=`
  GROUP BY s.whid,s.ProductId,s.LocationCode,p.CategoryId,p.ProductCode,p.ProductName,p.Barcode,p.UnitVolumeCm3,u.UnitCode,p.PackageType;
  SELECT l.whid,l.LocationCode,l.Zone,l.Description,NULL CapacityVolumeCm3,0 UsedVolumeCm3,0 UnknownVolumeRows,0 ReservedVolumeCm3 FROM dbMaster.dbo.Locations l WHERE l.IsActive=1 ORDER BY l.whid,l.LocationCode;
  SELECT s.whid,s.LocationCode,s.ProductId,s.Quantity,p.CategoryId FROM dbWMS.dbo.tblStock s JOIN dbMaster.dbo.tblProducts p ON p.ProductId=s.ProductId WHERE s.Quantity>0;
- SELECT h.*,p.CategoryId,p.ProductCode,p.ProductName,SUM(l.Quantity) AS Quantity,SUM(l.MovedQuantity) AS MovedQuantity FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines l ON l.PlanId=h.PlanId JOIN dbMaster.dbo.tblProducts p ON p.ProductId=h.ProductId GROUP BY h.PlanId,h.RequestId,h.PlanNo,h.WhId,h.ProductId,h.FromLocationCode,h.UnitVolumeCm3,h.Status,h.Note,h.CreatedBy,h.CreatedAt,h.InboundReceiptId,p.CategoryId,p.ProductCode,p.ProductName ORDER BY h.PlanId DESC; SELECT * FROM dbMaster.dbo.tblLocationCategoryRules;
+ SELECT h.WhId,h.ProductId,h.FromLocationCode,h.Status,SUM(l.MovedQuantity) MovedQuantity FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines l ON l.PlanId=h.PlanId WHERE h.InboundReceiptId IS NULL AND h.Status IN ('OPEN','COMPLETED','CANCELLED') GROUP BY h.WhId,h.ProductId,h.FromLocationCode,h.Status HAVING h.Status='OPEN' OR SUM(l.MovedQuantity)>0; SELECT * FROM dbMaster.dbo.tblLocationCategoryRules;
  SELECT r.ReceiptId,r.LocationCode FromLocationCode,o.WhId whid,l.ProductId,o.ReceiveNo,l.AnaNo,r.LotNo,r.Quantity,
  COALESCE((SELECT SUM(pl.MovedQuantity) FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines pl ON pl.PlanId=h.PlanId WHERE h.InboundReceiptId=r.ReceiptId),0) MovedQuantity,
  COALESCE((SELECT SUM(pl.Quantity-pl.MovedQuantity) FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines pl ON pl.PlanId=h.PlanId WHERE h.InboundReceiptId=r.ReceiptId AND h.Status='OPEN'),0) ReservedQuantity
@@ -44,7 +44,39 @@ function receiptPending(records){
   return matching.filter(r=>Number(r.Quantity)>Number(r.MovedQuantity)).map(r=>({...source,ReceiptId:r.ReceiptId,ReceiveNo:r.ReceiveNo,AnaNo:r.AnaNo,LotNo:r.LotNo,StockQuantity:Number(r.Quantity)-Number(r.MovedQuantity),ReservedQuantity:Number(r.ReservedQuantity)}));
  });
 }
-router.get('/',async(req,res)=>{try{const p=await poolPromise;const r=await p.request().query(snapshotSql);res.set('Cache-Control','no-store').json({success:true,warehouses:r.recordsets[0],pending:receiptPending(r.recordsets).filter(x=>putawayCan(req,x.CategoryId)).map(x=>({...x,AvailableQuantity:Math.max(0,x.StockQuantity-x.ReservedQuantity)})),locations:r.recordsets[2].map(l=>({...l,IsStorage:storageZone(l.Zone),FreeVolumeCm3:l.CapacityVolumeCm3==null||l.UnknownVolumeRows?null:Math.max(0,l.CapacityVolumeCm3-l.UsedVolumeCm3-l.ReservedVolumeCm3)})),stock:r.recordsets[3].filter(x=>putawayCan(req,x.CategoryId)),plans:r.recordsets[4].filter(x=>putawayCan(req,x.CategoryId)).map(h=>({...h,...r.recordsets[6].filter(r=>r.ReceiptId===h.InboundReceiptId).map(r=>({ReceiveNo:r.ReceiveNo,AnaNo:r.AnaNo,LotNo:r.LotNo}))[0]})),locationCategories:r.recordsets[5],categories:require('../config/navigation').catalog.filter(c=>c.scopeParent==='PUTAWAY'&&putawayCan(req,c.categoryId)).map(c=>({id:c.categoryId,code:c.categoryCode,name:c.categoryName}))})}catch(e){error(res,e)}});
+router.get('/',async(req,res)=>{try{const p=await poolPromise;const r=await p.request().query(snapshotSql);res.set('Cache-Control','no-store').json({success:true,warehouses:r.recordsets[0],pending:receiptPending(r.recordsets).filter(x=>putawayCan(req,x.CategoryId)).map(x=>({...x,AvailableQuantity:Math.max(0,x.StockQuantity-x.ReservedQuantity)})),locations:r.recordsets[2].map(l=>({...l,IsStorage:storageZone(l.Zone),FreeVolumeCm3:l.CapacityVolumeCm3==null||l.UnknownVolumeRows?null:Math.max(0,l.CapacityVolumeCm3-l.UsedVolumeCm3-l.ReservedVolumeCm3)})),stock:r.recordsets[3].filter(x=>putawayCan(req,x.CategoryId)),plans:[],locationCategories:r.recordsets[5],categories:require('../config/navigation').catalog.filter(c=>c.scopeParent==='PUTAWAY'&&putawayCan(req,c.categoryId)).map(c=>({id:c.categoryId,code:c.categoryCode,name:c.categoryName}))})}catch(e){error(res,e)}});
+// List headers are filtered and paged in SQL; allocation details stay on /:id.
+router.get('/plans',async(req,res)=>{try{
+ const wh=Number(req.query.whid),cat=Number(req.query.category),page=Number(req.query.page||1),tab=req.query.tab||'today';
+ if(!Number.isInteger(wh)||wh<=0||!Number.isInteger(cat)||!Number.isInteger(page)||page<1||page>100000||!['today','open','history'].includes(tab))fault(400,'ตัวกรองแผนไม่ถูกต้อง');
+ if(!require('../middleware/warehouse-scope').has(req,wh)||!putawayCan(req,cat)||req.query.purpose==='export'&&!putawayCan(req,cat,'EXPORT'))fault(403,'ไม่มีสิทธิ์ดูแผนที่เลือก');
+ const from=req.query.from||null,to=req.query.to||null;
+ const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
+ if(tab==='history'&&(!validDate(from)||!validDate(to)||from>to))fault(400,'ตรวจวันที่เริ่มต้นและสิ้นสุด');
+ const search=String(req.query.search||'').trim();if(search.length>150)fault(400,'คำค้นยาวเกินไป');
+ const pool=await poolPromise,r=await pool.request().input('Wh',sql.Int,wh).input('Cat',sql.Int,cat).input('Offset',sql.Int,(page-1)*25).input('Tab',sql.VarChar(10),tab).input('From',sql.Date,tab==='history'?from:null).input('To',sql.Date,tab==='history'?to:null).input('Search',sql.NVarChar(310),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').query(`
+ DECLARE @Today date=CONVERT(date,DATEADD(hour,7,SYSUTCDATETIME()));
+ SELECT h.PlanId,h.CreatedAt,h.Status INTO #Eligible FROM dbWMS.dbo.StoragePlans h
+ JOIN dbMaster.dbo.tblProducts p ON p.ProductId=h.ProductId
+ LEFT JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=h.InboundReceiptId
+ LEFT JOIN dbWMS.dbo.InboundLines il ON il.LineId=r.LineId
+ LEFT JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=il.InboundId
+ WHERE h.WhId=@Wh AND p.CategoryId=@Cat AND (p.ProductCode LIKE @Search ESCAPE '~' OR p.ProductName LIKE @Search ESCAPE '~' OR h.PlanNo LIKE @Search ESCAPE '~' OR o.ReceiveNo LIKE @Search ESCAPE '~' OR il.AnaNo LIKE @Search ESCAPE '~' OR r.LotNo LIKE @Search ESCAPE '~');
+ SELECT COUNT(CASE WHEN CreatedAt>=@Today AND CreatedAt<DATEADD(day,1,@Today) THEN 1 END) TodayCount,COUNT(CASE WHEN Status='OPEN' THEN 1 END) OpenCount FROM #Eligible;
+ IF @Tab='today' DELETE FROM #Eligible WHERE CreatedAt<@Today OR CreatedAt>=DATEADD(day,1,@Today);
+ IF @Tab='open' DELETE FROM #Eligible WHERE Status<>'OPEN';
+ IF @Tab='history' DELETE FROM #Eligible WHERE CreatedAt<@From OR CreatedAt>=DATEADD(day,1,@To);
+ SELECT COUNT(*) Total FROM #Eligible;
+ SELECT h.PlanId,h.PlanNo,h.CreatedAt,h.Status,h.WhId,h.FromLocationCode,p.CategoryId,p.ProductCode,p.ProductName,COALESCE(u.UnitCode,p.PackageType,N'') UOM,o.ReceiveNo,il.AnaNo,r.LotNo,src.Description FromDescription,a.Quantity,a.MovedQuantity,a.ToLocationCode,a.DestinationCount,dst.Description ToDescription
+ FROM (SELECT PlanId FROM #Eligible ORDER BY CreatedAt DESC,PlanId DESC OFFSET @Offset ROWS FETCH NEXT 25 ROWS ONLY)e
+ JOIN dbWMS.dbo.StoragePlans h ON h.PlanId=e.PlanId JOIN dbMaster.dbo.tblProducts p ON p.ProductId=h.ProductId LEFT JOIN dbMaster.dbo.tblUnits u ON u.UnitId=p.UnitId
+ LEFT JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=h.InboundReceiptId LEFT JOIN dbWMS.dbo.InboundLines il ON il.LineId=r.LineId LEFT JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=il.InboundId
+ LEFT JOIN dbMaster.dbo.Locations src ON src.whid=h.WhId AND src.LocationCode=h.FromLocationCode
+ CROSS APPLY(SELECT SUM(Quantity) Quantity,SUM(MovedQuantity) MovedQuantity,MIN(ToLocationCode) ToLocationCode,COUNT(*) DestinationCount FROM dbWMS.dbo.StoragePlanLines WHERE PlanId=h.PlanId)a
+ LEFT JOIN dbMaster.dbo.Locations dst ON dst.whid=h.WhId AND dst.LocationCode=a.ToLocationCode ORDER BY h.CreatedAt DESC,h.PlanId DESC;
+ `);
+ res.set('Cache-Control','no-store').json({success:true,counts:{today:r.recordsets[0][0].TodayCount,open:r.recordsets[0][0].OpenCount},total:r.recordsets[1][0].Total,page,pageSize:25,data:r.recordsets[2]});
+ }catch(e){error(res,e)}});
 // Narrow master edit from PUTAWAY: no product search or unrelated field updates.
 router.post('/product-volume',async(req,res)=>{let tx;try{
  const b=req.body||{};if(!Number.isInteger(b.productId)||b.productId<=0||b.productId>2147483647||!['number','string'].includes(typeof b.unitVolumeCm3)||!/^\d{1,12}(?:\.\d{1,3})?$/.test(String(b.unitVolumeCm3))||Number(b.unitVolumeCm3)<=0)fault(400,'ระบุปริมาตรมากกว่า 0 ทศนิยมไม่เกิน 3 ตำแหน่ง');
