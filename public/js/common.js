@@ -88,3 +88,42 @@ function wmsFetch(input,options={}){
  if(!pending){pending=fetch(input,options);wmsPendingReads.set(key,pending);const clear=()=>{if(wmsPendingReads.get(key)===pending)wmsPendingReads.delete(key)};pending.then(clear,clear);}
  return pending.then(response=>response.clone());
 }
+
+function wmsToday(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+
+// Display Gregorian dates consistently; keep native ISO values for forms and APIs.
+function wmsDate(value, withTime=false){
+ if(!value)return '—';
+ const d=value instanceof Date?value:new Date(value);
+ if(Number.isNaN(d.getTime()))return '—';
+ const opts={timeZone:'Asia/Bangkok',calendar:'gregory',day:'2-digit',month:'2-digit',year:'numeric'};
+ const date=new Intl.DateTimeFormat('en-GB',opts).format(d);
+ return date+(withTime?' '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d):'');
+}
+(()=>{
+ const native=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+ function enhance(input){
+  if(input.dataset.wmsDateReady||input.type!=='date')return;
+  input.dataset.wmsDateReady='1';
+  const wrap=document.createElement('span');wrap.style.cssText='display:flex;position:relative;align-items:center;width:100%';
+  const text=document.createElement('input');text.type='text';text.className=input.className;text.placeholder='วว/ดด/ปปปป';text.inputMode='numeric';text.autocomplete='off';text.style.paddingRight='48px';
+  text.setAttribute('aria-label',input.labels?.[0]?.textContent||'วันที่ วัน/เดือน/ปี ค.ศ.');
+  input.before(wrap);wrap.append(text,input);
+  input.style.cssText+=';position:absolute;right:0;width:42px;min-width:0;opacity:0;height:100%;cursor:pointer';
+  input.tabIndex=-1;input.setAttribute('aria-label','เปิดปฏิทิน');
+  const icon=document.createElement('span');icon.textContent='▦';icon.style.cssText='position:absolute;right:14px;pointer-events:none';wrap.append(icon);
+  function sync(){const v=native.get.call(input);text.value=v?v.split('-').reverse().join('/'):'';text.disabled=input.disabled;text.readOnly=input.readOnly;text.required=input.required;}
+  Object.defineProperty(input,'value',{configurable:true,get(){return native.get.call(this)},set(v){native.set.call(this,v);sync()}});
+  function commit(){const v=text.value.trim(),m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);let iso=m?m[3]+'-'+m[2]+'-'+m[1]:'';
+   if(v&&(!m||!Number.isFinite(Date.parse(iso))||new Date(iso).toISOString().slice(0,10)!==iso)){text.setCustomValidity('กรอกวันที่แบบ 15/11/2026');return;}
+   text.setCustomValidity('');native.set.call(input,iso);input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  text.addEventListener('change',commit);text.addEventListener('input',()=>text.setCustomValidity(''));
+  input.addEventListener('change',()=>{text.setCustomValidity('');sync()});input.addEventListener('input',sync);
+  new MutationObserver(sync).observe(input,{attributes:true,attributeFilter:['disabled','readonly','required','value']});
+  input.form?.addEventListener('reset',()=>setTimeout(sync,0));sync();
+ }
+ const scan=()=>document.querySelectorAll('input[type="date"]:not([data-wms-date-ready])').forEach(enhance);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',scan);else scan();
+ new MutationObserver(scan).observe(document.documentElement,{childList:true,subtree:true});
+})();

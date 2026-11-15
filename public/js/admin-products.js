@@ -123,7 +123,7 @@ function renderProductResults(keepPage=false) {
   if(!productResults.length){tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-muted">'+(masterProducts.length?'ไม่พบสินค้าที่ตรงกับ '+productHtml(query?'“'+query+'”':'ตัวกรองที่เลือก')+' · ลองใช้คำสั้นลงหรือล้างตัวกรอง':'ไม่พบข้อมูลสินค้าในระบบ')+'</td></tr>';return;}
   tbody.innerHTML=productResults.slice(offset,offset+size).map((p,index)=>{
     const id=Number(p.ProductId || p.Id);
-    return '<tr><td class="text-center text-muted">'+(offset+index+1)+'</td><td>'+(p.Barcode?'<span class="barcode-pill">'+productHtml(p.Barcode)+'</span>':'—')+'</td><td>'+renderProductCodes(p)+'</td><td>'+renderProductNames(p)+'<div class="mt-1"><span class="badge '+(p.AllowClinicDelivery?'bg-success-subtle text-success':'bg-light text-secondary')+'">'+(p.AllowClinicDelivery?'ส่งคลินิกได้':'ไม่เปิดส่งคลินิก')+'</span></div></td><td>'+productSQLValue(productSQLField(p,'ThaiName',null))+'</td>'+productStockQuantityCell(p)+'<td class="text-end">'+(document.getElementById('pane-stock')&&productCategoryAllowed(p.CategoryId,'CONFIRM')?'<button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="openProductStockAdjust('+id+')" title="ปรับยอดสต๊อก"><i class="bi bi-sliders me-1"></i>Adj</button>':'')+'<button type="button" class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editProductFromList('+id+')" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct('+id+')" title="ลบ"><i class="bi bi-trash"></i></button></td></tr>';
+    return '<tr><td class="text-center text-muted">'+(offset+index+1)+'</td><td>'+(p.Barcode?'<span class="barcode-pill">'+productHtml(p.Barcode)+'</span>':'—')+'</td><td>'+renderProductCodes(p)+'</td><td>'+renderProductNames(p)+renderProductDeliveryChannels(p)+'</td><td>'+productSQLValue(productSQLField(p,'ThaiName',null))+'</td>'+productStockQuantityCell(p)+'<td class="text-end">'+(document.getElementById('pane-stock')&&productCategoryAllowed(p.CategoryId,'CONFIRM')?'<button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="openProductStockAdjust('+id+')" title="ปรับยอดสต๊อก"><i class="bi bi-sliders me-1"></i>Adj</button>':'')+'<button type="button" class="btn btn-sm btn-outline-primary border-0 me-1" onclick="editProductFromList('+id+')" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct('+id+')" title="ลบ"><i class="bi bi-trash"></i></button></td></tr>';
   }).join('');
 }
 // Preserve SQL field values: fallback only when a column is absent, never for NULL/empty.
@@ -164,7 +164,7 @@ function exportProductsToExcel() {
   const records=[['บาร์โค้ด','รหัสสินค้า','ชื่อสินค้า','ชื่อภาษาไทย','สต๊อกคงเหลือ (รวมทุกคลัง)','หน่วย'],...exportRows.map(p=>[p.Barcode,p.ProductCode || p.ItemCode,p.ProductName || p.ItemName,p.ThaiName,p.TotalStock ?? '',p.StockUOM || p.PackageType || ''])];
   const cell=value=>'"'+String(value??'').replace(/^(\s*[=+@-]|[\t\r\n])/,"'$&").replace(/"/g,'""')+'"';
   const blob=new Blob(['\uFEFF'+records.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Product_Master_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Product_Master_'+wmsToday()+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 // 3. โหลด KPI ภาพรวมสินค้า
@@ -237,7 +237,7 @@ async function saveProduct() {
   }
 
   const payload = {
-    ...productMasterFieldsPayload(),masterStatus,allowClinicDelivery:document.getElementById('productClinicAllowed').checked,clinicDeliveryNote:document.getElementById('productClinicNote').value,
+    ...productMasterFieldsPayload(),masterStatus,allowClinicDelivery:document.getElementById('productClinicAllowed').checked,clinicDeliveryNote:document.getElementById('productClinicNote').value,allowSevenElevenDelivery:document.getElementById('productSevenElevenAllowed').checked,sevenElevenDeliveryNote:document.getElementById('productSevenElevenNote').value,
     categoryId:Number(document.getElementById('modalProductCategory').value),
     unitId:document.getElementById('modalProductUnit').value?Number(document.getElementById('modalProductUnit').value):null,
     unitVolumeCm3:document.getElementById('productUnitVolume').value.trim()||null,
@@ -458,8 +458,8 @@ function filterProductSupplierOptions(){const select=document.getElementById('mo
 
 let productMasterRevision;
 function setupProductMasterFields(p={}){
- let clinicRoot=document.getElementById('productClinicSettings');if(!clinicRoot){clinicRoot=document.createElement('div');clinicRoot.id='productClinicSettings';clinicRoot.className='border rounded-3 p-3 mt-3';clinicRoot.innerHTML='<h6>ช่องทางการจ่ายสินค้า</h6><label class="form-check form-switch"><input id="productClinicAllowed" type="checkbox" class="form-check-input"> อนุญาตส่งคลินิก</label><label for="productClinicNote">หมายเหตุ</label><textarea id="productClinicNote" class="form-control" maxlength="500" rows="2"></textarea><small>Admin เป็นผู้กำหนด · ไม่เปลี่ยนยอดสต๊อก</small>';document.getElementById('productBasicPane').append(clinicRoot);}
- document.getElementById('productClinicAllowed').checked=!!p.AllowClinicDelivery;document.getElementById('productClinicNote').value=p.ClinicDeliveryNote||'';const admin=typeof wmsNavigation!=='undefined'&&wmsNavigation?.user.role==='ADMIN';document.getElementById('productClinicAllowed').disabled=!admin;document.getElementById('productClinicNote').disabled=!admin;
+ let clinicRoot=document.getElementById('productClinicSettings');if(!clinicRoot){clinicRoot=document.createElement('div');clinicRoot.id='productClinicSettings';clinicRoot.className='border rounded-3 p-3 mt-3';clinicRoot.innerHTML='<h6>ช่องทางการจ่ายสินค้า</h6><label class="form-check form-switch"><input id="productClinicAllowed" type="checkbox" class="form-check-input"> อนุญาตส่งคลินิก</label><label for="productClinicNote">หมายเหตุส่งคลินิก</label><textarea id="productClinicNote" class="form-control" maxlength="500" rows="2"></textarea><div class="border-top mt-3 pt-3"><label class="form-check form-switch"><input id="productSevenElevenAllowed" type="checkbox" class="form-check-input"> อนุญาตส่ง 7-11</label><label for="productSevenElevenNote">หมายเหตุส่ง 7-11</label><textarea id="productSevenElevenNote" class="form-control" maxlength="500" rows="2"></textarea></div><small>Admin เป็นผู้กำหนด · ไม่เปลี่ยนยอดสต๊อก</small>';document.getElementById('productBasicPane').append(clinicRoot);}
+ document.getElementById('productClinicAllowed').checked=!!p.AllowClinicDelivery;document.getElementById('productClinicNote').value=p.ClinicDeliveryNote||'';const admin=typeof wmsNavigation!=='undefined'&&wmsNavigation?.user.role==='ADMIN';document.getElementById('productClinicAllowed').disabled=!admin;document.getElementById('productClinicNote').disabled=!admin;document.getElementById('productSevenElevenAllowed').checked=!!p.AllowSevenElevenDelivery;document.getElementById('productSevenElevenNote').value=p.SevenElevenDeliveryNote||'';document.getElementById('productSevenElevenAllowed').disabled=!admin;document.getElementById('productSevenElevenNote').disabled=!admin;
 
  const root=document.getElementById('productBasicFields');
  if(!document.getElementById('modalName1')){
@@ -505,4 +505,12 @@ function setupLeanProductFilters(){
 function setProductStockLoading(loading,message=''){
  const filter=document.getElementById('prodStockFilter');if(filter)filter.disabled=loading||!!message;
  const status=document.getElementById('productStockLoadState');if(status){status.textContent=loading?'กำลังอัปเดตยอดสต๊อก · ค้นหาสินค้าได้ทันที':message;status.hidden=!loading&&!message;}
+}
+
+function renderProductDeliveryChannels(product) {
+  const channels = [['คลินิก', product.AllowClinicDelivery], ['7-11', product.AllowSevenElevenDelivery]];
+  return '<div class="d-flex flex-wrap gap-2 mt-2" aria-label="ช่องทางการจ่ายสินค้า">' + channels.map(([label, allowed]) => {
+    const enabled = allowed === true || allowed === 1;
+    return '<span class="badge rounded-pill border px-2 py-1 ' + (enabled ? 'bg-success-subtle text-success border-success-subtle' : 'bg-light text-secondary border-secondary-subtle') + '"><i class="bi ' + (enabled ? 'bi-check-circle' : 'bi-dash-circle') + ' me-1" aria-hidden="true"></i>' + label + ': ' + (enabled ? 'อนุญาต' : 'ไม่อนุญาต') + '</span>';
+  }).join('') + '</div>';
 }

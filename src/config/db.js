@@ -1,5 +1,6 @@
 const sql = require('mssql');
 require('dotenv').config();
+require('../services/sql-dates').install(sql);
 
 const config = {
   server: process.env.DB_SERVER || 'localhost',
@@ -10,7 +11,8 @@ const config = {
   options: {
     encrypt: process.env.DB_ENCRYPT === 'true',
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE !== 'false',
-    enableArithAbort: true
+    enableArithAbort: true,
+    useUTC: true // DATE stays a calendar date; sql-dates normalizes local timestamps.
   },
   pool: {
     max: 15,
