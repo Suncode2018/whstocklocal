@@ -235,6 +235,48 @@ router.get('/master', async (req, res) => {
     }
 });
 
+router.get('/list', async (req, res) => {
+    try {
+        const type = String(req.query.type || '').toUpperCase();
+        const tab = String(req.query.tab || 'today');
+        const status = String(req.query.status || '').toUpperCase();
+        const search = String(req.query.search || '').trim();
+        const from = String(req.query.from || '');
+        const to = String(req.query.to || '');
+        const page = Number(req.query.page || 1);
+        const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+        if (!types.includes(type) || !['today', 'open', 'history'].includes(tab) || !['', 'OPEN', 'PARTIAL', 'COMPLETED', 'CANCELLED'].includes(status) || !Number.isInteger(page) || page < 1 || page > 100000 || search.length > 100 || (tab === 'history' && (!validDate(from) || !validDate(to) || from > to || (new Date(to) - new Date(from)) / 86400000 > 366))) fail(400, 'ตัวกรองใบรับไม่ถูกต้อง');
+        if (!receiveCan(req, type)) fail(403, 'ไม่มีสิทธิ์ดูใบรับกลุ่มนี้');
+        const pool = await poolPromise;
+        const request = pool.request().input('Type', sql.VarChar(10), type).input('Search', sql.NVarChar(100), search).input('Status', sql.VarChar(20), status).input('From', sql.Date, tab === 'history' ? from : null).input('To', sql.Date, tab === 'history' ? to : null).input('Offset', sql.Int, (page - 1) * 25);
+        const filter = `o.ReceiveType=@Type
+            AND (@Search=N'' OR o.ReceiveNo LIKE N'%'+@Search+N'%' OR o.ReferenceNo LIKE N'%'+@Search+N'%' OR o.SupplierName LIKE N'%'+@Search+N'%' OR o.SupplierDocumentNo LIKE N'%'+@Search+N'%')
+            AND (@Status='' OR (@Status='CANCELLED' AND o.IsCancelled=1) OR (@Status<>'CANCELLED' AND o.IsCancelled=0 AND o.Status=@Status))
+            AND (${tab === 'today' ? 'o.CreatedAt>=CONVERT(date,SYSDATETIME()) AND o.CreatedAt<DATEADD(day,1,CONVERT(date,SYSDATETIME()))' : tab === 'open' ? "o.IsCancelled=0 AND o.Status IN ('OPEN','PARTIAL')" : 'o.CreatedAt>=@From AND o.CreatedAt<DATEADD(day,1,@To)'})`;
+        const result = await request.query(`
+            SELECT COUNT(*) AS Total FROM dbWMS.dbo.InboundOrders o WHERE ${filter};
+            SELECT ReceiveType,COUNT(*) AS Total FROM dbWMS.dbo.InboundOrders WHERE IsCancelled=0 GROUP BY ReceiveType;
+            SELECT SUM(CASE WHEN CreatedAt>=CONVERT(date,SYSDATETIME()) AND CreatedAt<DATEADD(day,1,CONVERT(date,SYSDATETIME())) THEN 1 ELSE 0 END) AS TodayCount,
+                   SUM(CASE WHEN IsCancelled=0 AND Status IN ('OPEN','PARTIAL') THEN 1 ELSE 0 END) AS OpenCount
+            FROM dbWMS.dbo.InboundOrders WHERE ReceiveType=@Type;
+            WITH Page AS (
+                SELECT o.InboundId,o.ReceiveNo,o.ReceiveType,o.WhId,o.ReferenceNo,o.SupplierName,o.SupplierDocumentNo,o.Status,o.IsCancelled,o.CreatedAt,o.SourceMode
+                FROM dbWMS.dbo.InboundOrders o WHERE ${filter}
+                ORDER BY o.InboundId DESC OFFSET @Offset ROWS FETCH NEXT 25 ROWS ONLY
+            )
+            SELECT o.InboundId,o.ReceiveNo,o.ReceiveType,o.WhId,o.ReferenceNo,o.SupplierName,o.SupplierDocumentNo,o.Status,o.IsCancelled,o.CreatedAt,o.SourceMode,
+                w.whname,lines.TotalLines,lines.ReceivedQuantity,
+                CASE WHEN ${require('../services/inbound-storage-status')('o.InboundId')} THEN 1 ELSE 0 END AS HasStored,
+                CASE WHEN ${require('../services/inbound-downstream-status')('o.InboundId')} THEN 1 ELSE 0 END AS HasDownstream
+            FROM Page o
+            LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=o.WhId
+            OUTER APPLY (SELECT COUNT(*) TotalLines,COALESCE(SUM(l.ReceivedQuantity),0) ReceivedQuantity FROM dbWMS.dbo.InboundLines l WHERE l.InboundId=o.InboundId) lines
+            ORDER BY o.InboundId DESC;
+        `);
+        res.set('Cache-Control', 'no-store').json({success:true,total:result.recordsets[0][0].Total,counts:Object.fromEntries(result.recordsets[1].filter(row=>receiveCan(req,row.ReceiveType)).map(row=>[row.ReceiveType,row.Total])),tabCounts:{today:result.recordsets[2][0].TodayCount||0,open:result.recordsets[2][0].OpenCount||0},data:result.recordsets[3]});
+    } catch (e) { error(res, e); }
+});
+
 router.get('/', async (req, res) => {
     try {
         const pool = await poolPromise;

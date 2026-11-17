@@ -122,8 +122,20 @@ router.get('/lookup', async (req, res) => {
 
 
 async function requireStockAdmin(req, res, next) {
-  if (String(req.user.role || '').toUpperCase() !== 'ADMIN' && !(req.navigation && require('../middleware/navigation').hasAction(req.navigation.profile,req.navigation.mode,'PRODUCTS','CONFIRM'))) return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ยืนยันปรับยอดสต๊อก' });
-  next();
+  if (String(req.user.role || '').toUpperCase() === 'ADMIN') return next();
+  const productId = Number(req.params.productId ?? req.body?.productId);
+  if (!Number.isInteger(productId) || productId <= 0 || productId > 2147483647) return res.status(400).json({ success: false, message: 'รหัสสินค้าไม่ถูกต้อง' });
+  try {
+    const pool = await poolPromise;
+    const product = (await pool.request().input('ProductId', sql.Int, productId)
+      .query('SELECT CategoryId FROM dbMaster.dbo.tblProducts WHERE ProductId=@ProductId')).recordset[0];
+    if (!product) return res.status(404).json({ success: false, message: 'ไม่พบสินค้า' });
+    if (!require('../middleware/product-scope').can(req, product.CategoryId, 'CONFIRM')) return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ปรับยอดสต๊อกสินค้ากลุ่มนี้' });
+    next();
+  } catch (err) {
+    console.error('Stock adjustment permission failed:', err.code);
+    res.status(500).json({ success: false, message: 'ตรวจสิทธิ์ปรับยอดสต๊อกไม่สำเร็จ' });
+  }
 }
 router.get('/adjustment-context/:productId', requireStockAdmin, async (req, res) => {
   const id = Number(req.params.productId);
