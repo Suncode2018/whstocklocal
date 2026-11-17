@@ -40,10 +40,10 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  function writeQuantity(value,top){
   const label=Number(value).toLocaleString('th-TH',{maximumFractionDigits:2});
   const padding=5,cellWidth=columns[3]-columns[2]-padding*2;
-  doc.font('ThaiBold').fontSize(11);
+  doc.font('Thai').fontSize(8.8);
   const measured=doc.widthOfString(label);
-  const size=measured>cellWidth?11*(cellWidth-1)/measured:11;
-  write(label,columns[2]+padding,top,cellWidth,size,true,{align:'right',lineBreak:false});
+  const size=measured>cellWidth?8.8*(cellWidth-1)/measured:8.8;
+  write(label,columns[2]+padding,top,cellWidth,size,false,{align:'right',lineBreak:false});
  }
  function tableHeader(){const heads=['ลำดับ\nITEM','รายการ\nDESCRIPTION','จำนวน\nQTY','หน่วย\nUNIT','หน่วยละ\nUNIT PRICE','ส่วนลด\nDISCOUNT','จำนวนเงิน\nAMOUNT'];doc.rect(left,y,width,35).fill('#f3f4f6');for(let i=0;i<heads.length;i++)write(heads[i],columns[i]+2,y+5,columns[i+1]-columns[i]-4,i===0?6:8,true,{align:'center'});doc.strokeColor('#555').lineWidth(.6).rect(left,y,width,35).stroke();y+=35;}
  function newPage(withTable=true){doc.addPage();header(false);if(withTable)tableHeader();}
@@ -55,14 +55,14 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  for(let i=0;i<lines.length;i++){
   const l=lines[i];const detail=text(l.ProductName)+'\n'+text(l.ProductCode)+(l.PackDescription?'\n'+text(l.PackDescription):'');const blocks=detail.split('\n');let parts=[];
   // Bound very long individual descriptions without clipping; continuation rows retain the item number.
-  let part='';for(const character of Array.from(detail)){const trial=part+character;if(part&&height(trial,columns[2]-columns[1]-14)>190){parts.push(part);part=character}else part=trial;}if(part)parts.push(part);
-  let first=true;for(const part of parts){const rowHeight=Math.max(32,height(part,columns[2]-columns[1]-14)+16);if(y+rowHeight>bottom)newPage();doc.strokeColor('#777').lineWidth(.5);for(const x of columns)doc.moveTo(x,y).lineTo(x,y+rowHeight).stroke();write(first?String(i+1):'ต่อ',columns[0]+5,y+8,columns[1]-columns[0]-10,10,false,{align:'center'});write(part,columns[1]+7,y+7,columns[2]-columns[1]-14,11,first);if(first)writeQuantity(l.Quantity,y+8);write(first?text(l.UOM||'-'):'',columns[3]+4,y+8,columns[4]-columns[3]-8,10,false,{align:'center'});for(let c=4;c<7;c++)write(first?'-':'',columns[c]+2,y+8,columns[c+1]-columns[c]-4,10,false,{align:'center'});y+=rowHeight;first=false;}
+  let part='';for(const character of Array.from(detail)){const trial=part+character;if(part&&height(trial,columns[2]-columns[1]-14,8.8)>190){parts.push(part);part=character}else part=trial;}if(part)parts.push(part);
+  let first=true;for(const part of parts){const rowHeight=Math.max(32,height(part,columns[2]-columns[1]-14,8.8)+16);if(y+rowHeight>bottom)newPage();doc.strokeColor('#777').lineWidth(.5);for(const x of columns)doc.moveTo(x,y).lineTo(x,y+rowHeight).stroke();write(first?String(i+1):'ต่อ',columns[0]+5,y+8,columns[1]-columns[0]-10,10,false,{align:'center'});write(part,columns[1]+7,y+7,columns[2]-columns[1]-14,8.8,false);if(first)writeQuantity(l.Quantity,y+8);write(first?text(l.UOM||'-'):'',columns[3]+4,y+8,columns[4]-columns[3]-8,10,false,{align:'center'});for(let c=4;c<7;c++)write(first?'-':'',columns[c]+2,y+8,columns[c+1]-columns[c]-4,10,false,{align:'center'});y+=rowHeight;first=false;}
  }
  const reference=[order.PoNo?'อ้างอิง : '+text(order.PoNo):'',order.SoNo?text(order.SoNo):''].filter(Boolean).join('\n');
  if(y+height(reference,230,10)+150>bottom)newPage();
  const tableEnd=Math.max(y+height(reference,230,10)+35,625);
  doc.strokeColor('#777').lineWidth(.5).moveTo(left,tableEnd).lineTo(right,tableEnd).stroke();for(const x of columns)doc.moveTo(x,y).lineTo(x,tableEnd).stroke();
- if(reference)write(reference,columns[1]+7,y+20,columns[2]-columns[1]-14,10,true);
+ if(reference)write(reference,columns[1]+7,y+20,columns[2]-columns[1]-14,8,false);
  y=tableEnd;
  const note=['หมายเหตุ / REMARK : '+text(order.Note||'-'),'ขนส่ง : '+text(order.Carrier||'-')+(order.VehicleNo?' · ทะเบียน '+text(order.VehicleNo):''),order.TrackingNo?'Tracking : '+text(order.TrackingNo):'',order.Cartons?'จำนวนหีบห่อ : '+text(order.Cartons):''].filter(Boolean).join('\n');
  const totals=['รวมเป็นเงิน / TOTAL','หักส่วนลด / DISCOUNT','จำนวนเงินหลังหักส่วนลด / GRAND TOTAL','จำนวนภาษีมูลค่าเพิ่ม / VAT','ราคาสินค้า / SUB TOTAL'];
