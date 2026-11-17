@@ -48,6 +48,8 @@ app.use('/api/deliveries', require('./routes/deliveries'));
 
 app.use('/api/warehouse-tracking',require('./routes/warehouse-tracking'));
 app.use('/api/daily-operations',require('./routes/daily-operations'));
+app.use('/api/stock-movements',require('./routes/stock-movements'));
+app.use('/api/stock-daily',require('./routes/stock-daily'));
 app.use('/api/stock-transfers', require('./routes/stock-transfers'));
 app.use('/api/bom-stock', require('./routes/bom-stock'));
 app.use('/api/bom', require('./routes/bom'));
