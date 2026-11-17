@@ -11,6 +11,8 @@ router.use((req, res, next) => {
   catch (_) { return res.status(401).json({ success: false, isExpired: true, message: 'เซสชันหมดอายุหรือไม่ถูกต้อง' }); }
 });
 
+router.use('/lot-adjustments',require('./stock-lot-adjustments'));
+
 // Read stock only from dbWMS. Product and unit master data remain in dbMaster.
 // Aggregate before joining products so multiple locations never duplicate totals.
 const balanceQuery = `
@@ -21,8 +23,7 @@ const balanceQuery = `
     GROUP BY ProductId, whid, LocationCode
   ), StockBalance AS (
     SELECT ProductId, SUM(Quantity) AS TotalStock, SUM(CASE WHEN IsDamage=1 THEN Quantity ELSE 0 END) DamageStock, MAX(LastUpdated) AS LastUpdated,
-      STRING_AGG(CAST(CONCAT(LocationCode, N' (', Quantity, N')') AS NVARCHAR(MAX)), N', ')
-        WITHIN GROUP (ORDER BY LocationCode) AS LocationDetails
+      CAST(N'' AS NVARCHAR(1)) AS LocationDetails
     FROM LocationStock
     GROUP BY ProductId
   )
@@ -47,9 +48,38 @@ router.get('/balance', async (req, res) => {
   try {
     const pool = await poolPromise;
     const compact=req.query.compact==='1';
-    const query=compact?balanceQuery.replace(/STRING_AGG\([\s\S]*?WITHIN GROUP \(ORDER BY LocationCode\) AS LocationDetails/,"CAST(N'' AS NVARCHAR(1)) AS LocationDetails"):balanceQuery;
-    const result = await pool.request().query(query.replace('/*WAREHOUSE_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',require('../middleware/warehouse-scope').predicate(req,'SourceWhId')+' OR '+require('../middleware/warehouse-scope').predicate(req,'DestinationWhId')));
-    // Avoid a SQL sort memory grant over the wide STRING_AGG result.
+    const scope=require('../middleware/warehouse-scope');
+    const query=balanceQuery.replace('/*WAREHOUSE_SCOPE*/',scope.predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',scope.predicate(req,'SourceWhId')+' OR '+scope.predicate(req,'DestinationWhId'));
+    // Keep the location text out of the aggregate/product join. STRING_AGG over
+    // NVARCHAR(MAX) can require a large sort memory grant even for small stock tables.
+    const detailsQuery=compact?'':`;
+      SELECT ProductId, LocationCode,
+        CONCAT(LocationCode, N' (', SUM(Quantity), N')') AS Detail
+      FROM dbWMS.dbo.tblStock
+      WHERE ${scope.predicate(req,'whid')}
+      GROUP BY ProductId, whid, LocationCode
+      ORDER BY ProductId, LocationCode`;
+    const startedAt=Date.now();
+    const label='GET /stock/balance compact='+Number(compact);
+    // Capture before mssql cancels the timed-out request, while its wait is visible.
+    const diagnosticTimer=setTimeout(()=>require('../services/sql-timeout-diagnostics')(poolPromise,label+' (still running after 5s)',{code:'ETIMEOUT'}),5000);
+    diagnosticTimer.unref();
+    let result;
+    try{
+      result=await pool.request().query(query+detailsQuery);
+    }catch(error){
+      console.warn('Stock balance request context',JSON.stringify({compact,elapsedMs:Date.now()-startedAt,root:require('path').resolve(__dirname,'../..')}));
+      throw error;
+    }finally{clearTimeout(diagnosticTimer);}
+    if(!compact){
+      const details=new Map();
+      for(const row of result.recordsets[1]){
+        if(!details.has(row.ProductId))details.set(row.ProductId,[]);
+        details.get(row.ProductId).push(row.Detail);
+      }
+      for(const row of result.recordset)row.LocationDetails=(details.get(row.ProductId)||[]).join(', ');
+    }
+    // Sort product labels after loading the numeric balances.
     if(!compact)result.recordset.sort((a,b)=>String(a.ProductCode||'').localeCompare(String(b.ProductCode||''),'en',{sensitivity:'base'})||a.ProductId-b.ProductId);
     res.set('Cache-Control', 'no-store');
     const visible=req.navigation?.user.Role==='ADMIN'||req.navigation?.profile.DESKTOP.includes('STOCK')?result.recordset:require('../middleware/product-scope').filter(req,result.recordset);
@@ -62,7 +92,7 @@ router.get('/balance', async (req, res) => {
   }
 });
 
-router.get('/containers/:productId',async(req,res)=>{try{const id=Number(req.params.productId);if(!Number.isInteger(id)||id<=0||id>2147483647)return res.status(400).json({success:false,message:'รหัสสินค้าไม่ถูกต้อง'});const p=await poolPromise,product=(await p.request().input('P',sql.Int,id).query('SELECT p.ProductId,p.ProductCode,p.ProductName,p.CategoryId,u.UnitCode FROM dbMaster.dbo.tblProducts p LEFT JOIN dbMaster.dbo.tblUnits u ON u.UnitId=p.UnitId WHERE ProductId=@P')).recordset[0];const stockAllowed=req.navigation?.user.Role==='ADMIN'||require('../middleware/navigation').hasAction(req.navigation.profile,req.navigation.mode,'STOCK','VIEW');if(!product||!stockAllowed&&!require('../middleware/product-scope').can(req,product.CategoryId,'VIEW'))return res.status(403).json({success:false,message:'ไม่มีสิทธิ์ดูสต๊อกสินค้านี้'});const pred=require('../middleware/warehouse-scope').predicate(req,'c.WhId');const rows=(await p.request().input('P',sql.Int,id).query(`SELECT ${['summary','lots'].includes(req.query.detail)?'TOP (0) ':''}c.ContainerId,c.ContainerCode,c.WhId,w.whname,w.whdescription,c.LocationCode,c.Status,c.LotNo,c.CapacityBase,c.RemainingBase,c.ExpiryDate,COALESCE(r.ReceivedAt,c.CreatedAt) ReceivedAt,o.ReferenceNo PONo,o.ReceiveNo,o.SupplierName,COALESCE(rp.PackUnit,s.PackUnit,N'ภาชนะ') PackUnit,CASE WHEN o.InboundId IS NULL THEN 1 ELSE 0 END LegacyRegistration FROM dbWMS.dbo.RMContainers c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.WhId LEFT JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=c.InboundReceiptId LEFT JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId LEFT JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId LEFT JOIN dbWMS.dbo.RMInboundPacks rp ON rp.LineId=l.LineId LEFT JOIN dbMaster.dbo.tblRMPackSpecs s ON s.ProductId=c.ProductId WHERE c.ProductId=@P AND c.RemainingBase>0 AND (`+pred+`) ORDER BY COALESCE(r.ReceivedAt,c.CreatedAt),c.ContainerId;SELECT c.whid,w.whname,w.whdescription,c.LocationCode,(SELECT MAX(l.Description) FROM dbMaster.dbo.Locations l WHERE l.whid=c.whid AND l.LocationCode=c.LocationCode) AS LocationDescription,CASE WHEN EXISTS(SELECT 1 FROM dbMaster.dbo.Locations l WHERE l.whid=c.whid AND l.LocationCode=c.LocationCode AND UPPER(l.Zone)='DAMAGE') THEN 1 ELSE 0 END IsDamage,SUM(c.Quantity) Quantity FROM dbWMS.dbo.tblStock c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.whid WHERE c.ProductId=@P AND (`+require('../middleware/warehouse-scope').predicate(req,'c.whid')+`) GROUP BY c.whid,w.whname,w.whdescription,c.LocationCode ORDER BY w.whname,c.LocationCode;`)).recordsets;const packing=(await p.request().input('P',sql.Int,id).query(`SELECT TOP 1 v.VersionNo,v.EffectiveFrom,v.PackUnit,v.UnitsPerPack,v.StockUnitLabel,v.NetVolumeMlPerUnit,v.NetWeightGramsPerUnit,v.OuterPackUnit,v.PacksPerOuter FROM dbMaster.dbo.tblProductPackVersions v JOIN dbMaster.dbo.tblProducts p ON p.ProductId=v.ProductId AND p.UnitId=v.StockUnitId WHERE v.ProductId=@P AND v.IsActive=1 AND v.EffectiveFrom<=CONVERT(date,DATEADD(hour,7,SYSUTCDATETIME())) ORDER BY v.EffectiveFrom DESC,v.VersionNo DESC`)).recordset[0]||null;res.set('Cache-Control','no-store');const lots=['summary','containers'].includes(req.query.detail)?[]:await require('../services/stock-lot-details').load(p,sql,id,rows[1]);res.json({success:true,product,packing,containers:rows[0],stock:rows[1],lots})}catch(e){res.status(500).json({success:false,message:'โหลดรายละเอียดกล่องไม่สำเร็จ'})}});
+router.get('/containers/:productId',async(req,res)=>{try{const id=Number(req.params.productId);if(!Number.isInteger(id)||id<=0||id>2147483647)return res.status(400).json({success:false,message:'รหัสสินค้าไม่ถูกต้อง'});const p=await poolPromise,product=(await p.request().input('P',sql.Int,id).query('SELECT p.ProductId,p.ProductCode,p.ProductName,p.CategoryId,u.UnitCode FROM dbMaster.dbo.tblProducts p LEFT JOIN dbMaster.dbo.tblUnits u ON u.UnitId=p.UnitId WHERE ProductId=@P')).recordset[0];const stockAllowed=req.navigation?.user.Role==='ADMIN'||require('../middleware/navigation').hasAction(req.navigation.profile,req.navigation.mode,'STOCK','VIEW');if(!product||!stockAllowed&&!require('../middleware/product-scope').can(req,product.CategoryId,'VIEW'))return res.status(403).json({success:false,message:'ไม่มีสิทธิ์ดูสต๊อกสินค้านี้'});const pred=require('../middleware/warehouse-scope').predicate(req,'c.WhId');const rows=(await p.request().input('P',sql.Int,id).query(`SELECT ${['summary','lots'].includes(req.query.detail)?'TOP (0) ':''}c.ContainerId,c.ContainerCode,c.WhId,w.whname,w.whdescription,c.LocationCode,c.Status,c.LotNo,c.CapacityBase,c.RemainingBase,c.ExpiryDate,COALESCE(r.ReceivedAt,c.CreatedAt) ReceivedAt,o.ReferenceNo PONo,o.ReceiveNo,o.SupplierName,COALESCE(rp.PackUnit,s.PackUnit,N'ภาชนะ') PackUnit,CASE WHEN o.InboundId IS NULL THEN 1 ELSE 0 END LegacyRegistration FROM dbWMS.dbo.RMContainers c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.WhId LEFT JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=c.InboundReceiptId LEFT JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId LEFT JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId LEFT JOIN dbWMS.dbo.RMInboundPacks rp ON rp.LineId=l.LineId LEFT JOIN dbMaster.dbo.tblRMPackSpecs s ON s.ProductId=c.ProductId WHERE c.ProductId=@P AND c.RemainingBase>0 AND (`+pred+`) ORDER BY COALESCE(r.ReceivedAt,c.CreatedAt),c.ContainerId;SELECT c.whid,w.whname,w.whdescription,c.LocationCode,(SELECT MAX(l.Description) FROM dbMaster.dbo.Locations l WHERE l.whid=c.whid AND l.LocationCode=c.LocationCode) AS LocationDescription,CASE WHEN EXISTS(SELECT 1 FROM dbMaster.dbo.Locations l WHERE l.whid=c.whid AND l.LocationCode=c.LocationCode AND UPPER(l.Zone)='DAMAGE') THEN 1 ELSE 0 END IsDamage,SUM(c.Quantity) Quantity FROM dbWMS.dbo.tblStock c LEFT JOIN dbMaster.dbo.tblWH w ON w.whid=c.whid WHERE c.ProductId=@P AND (`+require('../middleware/warehouse-scope').predicate(req,'c.whid')+`) GROUP BY c.whid,w.whname,w.whdescription,c.LocationCode ORDER BY w.whname,c.LocationCode;`)).recordsets;const packing=(await p.request().input('P',sql.Int,id).query(`SELECT TOP 1 v.VersionNo,v.EffectiveFrom,v.PackUnit,v.UnitsPerPack,v.StockUnitLabel,v.NetVolumeMlPerUnit,v.NetWeightGramsPerUnit,v.OuterPackUnit,v.PacksPerOuter FROM dbMaster.dbo.tblProductPackVersions v JOIN dbMaster.dbo.tblProducts p ON p.ProductId=v.ProductId AND p.UnitId=v.StockUnitId WHERE v.ProductId=@P AND v.IsActive=1 AND v.EffectiveFrom<=CONVERT(date,DATEADD(hour,7,SYSUTCDATETIME())) ORDER BY v.EffectiveFrom DESC,v.VersionNo DESC`)).recordset[0]||null;res.set('Cache-Control','no-store');const lots=['summary','containers'].includes(req.query.detail)?[]:await require('../services/stock-lot-details').load(p,sql,id,rows[1]);res.json({success:true,product,packing,containers:rows[0],stock:rows[1],lots,canAdjustLots:String(req.user.role).toUpperCase()==='ADMIN'})}catch(e){res.status(500).json({success:false,message:'โหลดรายละเอียดกล่องไม่สำเร็จ'})}});
 router.get('/lookup', async (req, res) => {
   const code = String(req.query.code || req.query.barcode || '').trim();
   if (!code || code.length > 100) return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสสินค้าหรือบาร์โค้ดไม่เกิน 100 ตัวอักษร' });

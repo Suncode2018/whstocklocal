@@ -15,22 +15,19 @@ function reconcile(stock, candidates, outgoing) {
 }
 async function load(pool,sql,id,stock){
  const r=await pool.request().input('P',sql.Int,id).query(`
- SELECT t.whid,t.LocationCode,t.QtyChange Quantity,t.CreatedAt,l.AnaNo,r.LotNo
- FROM dbWMS.dbo.tblStockTransactions t
- JOIN dbWMS.dbo.StoragePlans h ON h.PlanNo=t.RefDocNo AND h.ProductId=t.ProductId AND h.WhId=t.whid
- JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=h.InboundReceiptId
- JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId
- JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId
- WHERE t.ProductId=@P AND t.TransType='PUTAWAY' AND t.QtyChange>0 AND o.IsCancelled=0;
- SELECT o.WhId whid,r.LocationCode,r.Quantity-COALESCE(m.Qty,0) Quantity,r.ReceivedAt CreatedAt,l.AnaNo,r.LotNo
+ SELECT TransId,TransType,whid,LocationCode,QtyChange,QtyAfter,RefDocNo,CreatedAt
+ FROM dbWMS.dbo.tblStockTransactions WHERE ProductId=@P ORDER BY CreatedAt,TransId;
+ SELECT o.WhId whid,o.ReceiveNo,r.LocationCode,r.Quantity,r.ReceivedAt,l.AnaNo,COALESCE(NULLIF(r.LotNo,N''),l.ProductionLotNo) LotNo
  FROM dbWMS.dbo.InboundReceipts r JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId
  JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId
- OUTER APPLY(SELECT SUM(pl.MovedQuantity) Qty FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines pl ON pl.PlanId=h.PlanId WHERE h.InboundReceiptId=r.ReceiptId) m
  WHERE l.ProductId=@P AND o.IsCancelled=0;
- SELECT whid,LocationCode,CreatedAt FROM dbWMS.dbo.tblStockTransactions WHERE ProductId=@P AND QtyChange<0;
+ SELECT h.PlanNo,h.WhId,h.InboundReceiptId,l.AnaNo,COALESCE(NULLIF(r.LotNo,N''),l.ProductionLotNo) LotNo
+ FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.InboundReceipts r ON r.ReceiptId=h.InboundReceiptId
+ JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId WHERE h.ProductId=@P
+ UNION ALL SELECT DocumentNo,WhId,MoveId,AnaNo,LotNo FROM dbWMS.dbo.LocationMoveOrders WHERE ProductId=@P AND Status='DONE' AND (AnaNo IS NOT NULL OR LotNo IS NOT NULL);
+ IF OBJECT_ID('dbWMS.dbo.StockLotAdjustments','U') IS NOT NULL
+ SELECT * FROM dbWMS.dbo.StockLotAdjustments WHERE ProductId=@P ORDER BY AdjustmentId;
  `);
- // RCV attribution is safe only with no unlinked withdrawals. PUTAWAY withdrawals
- // are already deducted above; conservatively invalidate on any withdrawal too.
- return reconcile(stock,[...r.recordsets[0],...r.recordsets[1]],r.recordsets[2]);
+ return require('./stock-lot-replay').replay(stock,r.recordsets[0],r.recordsets[1],r.recordsets[2],r.recordsets[3]||[]);
 }
 module.exports={load,reconcile};
