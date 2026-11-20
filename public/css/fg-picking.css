@@ -162,6 +162,19 @@
 #fgPickBatchSection .fg-batch-actions .btn + .btn { margin-left: 0; }
 #fgPickBatchSection .fg-batch-foot { align-items: center; }
 
+/* Keep the RM request table visually separate from the picker above and below. */
+#rmPickingWorkspace {
+  display: none !important;
+}
+
+.admin-content #rmRequestPanel {
+  margin-block: 18px 20px !important;
+}
+
+.admin-content #rmPickingWorkspace + #rmSubPanel {
+  margin-top: 18px !important;
+}
+
 @media (max-width: 700px) {
   #fgPickWorkspace.fg-shell { gap: 14px; padding: 15px; }
   #fgPickWorkspace.fg-shell > header { display: block; }
