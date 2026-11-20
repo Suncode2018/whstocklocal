@@ -575,7 +575,7 @@ BEGIN
     CREATE TABLE dbo.RMSubTransferAudit (
         AuditId INT IDENTITY PRIMARY KEY,
         TransferId INT NOT NULL REFERENCES dbo.RMSubTransfers(TransferId),
-        Action VARCHAR(20) NOT NULL,
+        Action VARCHAR(40) NOT NULL,
         Actor NVARCHAR(100) NOT NULL,
         Details NVARCHAR(MAX) NULL,
         CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME()

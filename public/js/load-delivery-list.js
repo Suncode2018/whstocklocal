@@ -15,7 +15,7 @@ window.renderDeliveryOrders=async function(){
  try{const query=new URLSearchParams({category:deliveryCategory,type:deliveryType,tab:s.tab,page:s.page,search:s.search,status:s.status,from:s.from,to:s.to});const result=await deliveryApi('/list?'+query);if(seq!==s.sequence)return;deliveryData.orders=result.data;
   document.getElementById('shipTodayCount').textContent=result.counts.today;document.getElementById('shipOpenCount').textContent=result.counts.open;
   document.getElementById('shipListStatus').textContent=s.tab==='today'?'ใบส่งที่สร้างวันนี้ '+wmsDate(shipToday()):s.tab==='open'?'ร่างและใบส่งที่รอผู้รับ รวมวันก่อนหน้า':'ใบส่งที่สร้าง '+wmsDate(s.from)+(s.from===s.to?'':' ถึง '+wmsDate(s.to));
-  renderDeliveryOrdersBase();const rules={prepareDelivery:'CONFIRM',dispatchDelivery:'CONFIRM',receiveDelivery:'CONFIRM',cancelDelivery:'EDIT',printDelivery:'EXPORT',downloadDeliveryPdf:'EXPORT'};body.querySelectorAll('button[onclick]').forEach(b=>{const name=b.getAttribute('onclick').split('(')[0];if(rules[name])b.hidden=!deliveryCategoryCan(deliveryCategory,rules[name]);});
+  renderDeliveryOrdersBase();applyDeliveryOrderActionPermissions(body);
   document.getElementById('shipPageInfo').textContent=`${result.total} ใบส่ง · หน้า ${s.page} / ${Math.max(1,Math.ceil(result.total/25))}`;document.getElementById('shipPrevious').disabled=s.page<=1;document.getElementById('shipNext').disabled=s.page*25>=result.total;
  }catch(e){if(seq!==s.sequence)return;body.innerHTML='<tr><td colspan="4" class="text-center text-danger py-4">'+shipEsc(e.message)+'</td></tr>';document.getElementById('shipPageInfo').textContent='';}
 };

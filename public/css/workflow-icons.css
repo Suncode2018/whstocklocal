@@ -1,0 +1,43 @@
+/* Updated semantic icons for the core warehouse operations menu. */
+.sidebar-group[data-sidebar-group="main-process"] .sidebar-menu-item > i,
+.sidebar-group[data-sidebar-group="warehouse-main-process"] .sidebar-menu-item > i {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  margin-right: 5px;
+  border-radius: 10px;
+  font-size: 16px !important;
+  background: #eef4ff;
+  color: #1877f2 !important;
+}
+.sidebar-group[data-sidebar-group="main-process"] .sidebar-menu-item[href*="receive"] > i,
+.sidebar-group[data-sidebar-group="warehouse-main-process"] .sidebar-menu-item[href*="receive"] > i,
+.sidebar-group[data-sidebar-group="main-process"] #tab-op-RECEIVE > i {
+  color: #159447 !important;
+  background: #e8f7ee;
+}
+.sidebar-group[data-sidebar-group="main-process"] .sidebar-menu-item[href*="putaway"] > i,
+.sidebar-group[data-sidebar-group="warehouse-main-process"] .sidebar-menu-item[href*="putaway"] > i,
+.sidebar-group[data-sidebar-group="main-process"] #tab-op-PUTAWAY > i {
+  color: #1877f2 !important;
+  background: #eaf2ff;
+}
+.sidebar-group[data-sidebar-group="main-process"] .sidebar-menu-item[href*="check"] > i,
+.sidebar-group[data-sidebar-group="warehouse-main-process"] .sidebar-menu-item[href*="check"] > i {
+  color: #078da8 !important;
+  background: #e6f8fb;
+}
+.sidebar-group[data-sidebar-group="main-process"] .sidebar-menu-item[href*="pick"] > i,
+.sidebar-group[data-sidebar-group="warehouse-main-process"] .sidebar-menu-item[href*="pick"] > i,
+.sidebar-group[data-sidebar-group="main-process"] #tab-op-PICK > i {
+  color: #c56b08 !important;
+  background: #fff3df;
+}
+.sidebar-group[data-sidebar-group="main-process"] .sidebar-menu-item[href*="cycle-count"] > i,
+.sidebar-group[data-sidebar-group="warehouse-main-process"] .sidebar-menu-item[href*="cycle-count"] > i,
+.sidebar-group[data-sidebar-group="main-process"] #tab-op-CYCLECOUNT > i {
+  color: #6d5dfc !important;
+  background: #f1edff;
+}

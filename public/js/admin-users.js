@@ -135,7 +135,7 @@
     }
   }
 
-  const COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+  const COLORS = ['#1877f2', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
   const colorOf = s => COLORS[[...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
   const fmtTime = t => {
     if (!t) return '<span class="text-muted">ยังไม่เคยเข้าใช้</span>';
@@ -274,7 +274,7 @@
       title: edit ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่',
       html: formHtml(u),
       showCancelButton: true, confirmButtonText: edit ? 'บันทึก' : 'เพิ่มผู้ใช้', cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#4f46e5', focusConfirm: false, showLoaderOnConfirm: true,
+      confirmButtonColor: '#1877f2', focusConfirm: false, showLoaderOnConfirm: true,
       didOpen: () => {
         const g = $('uf-gen');
         if (g) g.onclick = () => { $('uf-pass').value = genPassword(); };
@@ -326,12 +326,12 @@
     if (isSelf(u)) { render(); return; }
     if (u.role === 'ADMIN' || u.username.toLowerCase() === 'admin') {
       render();
-      Swal.fire({ icon: 'error', title: 'ไม่สามารถระงับบัญชีนี้ได้', text: 'ไม่อนุญาตให้ระงับบัญชีผู้ดูแลระบบสูงสุด (ADMIN)', confirmButtonColor: '#4f46e5' });
+      Swal.fire({ icon: 'error', title: 'ไม่สามารถระงับบัญชีนี้ได้', text: 'ไม่อนุญาตให้ระงับบัญชีผู้ดูแลระบบสูงสุด (ADMIN)', confirmButtonColor: '#1877f2' });
       return;
     }
     if (!active && u.role === 'ADMIN' && activeAdmins() <= 1) {
       render();
-      Swal.fire({ icon: 'warning', title: 'ระงับไม่ได้', text: 'ต้องมีผู้ดูแลระบบ (ADMIN) ที่ใช้งานอยู่อย่างน้อย 1 คน', confirmButtonColor: '#4f46e5' });
+      Swal.fire({ icon: 'warning', title: 'ระงับไม่ได้', text: 'ต้องมีผู้ดูแลระบบ (ADMIN) ที่ใช้งานอยู่อย่างน้อย 1 คน', confirmButtonColor: '#1877f2' });
       return;
     }
     if (!active) {
@@ -347,7 +347,7 @@
       u.active = active;
       Toast.fire({ icon: 'success', title: active ? 'เปิดใช้งานบัญชีแล้ว' : 'ระงับบัญชีแล้ว' });
     } catch (e) {
-      Swal.fire({ icon: 'error', title: 'ทำรายการไม่สำเร็จ', text: e.message, confirmButtonColor: '#4f46e5' });
+      Swal.fire({ icon: 'error', title: 'ทำรายการไม่สำเร็จ', text: e.message, confirmButtonColor: '#1877f2' });
     }
     render();
   };

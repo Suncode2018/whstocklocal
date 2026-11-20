@@ -9,7 +9,7 @@ END;
 
 GO
 IF COL_LENGTH('dbo.DeliveryLines','OriginLocationCode') IS NULL ALTER TABLE dbo.DeliveryLines ADD OriginLocationCode nvarchar(50) NULL;
-IF OBJECT_ID('dbo.DeliveryAudit','U') IS NULL CREATE TABLE dbo.DeliveryAudit(AuditId int IDENTITY PRIMARY KEY,DeliveryId int NOT NULL REFERENCES dbo.DeliveryOrders(DeliveryId),Action varchar(20) NOT NULL,Actor nvarchar(100) NOT NULL,Details nvarchar(max) NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME());
+IF OBJECT_ID('dbo.DeliveryAudit','U') IS NULL CREATE TABLE dbo.DeliveryAudit(AuditId int IDENTITY PRIMARY KEY,DeliveryId int NOT NULL REFERENCES dbo.DeliveryOrders(DeliveryId),Action varchar(40) NOT NULL,Actor nvarchar(100) NOT NULL,Details nvarchar(max) NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME());
 GO
 CREATE OR ALTER TRIGGER dbo.TR_DeliveryContainerReservation ON dbo.RMContainers AFTER UPDATE,DELETE AS
 BEGIN SET NOCOUNT ON;

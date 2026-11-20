@@ -13,8 +13,9 @@ function reconcile(stock, candidates, outgoing) {
   return [...groups.values()];
  });
 }
-async function load(pool,sql,id,stock){
- const r=await pool.request().input('P',sql.Int,id).query(`
+async function load(pool,sql,id,stock,requestFactory){
+ const request=requestFactory?requestFactory():pool.request();
+ const r=await request.input('P',sql.Int,id).query(`
  SELECT TransId,TransType,whid,LocationCode,QtyChange,QtyAfter,RefDocNo,CreatedAt
  FROM dbWMS.dbo.tblStockTransactions WHERE ProductId=@P ORDER BY CreatedAt,TransId;
  SELECT o.WhId whid,o.ReceiveNo,r.LocationCode,r.Quantity,r.ReceivedAt,l.AnaNo,COALESCE(NULLIF(r.LotNo,N''),l.ProductionLotNo) LotNo
@@ -27,7 +28,10 @@ async function load(pool,sql,id,stock){
  UNION ALL SELECT DocumentNo,WhId,MoveId,AnaNo,LotNo FROM dbWMS.dbo.LocationMoveOrders WHERE ProductId=@P AND Status='DONE' AND (AnaNo IS NOT NULL OR LotNo IS NOT NULL);
  IF OBJECT_ID('dbWMS.dbo.StockLotAdjustments','U') IS NOT NULL
  SELECT * FROM dbWMS.dbo.StockLotAdjustments WHERE ProductId=@P ORDER BY AdjustmentId;
+ IF OBJECT_ID('dbWMS.dbo.FGLotPickLines','U') IS NOT NULL
+ SELECT o.PickNo,x.WhId,x.ProductId,x.FromLocationCode,x.ToLocationCode,x.AnaNo,x.LotNo,x.FifoDate,x.Quantity FROM dbWMS.dbo.FGLotPickLines x JOIN dbWMS.dbo.PickOperations o ON o.PickId=x.PickId WHERE x.ProductId=@P ORDER BY o.PickId,x.[LineNo];
+ ELSE SELECT CAST(NULL AS NVARCHAR(40)) PickNo,CAST(NULL AS INT) WhId,CAST(NULL AS INT) ProductId,CAST(NULL AS NVARCHAR(50)) FromLocationCode,CAST(NULL AS NVARCHAR(50)) ToLocationCode,CAST(NULL AS NVARCHAR(100)) AnaNo,CAST(NULL AS NVARCHAR(100)) LotNo,CAST(NULL AS DATETIME2) FifoDate,CAST(NULL AS DECIMAL(18,2)) Quantity WHERE 1=0;
  `);
- return require('./stock-lot-replay').replay(stock,r.recordsets[0],r.recordsets[1],r.recordsets[2],r.recordsets[3]||[]);
+ return require('./stock-lot-replay').replay(stock,r.recordsets[0],r.recordsets[1],r.recordsets[2],r.recordsets[3]||[],r.recordsets[4]||[]);
 }
 module.exports={load,reconcile};

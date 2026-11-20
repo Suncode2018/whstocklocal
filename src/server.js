@@ -18,6 +18,7 @@ app.use('/handheld', express.static(path.join(__dirname, '../public/handheld')))
 
 // 2. Routing API
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/preferences', access.authenticate, require('./routes/sidebar-preferences'));
 app.use('/api/navigation',require('./routes/navigation'));
 app.use('/api',require('./middleware/navigation').gate);
 app.use('/api',require('./middleware/warehouse-scope').middleware);
@@ -54,7 +55,7 @@ app.use('/api/stock-transfers', require('./routes/stock-transfers'));
 app.use('/api/bom-stock', require('./routes/bom-stock'));
 app.use('/api/bom', require('./routes/bom'));
 app.use('/api/inventory-counts', require('./routes/inventory-counts'));
-app.get('/api/version',(req,res)=>res.json({success:true,version:'20261106-modern-workflows',root:path.resolve(__dirname,'..')}));
+app.get('/api/version',(req,res)=>res.json({success:true,version:'20261120-atomic-fg-batch',root:path.resolve(__dirname,'..')}));
 app.use('/api',(req,res)=>res.status(404).json({success:false,message:'ไม่พบ API นี้ กรุณาอัปเดตโปรแกรมและรีสตาร์ท Service',path:req.path}));
 app.use((err,req,res,next)=>{if(!req.path.startsWith('/api/'))return next(err);res.status(err.status||500).json({success:false,message:err.status===400?'รูปแบบข้อมูลไม่ถูกต้อง':'เกิดข้อผิดพลาดในบริการ API'});});
 // 3. เส้นทางลัด (Shortcuts & Redirects)

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WH Stock · เข้าสู่ระบบ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/css/wms.css">
-  <link rel="stylesheet" href="/css/wms-friendly.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/wms.css?v=20261120-material-kit-colors-1">
+  <link rel="stylesheet" href="/css/wms-friendly.css?v=20261120-material-kit-colors-1">
 </head>
 <body class="login-body">
 
@@ -103,7 +103,7 @@
     const password = document.getElementById('password').value;
 
     if (!username || !password) {
-      Swal.fire({ icon: 'info', title: 'กรอกข้อมูลให้ครบ', text: 'กรุณากรอกทั้งชื่อผู้ใช้และรหัสผ่าน', confirmButtonColor: '#4f46e5' });
+      Swal.fire({ icon: 'info', title: 'กรอกข้อมูลให้ครบ', text: 'กรุณากรอกทั้งชื่อผู้ใช้และรหัสผ่าน', confirmButtonColor: '#1877f2' });
       return;
     }
 
@@ -120,7 +120,7 @@
         setLoading(false);
         document.getElementById('password').value = '';
         document.getElementById('password').focus();
-        Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', confirmButtonColor: '#4f46e5', confirmButtonText: 'ลองอีกครั้ง' });
+        Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', confirmButtonColor: '#1877f2', confirmButtonText: 'ลองอีกครั้ง' });
         return;
       }
 
@@ -140,7 +140,7 @@
     } catch (err) {
       console.error('Login Error:', err);
       setLoading(false);
-      Swal.fire({ icon: 'error', title: 'เชื่อมต่อไม่ได้', text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', confirmButtonColor: '#4f46e5' });
+      Swal.fire({ icon: 'error', title: 'เชื่อมต่อไม่ได้', text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', confirmButtonColor: '#1877f2' });
     }
   }
 </script>

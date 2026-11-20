@@ -1,0 +1,135 @@
+/* Shared workspace polish for warehouse master data and operational flows. */
+:root {
+  --workspace-bg: #f4f7fb;
+  --workspace-surface: #ffffff;
+  --workspace-ink: #243247;
+  --workspace-muted: #6f7f95;
+  --workspace-line: #dfe6f0;
+  --workspace-primary: #1877f2;
+  --workspace-primary-soft: #eaf3ff;
+  --workspace-shadow: 0 8px 24px rgba(35, 55, 84, .045);
+}
+
+.admin-content {
+  color: var(--workspace-ink);
+  background: var(--workspace-bg);
+  padding: clamp(1rem, 2vw, 1.75rem) !important;
+}
+
+.admin-content :is(h1, h2, h3, h4, h5) {
+  color: #1d2b40;
+  letter-spacing: -.018em;
+}
+
+.admin-content :is(.panel-modern, .card-wms, .ship-panel, .ship-step, .pack-step, .inbound-step, .transfer-panel) {
+  border: 1px solid var(--workspace-line);
+  border-radius: 18px;
+  box-shadow: var(--workspace-shadow);
+}
+
+.admin-content .panel-modern {
+  background: var(--workspace-surface);
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.admin-content :is(.panel-modern, .ship-panel, .pack-step) > :is(.d-flex, .row):first-child {
+  min-width: 0;
+}
+
+.admin-content :is(.form-control, .form-select, .input-group-text) {
+  min-height: 42px;
+  border-color: #d8e1ee;
+  border-radius: 11px;
+  color: var(--workspace-ink);
+}
+
+.admin-content textarea.form-control {
+  min-height: 76px;
+}
+
+.admin-content :is(.form-control, .form-select):focus {
+  border-color: #74aaff;
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, .14);
+}
+
+.admin-content :is(button, a.btn, input, select, textarea, summary):focus-visible {
+  outline: 3px solid rgba(24, 119, 242, .34);
+  outline-offset: 2px;
+}
+
+.admin-content .btn {
+  min-height: 40px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.admin-content .btn-sm {
+  min-height: 32px;
+  border-radius: 8px;
+}
+
+.admin-content .btn-primary {
+  box-shadow: 0 4px 12px rgba(24, 119, 242, .15);
+}
+
+.admin-content :is(.table-responsive, .table-container-modern) {
+  border-radius: 12px;
+  scrollbar-color: #b8c7da transparent;
+}
+
+.admin-content .table {
+  --bs-table-color: #35445a;
+  --bs-table-border-color: #e6ebf2;
+  margin-bottom: 0;
+}
+
+.admin-content .table thead th {
+  color: #52627a;
+  background: #f6f8fc;
+  font-size: .8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-content .table tbody tr:hover > * {
+  --bs-table-bg: #f5f9ff;
+}
+
+.admin-content :is(.text-muted, .small.text-muted) {
+  color: var(--workspace-muted) !important;
+}
+
+.admin-content :is(.alert, .pack-callout, .fg-unit-note) {
+  border-radius: 12px;
+}
+
+@media (max-width: 767.98px) {
+  .admin-content {
+    padding: .85rem !important;
+  }
+
+  .admin-content :is(.panel-modern, .card-wms, .ship-panel, .ship-step, .pack-step) {
+    border-radius: 14px;
+  }
+
+  .admin-content :is(.panel-modern, .ship-panel) {
+    padding: 1rem;
+  }
+
+  .admin-content .table {
+    font-size: .86rem;
+  }
+
+  .admin-content .btn:not(.btn-sm) {
+    min-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-content .btn,
+  .admin-content .panel-modern,
+  .admin-content .table tbody tr {
+    transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+  }
+}

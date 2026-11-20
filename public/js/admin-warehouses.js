@@ -3,22 +3,27 @@
    ============================================================ */
 
 let editingWhId = null;
+let warehouseLoadVersion = 0;
 
 async function loadWarehouses(showToast = false) {
   const tbody = document.getElementById('whTableBody');
   if (!tbody) return;
-
-  tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>`;
+  const version = ++warehouseLoadVersion;
+  const hasLoadedRows = tbody.dataset.loaded === 'true';
+  tbody.setAttribute('aria-busy', 'true');
+  if (!hasLoadedRows) tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>`;
 
   try {
     const res = await fetch('/api/warehouses', { headers: typeof authHeaders === 'function' ? authHeaders() : {} });
     if (!res.ok) throw new Error('โหลดข้อมูลไม่สำเร็จ');
     const list = await res.json();
+    if (version !== warehouseLoadVersion) return;
     const warehouseAdmin=typeof wmsNavigation!=='undefined'&&wmsNavigation?.user.role==='ADMIN';
     document.querySelectorAll('[onclick="openAddWH()"],#warehouseAccessUsers').forEach(button=>button.hidden=!warehouseAdmin);
 
     if (!Array.isArray(list) || list.length === 0) {
       tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">ยังไม่มีข้อมูลคลังสินค้าในระบบ</td></tr>`;
+      tbody.dataset.loaded = 'true';
       return;
     }
 
@@ -43,13 +48,17 @@ async function loadWarehouses(showToast = false) {
         </tr>
       `;
     }).join('');
+    tbody.dataset.loaded = 'true';
 
     tbody.querySelectorAll('button').forEach(button=>button.hidden=!warehouseAdmin);
     if (showToast && typeof Swal !== 'undefined') {
       Swal.fire({ icon: 'success', title: 'รีเฟรชข้อมูลเรียบร้อย', timer: 1000, showConfirmButton: false });
     }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+    if (version !== warehouseLoadVersion) return;
+    if (!hasLoadedRows) tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+  } finally {
+    if (version === warehouseLoadVersion) tbody.removeAttribute('aria-busy');
   }
 }
 

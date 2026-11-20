@@ -1,0 +1,16 @@
+#pane-locations .location-master-table-wrap{border:1px solid #e1e7f0;border-radius:12px;background:#fff}
+#pane-locations .location-master-table{min-width:850px}
+#pane-locations .location-master-table thead th{white-space:nowrap;background:#f7f9fc;color:#53627a;font-size:12px;font-weight:700;padding:13px 16px;border-bottom:1px solid #e1e7f0}
+#pane-locations .location-master-table tbody td{padding:12px 16px;border-color:#edf0f5;vertical-align:middle}
+#pane-locations .location-master-table tbody tr{height:68px}
+#pane-locations .location-master-table tbody tr:hover{background:#f9fbff}
+#pane-locations .location-master-identity{display:flex;flex-direction:column;gap:3px;min-width:220px;max-width:460px}
+#pane-locations .location-master-identity strong{font:700 14px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;color:#243b5a}
+#pane-locations .location-master-identity span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#77849a;font-size:12px;max-width:100%}
+#pane-locations .location-master-context{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#pane-locations .location-master-context .badge{font-size:11px;font-weight:600}
+#pane-locations .location-master-capacity{display:flex;flex-direction:column;gap:3px;line-height:1.35}
+#pane-locations .location-master-capacity strong{font-size:12px;font-weight:600;color:#43536b;white-space:nowrap}
+#pane-locations .location-master-capacity span{font-size:11px;color:#8a96a8;font-variant-numeric:tabular-nums}
+#pane-locations .location-master-table .btn{width:32px;height:32px;padding:4px}
+@media(max-width:700px){#pane-locations .card-wms{padding:16px!important}#pane-locations .location-master-table thead th,#pane-locations .location-master-table tbody td{padding:10px 12px}}

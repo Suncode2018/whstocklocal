@@ -5,20 +5,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
 
 :root {
-  --pri: #4f46e5;
-  --pri-dark: #4338ca;
-  --pri-soft: #eef2ff;
-  --ok: #16a34a;
-  --ok-soft: #dcfce7;
-  --warn: #d97706;
-  --warn-soft: #fef3c7;
-  --err: #dc2626;
-  --err-soft: #fee2e2;
-  --ink: #0f172a;
-  --ink-2: #475569;
-  --ink-3: #94a3b8;
-  --line: #e2e8f0;
-  --bg: #f4f6fb;
+  --pri: #1877f2;
+  --pri-dark: #1565c0;
+  --pri-soft: #d0ecfe;
+  --ok: #118d57;
+  --ok-soft: #d3fcd2;
+  --warn: #b76e00;
+  --warn-soft: #fff5cc;
+  --err: #b71d18;
+  --err-soft: #ffe9d5;
+  --ink: #1c252e;
+  --ink-2: #637381;
+  --ink-3: #919eab;
+  --line: #dfe3e8;
+  --bg: #f9fafb;
   --card: #ffffff;
   --radius: 16px;
   --shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 4px 16px rgba(15, 23, 42, .06);
@@ -195,8 +195,8 @@ body.login-body {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: radial-gradient(1200px 600px at 10% -10%, #6366f1 0%, transparent 60%),
-    radial-gradient(900px 500px at 110% 110%, #3730a3 0%, transparent 55%), #312e81;
+  background: radial-gradient(1200px 600px at 10% -10%, #1877f2 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, #1565c0 0%, transparent 55%), #1c252e;
 }
 
 .login-card {
@@ -261,7 +261,7 @@ body.handheld-wrapper {
   top: 0;
   z-index: 50;
   padding: .6rem .9rem;
-  background: linear-gradient(135deg, #4338ca, #312e81);
+  background: linear-gradient(135deg, #1565c0, #1c252e);
   color: #fff;
   box-shadow: 0 4px 14px rgba(49, 46, 129, .35);
 }

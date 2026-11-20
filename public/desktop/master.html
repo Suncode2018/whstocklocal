@@ -7,15 +7,15 @@
   
   <!-- CSS Frameworks & Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/css/wms.css">
-  <link rel="stylesheet" href="/css/wms-friendly.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/wms.css?v=20261120-material-kit-colors-1">
+  <link rel="stylesheet" href="/css/wms-friendly.css?v=20261120-material-kit-colors-1">
 
   <style>
     /* Global & Layout Structure */
     :root {
-      --primary-accent: #4f46e5;
-      --primary-hover: #4338ca;
+      --primary-accent: #1877f2;
+      --primary-hover: #1565c0;
       --bg-panel: #ffffff;
       --border-color: #e2e8f0;
     }
@@ -34,7 +34,7 @@
     }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07); }
     .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
-    .stat-total .stat-icon { background: #e0e7ff; color: #4338ca; }
+    .stat-total .stat-icon { background: #b8dcfb; color: #1565c0; }
     .stat-rm .stat-icon    { background: #fef3c7; color: #d97706; }
     .stat-pkg .stat-icon   { background: #e0f2fe; color: #0284c7; }
     .stat-fg .stat-icon    { background: #dcfce7; color: #16a34a; }
@@ -105,7 +105,7 @@
     
     .barcode-pill {
       display: inline-block;
-      background: #eef2ff;
+      background: #d0ecfe;
       color: var(--primary-accent);
       font-family: monospace;
       font-weight: 600;
@@ -126,21 +126,21 @@
 #productStockAdjustModal .adj-product { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
 #productStockAdjustModal .adj-product > div { min-width: 0; overflow-wrap: anywhere; }
 #productStockAdjustModal #adjProductLabel { font-size: 14px; line-height: 1.5; }
-#productStockAdjustModal .adj-product-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #eef2ff; color: #4f46e5; font-size: 20px; }
+#productStockAdjustModal .adj-product-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #d0ecfe; color: #1877f2; font-size: 20px; }
 #productStockAdjustModal #adjFeedback:not(:empty) { padding: 10px 0 0; }
 #productStockAdjustModal .adj-step-title { font-size: 14px; font-weight: 600; margin: 16px 0 10px; display: flex; align-items: center; gap: 8px; }
-#productStockAdjustModal .adj-step-title > span { width: 23px; height: 23px; display: inline-grid; place-items: center; background: #eef2ff; color: #4f46e5; border-radius: 50%; font-size: 12px; }
+#productStockAdjustModal .adj-step-title > span { width: 23px; height: 23px; display: inline-grid; place-items: center; background: #d0ecfe; color: #1877f2; border-radius: 50%; font-size: 12px; }
 #productStockAdjustModal .form-label { font-size: 13px; margin-bottom: 6px; color: #475569; }
 #productStockAdjustModal .form-control, #productStockAdjustModal .form-select { font-size: 14px; min-height: 42px; padding: 9px 12px; border-radius: 10px; }
 #productStockAdjustModal .adj-quantity-grid { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 10px; }
 #productStockAdjustModal .adj-quantity-card { min-width: 0; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
 #productStockAdjustModal .adj-quantity-card input { width: 100%; min-width: 0; border: 0; background: transparent; color: #0f172a; font-size: 23px; line-height: 1.5; font-weight: 700; padding: 0; border-radius: 0; min-height: 36px; }
 #productStockAdjustModal .adj-quantity-card input::placeholder { font-size: 17px; font-weight: 400; color: #94a3b8; }
-#productStockAdjustModal .adj-quantity-new { background: #eef2ff; border: 2px solid #6366f1; }
-#productStockAdjustModal .adj-quantity-new:focus-within { box-shadow: 0 0 0 3px #6366f126; }
+#productStockAdjustModal .adj-quantity-new { background: #d0ecfe; border: 2px solid #1877f2; }
+#productStockAdjustModal .adj-quantity-new:focus-within { box-shadow: 0 0 0 3px #1877f226; }
 #productStockAdjustModal .adj-quantity-new input:focus { outline: none; box-shadow: none; }
 #productStockAdjustModal .adj-reason-chip { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; color: #475569; background: #fff; font-size: 13px; }
-#productStockAdjustModal .adj-reason-chip:hover, #productStockAdjustModal .adj-reason-chip:focus-visible { border-color: #6366f1; background: #eef2ff; color: #4338ca; }
+#productStockAdjustModal .adj-reason-chip:hover, #productStockAdjustModal .adj-reason-chip:focus-visible { border-color: #1877f2; background: #d0ecfe; color: #1565c0; }
 #productStockAdjustModal textarea { resize: vertical; max-height: 140px; }
 #productStockAdjustModal .modal-footer { gap: 8px; border-top: 1px solid #e2e8f0; }
 #productStockAdjustModal .modal-footer .btn { min-height: 42px; font-size: 14px; padding: 9px 16px; border-radius: 10px; margin: 0; }
@@ -157,9 +157,10 @@
 <style>.supplier-dialog{padding:0;border:0;border-radius:16px;width:min(860px,calc(100vw - 24px));max-height:90dvh;box-shadow:0 20px 70px #0f172a40;color:#152238}.supplier-dialog::backdrop{background:#0f172a80}.supplier-dialog form{margin:0;display:flex;flex-direction:column;max-height:90dvh}.supplier-dialog form[hidden]{display:none}.supplier-dialog-head,.supplier-dialog-footer{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;flex-shrink:0}.supplier-dialog-head{border-bottom:1px solid #e2e8f0}.supplier-dialog-footer{border-top:1px solid #e2e8f0;justify-content:flex-end}.supplier-dialog-body{padding:20px 22px;overflow:auto;min-height:0}.supplier-dialog .form-control{min-height:42px;font-size:14px}.supplier-dialog .form-label{margin-bottom:5px}.supplier-dialog input[type=checkbox]{min-height:0}#pane-suppliers .table td{font-size:14px;padding-top:14px;padding-bottom:14px}#pane-suppliers .table th{white-space:nowrap}@media(max-width:575px){.supplier-dialog-head,.supplier-dialog-footer,.supplier-dialog-body{padding:14px}}</style>
 <style id="supplier-summary-style">.supplier-summary-card{display:flex;align-items:center;gap:15px;padding:17px 20px;min-height:98px;border:1px solid #e5eaf2;border-radius:13px;background:#f9faff}.supplier-summary-icon{display:grid;place-items:center;flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#ecebff;color:#5b50cc;font-size:23px}.supplier-summary-enabled{background:#e8f5ee;color:#268466}.supplier-summary-disabled{background:#edf0f5;color:#7c889b}.supplier-summary-label{font-size:13px;color:#718096}.supplier-summary-value{display:flex;align-items:baseline;gap:7px;margin-top:2px}.supplier-summary-value strong{font-size:27px;line-height:1.2;color:#1c2d45;font-weight:700;font-variant-numeric:tabular-nums}.supplier-summary-value span{font-size:12px;color:#8994a5}@media(max-width:575px){.supplier-summary-card{min-height:78px;padding:13px 16px}}</style>
 <link rel="stylesheet" href="/css/master-extensions.css?v=20261106-supplier-layout">
-<link rel="stylesheet" href="/css/supplier-ui.css?v=20261107-1"><link rel="stylesheet" href="/css/access-groups.css?v=20261107-1"><style>#warehouseAccessUsers[hidden],#whTableBody button[hidden],[onclick="openAddWH()"][hidden]{display:none!important}</style><link rel="stylesheet" href="/css/product-editor.css?v=20261108-unified-editor"><link rel="stylesheet" href="/css/bom-editor.css?v=20261108">
-<link rel="stylesheet" href="/css/product-summary.css?v=20261112-values-only">
+<link rel="stylesheet" href="/css/supplier-ui.css?v=20261120-picked-button-contrast-1"><link rel="stylesheet" href="/css/access-groups.css?v=20261107-1"><style>#warehouseAccessUsers[hidden],#whTableBody button[hidden],[onclick="openAddWH()"][hidden]{display:none!important}</style><link rel="stylesheet" href="/css/product-editor.css?v=20261108-unified-editor"><link rel="stylesheet" href="/css/bom-editor.css?v=20261108">
+<link rel="stylesheet" href="/css/product-summary.css?v=20261120-lean-2"><link rel="stylesheet" href="/css/location-master.css?v=20261120-lean-1">
 <link rel="stylesheet" href="/css/product-lean.css?v=20261114-1">
+  <link rel="stylesheet" href="/css/warehouse-workspace.css?v=20261120-workspace-ui-1">
 </head>
 <body class="supplier-ui">
 
@@ -202,24 +203,27 @@
         <span>ข้อมูลคลังสินค้า (Master)</span><i class="bi bi-chevron-down"></i>
       </button>
       <div class="sidebar-group-items" id="sidebar-group-warehouse">
-        <button role="tab" class="sidebar-menu-item active" id="tab-master" onclick="switchTab('master')">
-          <i class="bi bi-box-seam fs-5 text-info"></i> <span>จัดการสินค้า (Master)</span>
-        </button>
-        <button role="tab" class="sidebar-menu-item" id="tab-bom" onclick="switchTab('bom')"><i class="bi bi-diagram-3 fs-5 text-primary"></i><span>สูตรการผลิต / BOM</span></button>
-        <button role="tab" class="sidebar-menu-item" id="tab-suppliers" onclick="switchTab('suppliers')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้จำหน่าย (Supplier)</span></button>
-<button type="button" class="sidebar-menu-item" id="tab-manufacturer-products" onclick="switchTab('manufacturer-products')"><i class="bi bi-building-gear fs-5 text-primary"></i><span>ผู้ผลิต–สินค้า</span></button>
-<button type="button" class="sidebar-menu-item" id="tab-transport-products" onclick="switchTab('transport-products')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้ขนส่ง–สินค้า</span></button><button type="button" class="sidebar-menu-item" id="tab-transports" onclick="switchTab('transports')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้ขนส่ง (Transport)</span></button>
-<button type="button" class="sidebar-menu-item" id="tab-customers" onclick="switchTab('customers')"><i class="bi bi-people fs-5 text-primary"></i><span>ลูกค้า (Customer)</span></button>
-<button type="button" class="sidebar-menu-item" id="tab-customer-products" onclick="switchTab('customer-products')"><i class="bi bi-person-lines-fill fs-5 text-primary"></i><span>ลูกค้า–สินค้า</span></button>
-        <button role="tab" class="sidebar-menu-item" id="tab-warehouses" onclick="switchTab('warehouses')">
-          <i class="bi bi-buildings fs-5 text-warning"></i> <span>จัดการคลัง (Warehouses)</span>
-        </button>
-        <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')">
-          <i class="bi bi-geo-alt fs-5 text-danger"></i> <span>จัดการโลเคชั่น (Master)</span>
-        </button>
-        <button role="tab" class="sidebar-menu-item" id="tab-shortage-reasons" onclick="switchTab('shortage-reasons')">
-          <i class="bi bi-exclamation-diamond-fill fs-5 text-warning"></i> <span>เหตุผลขาดส่ง (Master)</span>
-        </button>
+        <div class="sidebar-subgroup"><div class="sidebar-subgroup-title">สินค้าและโครงสร้างคลัง</div><div class="sidebar-subgroup-items">
+          <button role="tab" class="sidebar-menu-item active" id="tab-master" onclick="switchTab('master')"><i class="bi bi-box-seam fs-5 text-info"></i><span>จัดการสินค้า (Master)</span></button>
+          <button role="tab" class="sidebar-menu-item" id="tab-warehouses" onclick="switchTab('warehouses')"><i class="bi bi-buildings fs-5 text-warning"></i><span>จัดการคลัง (Warehouses)</span></button>
+          <button role="tab" class="sidebar-menu-item" id="tab-locations" onclick="switchTab('locations')"><i class="bi bi-geo-alt fs-5 text-danger"></i><span>จัดการโลเคชั่น (Master)</span></button>
+        </div></div>
+        <div class="sidebar-subgroup"><div class="sidebar-subgroup-title">คู่ค้าและผู้ผลิต</div><div class="sidebar-subgroup-items">
+          <button role="tab" class="sidebar-menu-item" id="tab-suppliers" onclick="switchTab('suppliers')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้จำหน่าย (Supplier)</span></button>
+          <button type="button" class="sidebar-menu-item" id="tab-manufacturer-products" onclick="switchTab('manufacturer-products')"><i class="bi bi-building-gear fs-5 text-primary"></i><span>ผู้ผลิต–สินค้า</span></button>
+        </div></div>
+        <div class="sidebar-subgroup"><div class="sidebar-subgroup-title">ผู้ขนส่ง</div><div class="sidebar-subgroup-items">
+          <button type="button" class="sidebar-menu-item" id="tab-transports" onclick="switchTab('transports')"><i class="bi bi-truck fs-5 text-primary"></i><span>ผู้ขนส่ง (Transport)</span></button>
+          <button type="button" class="sidebar-menu-item" id="tab-transport-products" onclick="switchTab('transport-products')"><i class="bi bi-box-seam fs-5 text-primary"></i><span>ผู้ขนส่ง–สินค้า</span></button>
+        </div></div>
+        <div class="sidebar-subgroup"><div class="sidebar-subgroup-title">ลูกค้า</div><div class="sidebar-subgroup-items">
+          <button type="button" class="sidebar-menu-item" id="tab-customers" onclick="switchTab('customers')"><i class="bi bi-people fs-5 text-primary"></i><span>ลูกค้า (Customer)</span></button>
+          <button type="button" class="sidebar-menu-item" id="tab-customer-products" onclick="switchTab('customer-products')"><i class="bi bi-person-lines-fill fs-5 text-primary"></i><span>ลูกค้า–สินค้า</span></button>
+        </div></div>
+        <div class="sidebar-subgroup"><div class="sidebar-subgroup-title">การผลิต</div><div class="sidebar-subgroup-items">
+          <button role="tab" class="sidebar-menu-item" id="tab-bom" onclick="switchTab('bom')"><i class="bi bi-diagram-3 fs-5 text-primary"></i><span>สูตรการผลิต / BOM</span></button>
+          <button role="tab" class="sidebar-menu-item" id="tab-shortage-reasons" onclick="switchTab('shortage-reasons')"><i class="bi bi-exclamation-diamond-fill fs-5 text-warning"></i><span>เหตุผลขาดส่ง (Master)</span></button>
+        </div></div>
       </div>
     </section>
 
@@ -293,12 +297,14 @@
     <div id="pane-master" style="display:block">
       <section class="product-summary" aria-labelledby="productSummaryTitle">
         <div class="product-summary-header"><div><h2 id="productSummaryTitle"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> ภาพรวมสินค้า</h2></div>
-        <button id="productSummaryToggle" type="button" class="product-summary-toggle" aria-expanded="true" aria-controls="productSummaryCards" onclick="toggleProductSummary()"><i class="bi bi-eye-slash" aria-hidden="true"></i><span>ซ่อนสรุป</span><i class="bi bi-chevron-up product-summary-chevron" aria-hidden="true"></i></button></div>
-        <div id="productSummaryCards" class="product-summary-grid">
+        <button id="productSummaryToggle" type="button" class="product-summary-toggle" aria-expanded="false" aria-controls="productSummaryCards" onclick="toggleProductSummary()"><i class="bi bi-eye" aria-hidden="true"></i><span>แสดงสรุป</span><i class="bi bi-chevron-down product-summary-chevron" aria-hidden="true"></i></button></div>
+        <div id="productSummaryCards" class="product-summary-grid" hidden>
         <div class="col-6 col-xl-3"><div class="stat-card stat-total"><div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div><div class="stat-meta"><span class="stat-label">สินค้าทั้งหมด</span><h3 class="stat-value" id="prodKpiTotal">-</h3></div></div></div>
         <div class="col-6 col-xl-3"><div class="stat-card stat-rm"><div class="stat-icon"><i class="bi bi-flower1"></i></div><div class="stat-meta"><span class="stat-label">วัตถุดิบ (RM)</span><h3 class="stat-value" id="prodKpiRM">-</h3></div></div></div>
         <div class="col-6 col-xl-3"><div class="stat-card stat-pkg"><div class="stat-icon"><i class="bi bi-archive-fill"></i></div><div class="stat-meta"><span class="stat-label">บรรจุภัณฑ์ (PKG)</span><h3 class="stat-value" id="prodKpiPKG">-</h3></div></div></div>
         <div class="col-6 col-xl-3"><div class="stat-card stat-fg"><div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div><div class="stat-meta"><span class="stat-label">สินค้าสำเร็จรูป (FG)</span><h3 class="stat-value" id="prodKpiFG">-</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card stat-semi"><div class="stat-icon"><i class="bi bi-layers-fill"></i></div><div class="stat-meta"><span class="stat-label">กึ่งสำเร็จรูป (SEMI)</span><h3 class="stat-value" id="prodKpiSEMI">-</h3></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card stat-bulk"><div class="stat-icon"><i class="bi bi-droplet-fill"></i></div><div class="stat-meta"><span class="stat-label">ผลิตภัณฑ์ Bulk (BULK)</span><h3 class="stat-value" id="prodKpiBULK">-</h3></div></div></div>
       </div>
       </section>
 
@@ -427,7 +433,7 @@
         <div class="page-head mb-3">
           <div>
             <h5>📍 จัดการโลเคชั่น (Locations Master)</h5>
-            <div class="sub">กำหนดตำแหน่งจัดเก็บผูกกับคลังสินค้า พร้อมขนาดมิติและความจุ</div>
+            <div class="sub">ค้นหาและจัดการตำแหน่งจัดเก็บตามคลัง โซน และสถานะ</div>
           </div>
           <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-outline-secondary" onclick="loadLocationsMaster(true)"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
@@ -435,46 +441,51 @@
           </div>
         </div>
 
-        <!-- Filter Bar: ค้นหา + ตัวกรองแยกตามคลังสินค้า -->
-        <div class="row g-2 mb-3">
-          <div class="col-md-7">
+        <div class="row g-2 align-items-end mb-2">
+          <div class="col-lg-6">
+            <label for="locSearchInput" class="form-label small mb-1">ค้นหาตำแหน่ง</label>
             <div class="search-input-wrap">
               <i class="bi bi-search search-icon"></i>
-              <input type="search" id="locSearchInput" class="form-control form-control-modern" placeholder="ค้นหาโลเคชั่น, โซน หรือคำอธิบาย..." oninput="filterLocationTable()">
+              <input type="search" id="locSearchInput" class="form-control form-control-modern" placeholder="รหัส Location, คลัง, โซน หรือคำอธิบาย" oninput="filterLocationTable()">
             </div>
           </div>
-          <div class="col-md-3">
+          <div class="col-sm-6 col-lg-3">
+            <label for="locWarehouseFilter" class="form-label small mb-1">คลังสินค้า</label>
             <select id="locWarehouseFilter" class="form-select form-select-modern" onchange="filterLocationTable()">
               <option value="">ทุกคลังสินค้า (All Warehouses)</option>
             </select>
           </div>
-          <div class="col-md-2">
-            <button class="btn btn-clear-modern w-100" onclick="document.getElementById('locSearchInput').value=''; document.getElementById('locWarehouseFilter').value=''; filterLocationTable()">
-              <i class="bi bi-arrow-counterclockwise me-1"></i> ล้างตัวกรอง
+          <div class="col-sm-4 col-lg-2">
+            <label for="locStatusFilter" class="form-label small mb-1">สถานะ</label>
+            <select id="locStatusFilter" class="form-select form-select-modern" onchange="filterLocationTable()">
+              <option value="">ทุกสถานะ</option><option value="active">ใช้งาน</option><option value="inactive">ปิดใช้งาน</option>
+            </select>
+          </div>
+          <div class="col-sm-2 col-lg-1">
+            <button class="btn btn-clear-modern w-100" title="ล้างตัวกรอง" aria-label="ล้างตัวกรอง" onclick="clearLocationFilters()">
+              <i class="bi bi-arrow-counterclockwise"></i>
             </button>
           </div>
         </div>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2 small text-muted"><span id="locResultsCount" role="status" aria-live="polite">กำลังโหลด...</span><span>แสดงครั้งละ 50 รายการ</span></div>
 
-        <div class="table-responsive table-container-modern">
-          <table class="table table-modern align-middle mb-0">
+        <div class="table-responsive table-container-modern location-master-table-wrap">
+          <table class="table table-modern align-middle mb-0 location-master-table">
             <thead>
               <tr>
-                <th style="width: 50px" class="text-center">#</th>
-                <th style="width: 140px">คลังสินค้า</th>
-                <th style="width: 160px">รหัสโลเคชั่น</th>
-                <th style="width: 110px">โซน</th>
-                <th style="width: 130px">ความจุ (Volume)</th>
-                <th style="width: 150px">ขนาด (ก×ย×ส)</th>
-                <th>คำอธิบาย</th>
-                <th style="width: 100px">สถานะ</th>
-                <th style="width: 100px" class="text-end">จัดการ</th>
+                <th>ตำแหน่งจัดเก็บ</th>
+                <th style="width: 190px">คลัง / โซน</th>
+                <th style="width: 290px">ขนาด / ความจุ</th>
+                <th style="width: 120px">สถานะ</th>
+                <th style="width: 112px" class="text-end">จัดการ</th>
               </tr>
             </thead>
             <tbody id="locationsTableBody">
-              <tr><td colspan="9" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>
+              <tr><td colspan="5" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>
             </tbody>
           </table>
         </div>
+        <div class="d-flex justify-content-between align-items-center mt-3"><span id="locPageInfo" class="small text-muted"></span><div class="btn-group btn-group-sm"><button id="locPrev" class="btn btn-outline-secondary" onclick="changeLocationPage(-1)" disabled>ก่อนหน้า</button><button id="locNext" class="btn btn-outline-secondary" onclick="changeLocationPage(1)" disabled>ถัดไป</button></div></div>
       </div>
     </div>
 
@@ -829,17 +840,17 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261115-date-time-2"></script>
 <script src="/js/packing-levels.js?v=20261112-3"></script><script src="/js/admin-stock.js?v=20261115-stock-tabs-1"></script>
-<script src="/js/product-pack-versions.js?v=20261115-friendly-units-1"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/product-pallets.js?v=20261113-pallet-1"></script><script src="/js/admin-products.js?v=20261115-delivery-badges-2"></script>
-<script src="/js/admin-locations.js?v=20261113-damage"></script>
-<script src="/js/shortage-reasons.js?v=20261106-two-roles"></script>
+<script src="/js/product-pack-versions.js?v=20261115-friendly-units-1"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/product-pallets.js?v=20261113-pallet-1"></script><script src="/js/admin-products.js?v=20261120-lean-products-stable-1"></script>
+<script src="/js/admin-locations.js?v=20261120-locations-lean-1"></script>
+<script src="/js/shortage-reasons.js?v=20261120-master-lean-1"></script>
 <script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
 <script src="/js/admin-users.js?v=20261107-manual-reset"></script>
 <script src="/js/admin-permissions.js?v=20261106-two-roles"></script>
 <script src="/js/admin-roles.js?v=20261106-two-roles"></script>
 <script src="/js/bom-stock.js?v=20261106-two-roles"></script>
-<script src="/js/admin-bom.js?v=20261114-empty-defaults-1"></script>
+<script src="/js/admin-bom.js?v=20261120-master-lean-1"></script>
 <script src="/js/admin-suppliers.js?v=20261114-lean-reads-1"></script>
-<script src="/js/admin-warehouses.js?v=20261107-assigned-wh"></script>
+<script src="/js/admin-warehouses.js?v=20261120-master-lean-1"></script>
 
 <script src="/js/manufacturer-products.js?v=20261114-lean-reads-1"></script>
 <script src="/js/customer-products.js?v=20261114-lean-reads-1"></script>
@@ -917,7 +928,9 @@ const destinations={OP_RECEIVE:'receive',receiving:'receive',OP_PUTAWAY:'putaway
   if (activeButton) activeButton.classList.add('active');
   
   const activeGroup = activeButton?.closest('.sidebar-group');
-  if (activeGroup?.classList.contains('is-collapsed')) setSidebarGroup(activeGroup.dataset.sidebarGroup, true);
+  document.querySelectorAll('.admin-sidebar .sidebar-group[data-sidebar-group]').forEach(group => {
+    setSidebarGroup(group.dataset.sidebarGroup, group === activeGroup, false);
+  });
   
   // เรียกฟังก์ชันโหลดข้อมูลตาม Tab
   if (tab === 'stock') loadSummaryStock();
@@ -965,7 +978,7 @@ function doLogout() {
   }).then(r => { if (r.isConfirmed) logout(); });
 }
 </script>
-<script src="/js/supplier-ui.js?v=20261107-grouped-sidebar"></script>
+<script src="/js/supplier-ui.js?v=20261120-active-navigation-group-1"></script>
 <script src="/js/navigation-guard.js?v=20261114-clinic-daily"></script>
 </body>
 </html>

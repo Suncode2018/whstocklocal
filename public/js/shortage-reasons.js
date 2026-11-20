@@ -32,15 +32,20 @@ async function apiShortage(path, options = {}) {
 async function loadShortageReasonMaster(showToast = false) {
   const tbody = document.getElementById('shortageReasonsTableBody');
   if (!tbody) return;
-
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>';
+  const version = (loadShortageReasonMaster.version || 0) + 1;
+  loadShortageReasonMaster.version = version;
+  const hasLoadedRows = tbody.dataset.loaded === 'true';
+  tbody.setAttribute('aria-busy', 'true');
+  if (!hasLoadedRows) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>';
 
   try {
     const data = await apiShortage('');
+    if (version !== loadShortageReasonMaster.version) return;
     shortageReasons = Array.isArray(data) ? data : (data.data || []);
 
     if (shortageReasons.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีข้อมูลเหตุผลขาดส่งในระบบ</td></tr>';
+      tbody.dataset.loaded = 'true';
       return;
     }
 
@@ -78,12 +83,16 @@ async function loadShortageReasonMaster(showToast = false) {
         </tr>
       `;
     }).join('');
+    tbody.dataset.loaded = 'true';
 
     if (showToast && typeof Swal !== 'undefined') {
       Swal.fire({ icon: 'success', title: 'รีเฟรชข้อมูลเรียบร้อย', timer: 1000, showConfirmButton: false });
     }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+    if (version !== loadShortageReasonMaster.version) return;
+    if (!hasLoadedRows) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+  } finally {
+    if (version === loadShortageReasonMaster.version) tbody.removeAttribute('aria-busy');
   }
 }
 
@@ -127,7 +136,7 @@ function addShortageReason() {
     showCancelButton: true,
     confirmButtonText: 'บันทึก',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#4f46e5',
+    confirmButtonColor: '#1877f2',
     focusConfirm: false,
     preConfirm: () => {
       const code = document.getElementById('sw-code').value.trim();
@@ -167,7 +176,7 @@ function editShortageReason(id) {
     showCancelButton: true,
     confirmButtonText: 'บันทึกแก้ไข',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#4f46e5',
+    confirmButtonColor: '#1877f2',
     focusConfirm: false,
     preConfirm: () => {
       const code = document.getElementById('sw-code').value.trim();

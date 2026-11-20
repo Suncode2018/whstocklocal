@@ -5,6 +5,11 @@
 let editingLocationId = null;
 let locationSaving = false;
 let warehousesCache = [];
+let locationLoadVersion = 0;
+let locationsMasterRows = [];
+let locationPage = 1;
+const locationPageSize = 50;
+const locationHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // ฟังก์ชัน Fetch แบบปลอดภัย (ลองทั้ง 2 Path กรณีตั้ง Route ต่างกัน)
 async function fetchSafeLocations() {
@@ -41,83 +46,93 @@ async function loadWarehouseDropdowns() {
 async function loadLocationsMaster(showToast = false) {
   const tbody = document.getElementById('locationsTableBody');
   if (!tbody) return;
-
-  tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลโลเคชั่น...</td></tr>`;
-
-  await loadWarehouseDropdowns();
+  const version = ++locationLoadVersion;
+  const hasLoadedRows = tbody.dataset.loaded === 'true';
+  tbody.setAttribute('aria-busy', 'true');
+  if (!hasLoadedRows) tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลโลเคชั่น...</td></tr>`;
 
   try {
-    const res = await fetchSafeLocations();
+    const [, res] = await Promise.all([loadWarehouseDropdowns(), fetchSafeLocations()]);
     if (!res.ok) throw new Error('API เส้นทาง locations ไม่ตอบสนอง (HTTP ' + res.status + ')');
     const data = await res.json();
+    if (version !== locationLoadVersion) return;
     const locations = Array.isArray(data) ? data : (data.data || []);
 
-    if (locations.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">ยังไม่มีข้อมูลโลเคชั่นในระบบ</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = locations.map((loc, index) => {
-      const id = loc.LocationId || loc.id;
-      const whName = loc.whname || warehousesCache.find(w => w.whid === loc.whid)?.whname || `WH-${loc.whid || 1}`;
-      const code = loc.LocationCode || '-';
-      const zone = loc.Zone || '-';
-      const desc = loc.Description || '-';
-      const damageLocked=zone.toUpperCase()==='DAMAGE'&&!(typeof wmsNavigation!=='undefined'&&String(wmsNavigation?.user?.role||wmsNavigation?.user?.Role).toUpperCase()==='ADMIN');
-      const isActive = loc.IsActive !== false && loc.IsActive !== 0;
-
-      const w = loc.CapacityWidthCm ? parseFloat(loc.CapacityWidthCm) : 0;
-      const l = loc.CapacityLengthCm ? parseFloat(loc.CapacityLengthCm) : 0;
-      const h = loc.CapacityHeightCm ? parseFloat(loc.CapacityHeightCm) : 0;
-      const vol = loc.CapacityVolumeCm3 ? parseFloat(loc.CapacityVolumeCm3).toLocaleString() : (w * l * h > 0 ? (w * l * h).toLocaleString() : '-');
-
-      const statusBadge = isActive 
-        ? `<span class="badge bg-success">Active</span>` 
-        : `<span class="badge bg-secondary">Inactive</span>`;
-
-      const locDataStr = JSON.stringify(loc).replace(/'/g, "&apos;");
-
-      return `
-        <tr data-whid="${loc.whid || ''}">
-          <td class="text-center text-muted fw-semibold">${index + 1}</td>
-          <td><span class="badge bg-secondary-subtle text-dark border">${whName}</span></td>
-          <td><strong class="text-indigo font-monospace fs-6">${code}</strong></td>
-          <td><span class="badge bg-light text-dark border">${zone==='DAMAGE'?'DAMAGE · ชำรุด':zone}</span></td>
-          <td><span class="small">${vol} cm³</span></td>
-          <td><span class="text-muted small">${w && l && h ? `${w}×${l}×${h} cm` : '-'}</span></td>
-          <td>${desc}</td>
-          <td>${statusBadge}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary border-0 me-1" ${damageLocked?'disabled':''} onclick='openEditLocation(${locDataStr})' title="แก้ไข">
-              <i class="bi bi-pencil-square fs-6"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger border-0" ${damageLocked?'disabled':''} onclick="deleteLocation(${id})" title="ลบ">
-              <i class="bi bi-trash fs-6"></i>
-            </button>
-          </td>
-        </tr>
-      `;
-    }).join('');
+    locationsMasterRows = locations;
+    locationPage = 1;
+    renderLocationTable();
+    tbody.dataset.loaded = 'true';
 
     if (showToast && typeof Swal !== 'undefined') {
       Swal.fire({ icon: 'success', title: 'รีเฟรชข้อมูลเรียบร้อย', timer: 1000, showConfirmButton: false });
     }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+    if (version !== locationLoadVersion) return;
+    if (!hasLoadedRows) tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger">เกิดข้อผิดพลาด: ${locationHtml(err.message)}</td></tr>`;
+  } finally {
+    if (version === locationLoadVersion) tbody.removeAttribute('aria-busy');
   }
 }
 
-// 3. กรองตาราง
-function filterLocationTable() {
-  const q = (document.getElementById('locSearchInput')?.value || '').trim().toLowerCase();
+// 3. Filter in memory and render only one page to keep large location masters fast.
+function filteredLocationRows() {
+  const q = (document.getElementById('locSearchInput')?.value || '').trim().toLocaleLowerCase();
   const whFilter = document.getElementById('locWarehouseFilter')?.value || '';
-
-  document.querySelectorAll('#locationsTableBody tr').forEach(tr => {
-    const rowWhId = tr.getAttribute('data-whid') || '';
-    const matchWh = !whFilter || rowWhId === whFilter;
-    const matchQ = !q || tr.textContent.toLowerCase().includes(q);
-    tr.style.display = (matchWh && matchQ) ? '' : 'none';
+  const status = document.getElementById('locStatusFilter')?.value || '';
+  return locationsMasterRows.filter(loc => {
+    const isActive = loc.IsActive !== false && loc.IsActive !== 0;
+    const whName = loc.whname || warehousesCache.find(w => String(w.whid) === String(loc.whid))?.whname || `WH-${loc.whid || 1}`;
+    const searchable = [loc.LocationCode, loc.Zone, loc.Description, whName].join(' ').toLocaleLowerCase();
+    return (!whFilter || String(loc.whid || '') === whFilter) && (!status || (status === 'active') === isActive) && (!q || searchable.includes(q));
   });
+}
+function renderLocationTable(keepPage = false) {
+  const tbody = document.getElementById('locationsTableBody');
+  if (!tbody) return;
+  const rows = filteredLocationRows();
+  const pages = Math.max(1, Math.ceil(rows.length / locationPageSize));
+  locationPage = keepPage ? Math.max(1, Math.min(locationPage, pages)) : 1;
+  const start = (locationPage - 1) * locationPageSize;
+  const shown = rows.slice(start, start + locationPageSize);
+  tbody.innerHTML = shown.map((loc, index) => {
+    const id = Number(loc.LocationId || loc.id);
+    const whName = loc.whname || warehousesCache.find(w => String(w.whid) === String(loc.whid))?.whname || `WH-${loc.whid || 1}`;
+    const code = loc.LocationCode || '—';
+    const zone = String(loc.Zone || '—');
+    const desc = loc.Description || '';
+    const damageLocked = zone.toUpperCase() === 'DAMAGE' && !(typeof wmsNavigation !== 'undefined' && String(wmsNavigation?.user?.role || wmsNavigation?.user?.Role).toUpperCase() === 'ADMIN');
+    const isActive = loc.IsActive !== false && loc.IsActive !== 0;
+    const dims = [loc.CapacityWidthCm, loc.CapacityLengthCm, loc.CapacityHeightCm].map(Number);
+    const hasDims = dims.every(Number.isFinite) && dims.every(value => value > 0);
+    const volume = Number(loc.CapacityVolumeCm3 || (hasDims ? dims[0] * dims[1] * dims[2] : 0));
+    const dimensions = hasDims ? `${dims.map(value => value.toLocaleString('th-TH')).join(' × ')} cm` : 'ไม่ระบุขนาด';
+    const volumeLabel = volume > 0 ? `${volume.toLocaleString('th-TH')} cm³` : 'ไม่ระบุความจุ';
+    return `<tr data-whid="${locationHtml(loc.whid || '')}">
+      <td><div class="location-master-identity"><strong>${locationHtml(code)}</strong><span title="${locationHtml(desc)}">${locationHtml(desc || 'ไม่มีคำอธิบาย')}</span></div></td>
+      <td><div class="location-master-context"><span class="badge bg-light text-dark border">${locationHtml(whName)}</span><span class="badge ${zone.toUpperCase() === 'DAMAGE' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-dark'}">${locationHtml(zone.toUpperCase() === 'DAMAGE' ? 'DAMAGE · ชำรุด' : zone)}</span></div></td>
+      <td><div class="location-master-capacity"><strong>${locationHtml(dimensions)}</strong><span>${locationHtml(volumeLabel)}</span></div></td>
+      <td><span class="badge rounded-pill ${isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}">${isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}</span></td>
+      <td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary" data-location-edit="${id}" ${damageLocked ? 'disabled' : ''} title="แก้ไข ${locationHtml(code)}" aria-label="แก้ไข ${locationHtml(code)}"><i class="bi bi-pencil-square"></i></button> <button type="button" class="btn btn-sm btn-outline-secondary" data-location-delete="${id}" ${damageLocked ? 'disabled' : ''} title="ปิดใช้งาน ${locationHtml(code)}" aria-label="ปิดใช้งาน ${locationHtml(code)}"><i class="bi bi-pause-circle"></i></button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" class="text-center py-5 text-muted">${locationsMasterRows.length ? 'ไม่พบ Location ที่ตรงกับตัวกรอง' : 'ยังไม่มี Location ในระบบ · เพิ่ม Location เพื่อเริ่มจัดเก็บสินค้า'}</td></tr>`;
+  document.getElementById('locResultsCount').textContent = `พบ ${rows.length.toLocaleString('th-TH')} จาก ${locationsMasterRows.length.toLocaleString('th-TH')} Location`;
+  document.getElementById('locPageInfo').textContent = rows.length ? `หน้า ${locationPage.toLocaleString('th-TH')} / ${pages.toLocaleString('th-TH')}` : '';
+  document.getElementById('locPrev').disabled = locationPage <= 1;
+  document.getElementById('locNext').disabled = locationPage >= pages;
+  tbody.onclick = event => {
+    const edit = event.target.closest('[data-location-edit]');
+    const remove = event.target.closest('[data-location-delete]');
+    if (edit) { const loc = locationsMasterRows.find(item => Number(item.LocationId || item.id) === Number(edit.dataset.locationEdit)); if (loc) openEditLocation(loc); }
+    if (remove) deleteLocation(Number(remove.dataset.locationDelete));
+  };
+}
+function filterLocationTable() { renderLocationTable(); }
+function changeLocationPage(delta) { locationPage += delta; renderLocationTable(true); }
+function clearLocationFilters() {
+  document.getElementById('locSearchInput').value = '';
+  document.getElementById('locWarehouseFilter').value = '';
+  document.getElementById('locStatusFilter').value = '';
+  renderLocationTable();
 }
 
 // 4. Modal จัดการ Location
@@ -217,12 +232,12 @@ async function saveLocation() {
 
 async function deleteLocation(id) {
   const confirm = await Swal.fire({
-    title: 'ยืนยันการลบ?',
-    text: 'ต้องการลบโลเคชั่นนี้ใช่หรือไม่',
+    title: 'ปิดใช้งาน Location?',
+    text: 'ระบบจะเก็บประวัติ Location ไว้ และไม่นำไปใช้จัดเก็บสินค้าใหม่',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ลบ',
+    confirmButtonText: 'ปิดใช้งาน',
     cancelButtonText: 'ยกเลิก'
   });
 
@@ -237,7 +252,7 @@ async function deleteLocation(id) {
     if(res.status===409){await Swal.fire({icon:'warning',title:'ไม่สามารถปิดใช้งานโลเคชั่นได้',text:data.error,confirmButtonText:'รับทราบ'});return;}
     if (!res.ok) throw new Error(data.error || 'ลบไม่สำเร็จ');
 
-    Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', title: 'ปิดใช้งานแล้ว', timer: 1200, showConfirmButton: false });
     loadLocationsMaster();
   } catch (err) {
     Swal.fire('ผิดพลาด', err.message, 'error');

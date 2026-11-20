@@ -1,9 +1,5 @@
 let productCategoryCache=[],productRightsSignature='';
 function applyProductCategoryVisibility(){
- const template=document.getElementById('prodKpiPKG')?.closest('.col-6');
- for(const code of ['SEMI','BULK'])if(template&&!document.getElementById('prodKpi'+code)){
- const card=template.cloneNode(true);card.innerHTML=card.innerHTML.replaceAll('prodKpiPKG','prodKpi'+code).replace('บรรจุภัณฑ์ (PKG)',code==='SEMI'?'กึ่งสำเร็จรูป (SEMI)':'ผลิตภัณฑ์ Bulk (BULK)');const icon=card.querySelector('.stat-icon i');if(icon)icon.className=code==='SEMI'?'bi bi-layers':'bi bi-droplet';template.parentElement.append(card);
- }
 const select=document.getElementById('prodCategoryFilter');if(select){const selected=select.value,visible=productCategoryCache.filter(c=>productCategoryAllowed(c.CategoryId,'VIEW'));select.innerHTML='<option value="">ทุกหมวดที่มีสิทธิ์</option>'+visible.map(c=>'<option value="'+Number(c.CategoryId)+'">'+productHtml(c.CategoryName)+' ('+productHtml(c.CategoryCode)+')</option>').join('');select.value=visible.some(c=>String(c.CategoryId)===selected)?selected:'';select.disabled=!visible.length;}
 for(const code of ['RM','PKG','FG','SEMI','BULK']){const card=document.getElementById('prodKpi'+code)?.closest('.col-6');if(card){const category=productCategoryCache.find(c=>c.CategoryCode===code);card.hidden=!category||!productCategoryAllowed(category.CategoryId,'VIEW');}}
 }
@@ -59,8 +55,8 @@ async function loadMasterProducts() {
   const version=++productLoadVersion;
   productLoadController?.abort();productLoadController=new AbortController();const signal=productLoadController.signal;
   setupLeanProductFilters();setProductStockLoading(true);
-  tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-muted">กำลังโหลดข้อมูลสินค้า...</td></tr>';
-  if(document.getElementById('productSearchCount'))document.getElementById('productSearchCount').textContent='กำลังโหลดสินค้า...';
+  if(!masterProducts.length)tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-muted">กำลังโหลดข้อมูลสินค้า...</td></tr>';
+  if(document.getElementById('productSearchCount'))document.getElementById('productSearchCount').textContent=masterProducts.length?'กำลังรีเฟรชข้อมูลสินค้า...':'กำลังโหลดสินค้า...';
   try {
     const categoryRequest=fetch('/api/master/categories',{headers:authHeaders(),signal}).then(async r=>{if(!r.ok)throw Error('โหลดหมวดสินค้าไม่สำเร็จ');return r.json()});
     const stockRequest=fetch('/api/stock/balance?compact=1',{headers:authHeaders(),signal}).then(async r=>{if(!r.ok)throw Error('โหลดสต๊อกไม่สำเร็จ');const b=await r.json();if(b.success===false||!Array.isArray(b.data))throw Error('ข้อมูลสต๊อกไม่ถูกต้อง');return b;});
@@ -71,22 +67,37 @@ async function loadMasterProducts() {
     if(!res.ok)throw Error('โหลดสินค้าไม่สำเร็จ');
     const payload=await res.json();const products=Array.isArray(payload)?payload:payload.data;
     if(!Array.isArray(products))throw Error('รูปแบบข้อมูลสินค้าไม่ถูกต้อง');
-    await supplementProductReferences(products);if(version!==productLoadVersion)return;
     const categories=await categoryResult;if(version!==productLoadVersion)return;if(categories.error)throw categories.error;
     productCategoryCache=categories.data.data;applyProductCategoryVisibility();
-    masterProducts=products;renderProductResults();loadProductKPI();
+    const previousById=new Map(masterProducts.map(p=>[Number(p.ProductId||p.Id),p]));
+    const stockKeys=['TotalStock','DamageStock','UsableStock','TransitStock','OwnedStock','MinStock','StockUOM'];
+    for(const product of products){const previous=previousById.get(Number(product.ProductId||product.Id));if(previous)for(const key of stockKeys)if(previous[key]!=null)product[key]=previous[key];}
+    masterProducts=products;updateProductKPI(products);renderProductResults();
+    // Render the product list first; legacy reference-code enrichment must not block first paint.
+    supplementProductReferences(products).then(()=>{if(version===productLoadVersion&&masterProducts===products)renderProductResults();}).catch(error=>console.warn('โหลดรหัสสินค้าอ้างอิงไม่สำเร็จ:',error));
     const result=await stockResult;if(version!==productLoadVersion)return;
     if(result.error){setProductStockLoading(false,'โหลดสต๊อกไม่สำเร็จ · กดรีเฟรชเพื่อลองอีกครั้ง');return;}
     const stocks=new Map(result.data.data.map(p=>[p.ProductId,p]));
     products.forEach(p=>{if(p.MasterStatus==='DRAFT'){p.TotalStock=null;return;}const stock=stocks.get(p.ProductId);if(!stock)return;for(const key of ['TotalStock','DamageStock','UsableStock','TransitStock','OwnedStock','MinStock'])p[key]=Number(stock[key]||0);p.StockUOM=stock.UOM||p.PackageType||'';});
-    setProductStockLoading(false);renderProductResults(true);
+    setProductStockLoading(false);updateVisibleProductStockCells();
   }catch(error){
     if(version!==productLoadVersion)return;
-    setProductStockLoading(false,'โหลดข้อมูลไม่สำเร็จ');masterProducts=[];productResults=[];
-    tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-danger">โหลดสินค้าไม่สำเร็จ กรุณากดรีเฟรช</td></tr>';
-    if(document.getElementById('productSearchCount'))document.getElementById('productSearchCount').textContent='โหลดข้อมูลไม่สำเร็จ';
-    ['productPrev','productNext'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).disabled=true;});
+    setProductStockLoading(false,masterProducts.length?'โหลดข้อมูลใหม่ไม่สำเร็จ · กำลังแสดงข้อมูลเดิม':'โหลดข้อมูลไม่สำเร็จ');
+    if(!masterProducts.length){productResults=[];tbody.innerHTML='<tr><td colspan="'+(document.getElementById('prodStockColumn')?7:6)+'" class="text-center py-5 text-danger">โหลดสินค้าไม่สำเร็จ กรุณากดรีเฟรช</td></tr>';if(document.getElementById('productSearchCount'))document.getElementById('productSearchCount').textContent='โหลดข้อมูลไม่สำเร็จ';['productPrev','productNext'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).disabled=true;});}
   }
+}
+
+function updateProductKPI(products){
+ const categoryIds=new Map(productCategoryCache.map(c=>[c.CategoryCode,Number(c.CategoryId)]));
+ const counts=new Map();for(const product of products){const key=Number(product.CategoryId);counts.set(key,(counts.get(key)||0)+1);}
+ const set=(id,value)=>{const element=document.getElementById(id);if(element)element.textContent=Number(value||0).toLocaleString('th-TH');};
+ set('prodKpiTotal',products.length);
+ for(const code of ['RM','PKG','FG','SEMI','BULK']){const id=categoryIds.get(code);set('prodKpi'+code,id==null?0:counts.get(id)||0);}
+}
+
+function updateVisibleProductStockCells(){
+ const size=50,offset=(productPage-1)*size,visible=productResults.slice(offset,offset+size),tbody=document.createElement('tbody');
+ for(const product of visible){const id=Number(product.ProductId||product.Id),cell=document.querySelector('[data-product-stock-id="'+id+'"]');if(!cell)continue;tbody.innerHTML=productStockQuantityCell(product);const next=tbody.firstElementChild;if(next){cell.className=next.className;cell.innerHTML=next.innerHTML;}}
 }
 function scheduleProductSearch(event) {
   clearTimeout(productSearchTimer);
@@ -128,15 +139,15 @@ function renderProductResults(keepPage=false) {
 }
 // Preserve SQL field values: fallback only when a column is absent, never for NULL/empty.
 function productSQLField(p,key,fallback){const actual=Object.keys(p).find(k=>k.toLowerCase()===key.toLowerCase());return actual===undefined?fallback:p[actual]}
-function productSQLValue(value){return value===null?'<span class="product-sql-empty">NULL</span>':value===undefined||String(value).trim()===''?'<span class="product-sql-empty">—</span>':productHtml(value)}
+function productSQLValue(value){return value==null||String(value).trim()===''?'<span class="product-sql-empty">—</span>':productHtml(value)}
 function renderProductCodes(p){
  const source=p.SourceMaster||{};
- const values=[['ProductCode',productSQLField(p,'ProductCode',p.ItemCode)],...[1,2,3,4].map(i=>['ProID'+i,productSQLField(p,'ProID'+i,source['Code'+i])])];
- return '<div class="product-code-list">'+values.map(([label,value])=>'<div class="product-code-item"><span class="'+(label==='ProductCode'?'code-tag':'product-reference-code')+'">'+productSQLValue(value)+'</span></div>').join('')+'</div>';
+ const primary=productSQLField(p,'ProductCode',p.ItemCode),extra=[1,2,3,4].map(i=>productSQLField(p,'ProID'+i,source['Code'+i])).filter(value=>value!=null&&String(value).trim()!=='');
+ return '<div class="product-code-list"><span class="code-tag">'+productSQLValue(primary)+'</span>'+(extra.length?'<details class="product-extra"><summary>รหัสอ้างอิง '+extra.length+' รายการ</summary><div>'+extra.map(value=>'<span class="product-reference-code">'+productHtml(value)+'</span>').join('')+'</div></details>':'')+'</div>';
 }
 function renderProductNames(p){
- const source=p.SourceMaster||{},values=[['ProductName',productSQLField(p,'ProductName',p.ItemName)],['ProductName1',productSQLField(p,'ProductName1',source.Name1)],['ProductName2',productSQLField(p,'ProductName2',source.Name2)]];
- return '<div class="product-name-list">'+values.map(([label,value])=>'<div class="product-name-item"><div class="'+(label==='ProductName'?'fw-semibold':'product-secondary-name')+'">'+productSQLValue(value)+'</div></div>').join('')+'</div>'+(p.MasterStatus==='DRAFT'?'<span class="badge bg-warning text-dark mt-2">ร่าง</span>':'');
+ const source=p.SourceMaster||{},primary=productSQLField(p,'ProductName',p.ItemName),extra=[productSQLField(p,'ProductName1',source.Name1),productSQLField(p,'ProductName2',source.Name2)].filter(value=>value!=null&&String(value).trim()!=='');
+ return '<div class="product-name-list"><div class="fw-semibold">'+productSQLValue(primary)+'</div>'+(extra.length?'<details class="product-extra"><summary>ชื่ออื่น '+extra.length+' รายการ</summary><div>'+extra.map(value=>'<span class="product-secondary-name">'+productHtml(value)+'</span>').join('')+'</div></details>':'')+'</div>'+(p.MasterStatus==='DRAFT'?'<span class="badge bg-warning text-dark mt-2">ร่าง</span>':'');
 }
 async function supplementProductReferences(products){
  // Older running Node processes may serve the previous /products response shape.
@@ -149,12 +160,13 @@ async function supplementProductReferences(products){
  for(const product of products){const entry=byProduct.get(Number(product.ProductId));if(!entry)continue;for(let i=1;i<=4;i++)product['ProID'+i]=entry['Code'+i]||'';}
 }
 function productStockQuantityCell(p) {
-  if(p.MasterStatus==='DRAFT')return document.getElementById('prodStockColumn')?'<td class="text-end text-muted"><span class="badge bg-light text-secondary">ร่าง · ยังไม่เปิดรับ–จ่าย</span></td>':'';
+  const stockId=Number(p.ProductId||p.Id);
+  if(p.MasterStatus==='DRAFT')return document.getElementById('prodStockColumn')?'<td data-product-stock-id="'+stockId+'" class="text-end text-muted"><span class="badge bg-light text-secondary">ร่าง · ยังไม่เปิดรับ–จ่าย</span></td>':'';
   if (!document.getElementById('prodStockColumn')) return '';
   const known = p.TotalStock != null && Number.isFinite(Number(p.TotalStock));
   const qty = known ? Number(p.TotalStock) : null;
   const color = !known ? 'text-muted' : qty <= 0 ? 'text-danger' : Number(p.MinStock)>0 && qty<Number(p.MinStock) ? 'text-warning' : 'text-success';
-  return '<td class="text-end text-nowrap"><div class="fw-bold '+color+'" style="font-size:1.05rem;font-variant-numeric:tabular-nums">'+(known?qty.toLocaleString('th-TH',{maximumFractionDigits:2}):'—')+'</div><small class="text-muted">'+productHtml(p.StockUOM || p.PackageType || '')+'</small>'+(Number(p.DamageStock)>0?'<div class="small text-warning-emphasis">DAMAGE '+Number(p.DamageStock).toLocaleString('th-TH')+'</div><div class="small text-muted">ปกติ '+Number(p.UsableStock).toLocaleString('th-TH')+'</div>':'')+'<div><button type="button" class="btn btn-sm btn-link p-0" onclick="showStockBoxDetails('+Number(p.ProductId||p.Id)+')">ดูแยกคลัง / โลเคชั่น</button></div>'+(Number(p.TransitStock)>0?'<div class="small text-warning mt-1">ระหว่างโอน '+Number(p.TransitStock).toLocaleString('th-TH')+'</div><div class="small text-muted">รวมถือครอง '+Number(p.OwnedStock).toLocaleString('th-TH')+'</div>':'')+'</td>';
+  return '<td data-product-stock-id="'+stockId+'" class="text-end text-nowrap"><div class="fw-bold '+color+'" style="font-size:1.05rem;font-variant-numeric:tabular-nums">'+(known?qty.toLocaleString('th-TH',{maximumFractionDigits:2}):'—')+'</div><small class="text-muted">'+productHtml(p.StockUOM || p.PackageType || '')+'</small>'+(Number(p.DamageStock)>0?'<div class="small text-warning-emphasis">DAMAGE '+Number(p.DamageStock).toLocaleString('th-TH')+'</div><div class="small text-muted">ปกติ '+Number(p.UsableStock).toLocaleString('th-TH')+'</div>':'')+'<div><button type="button" class="btn btn-sm btn-link p-0" onclick="showStockBoxDetails('+stockId+')">ดูแยกคลัง / โลเคชั่น</button></div>'+(Number(p.TransitStock)>0?'<div class="small text-warning mt-1">ระหว่างโอน '+Number(p.TransitStock).toLocaleString('th-TH')+'</div><div class="small text-muted">รวมถือครอง '+Number(p.OwnedStock).toLocaleString('th-TH')+'</div>':'')+'</td>';
 }
 function exportProductsToExcel() {
   clearTimeout(productSearchTimer);renderProductResults(true);

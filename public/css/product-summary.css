@@ -40,3 +40,10 @@
 .product-sql-empty{color:#9aa4b7;font-size:12px;font-weight:400}
 
 .product-code-list .product-code-item{grid-template-columns:minmax(0,1fr)}
+.product-extra{margin-top:4px;font-size:11px;color:#64748b}
+.product-extra summary{width:max-content;max-width:100%;cursor:pointer;color:#64748b;list-style:none}
+.product-extra summary::-webkit-details-marker{display:none}
+.product-extra summary::before{content:'＋';margin-right:4px;color:#1877f2}
+.product-extra[open] summary::before{content:'−'}
+.product-extra>div{display:grid;gap:3px;padding:5px 0 2px 8px}
+.product-extra .product-reference-code,.product-extra .product-secondary-name{font-size:11px;overflow-wrap:anywhere}

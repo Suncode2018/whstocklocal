@@ -5,7 +5,12 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "node --test tests",
+    "test:db": "node tests/db-workflows.integration.js",
+    "test:master-data:db": "node tests/master-data.integration.js",
+    "test:locations:db": "node tests/location-master.integration.js",
+    "test:ui": "node scripts/test-ui-smoke.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

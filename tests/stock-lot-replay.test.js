@@ -17,7 +17,7 @@ test('moving all mixed lots preserves every ANA/LOT and fractional quantity',()=
  const rows=replay([{whid:2,LocationCode:'RCV',Quantity:0.3}],events,[receipt(1,'R1','A',0.1),receipt(1,'R2','B',0.2)],[]);assert.deepEqual(rows.map(x=>[x.LotNo,x.Quantity]),[['A',0.1],['B',0.2]]);
 });
 test('incomplete movement histories do not claim unsupported lots',()=>{
- assert.deepEqual(replay([{whid:1,LocationCode:'A',Quantity:9}],[],[],[]),[{whid:1,LocationCode:'A',Quantity:9,AnaNo:null,LotNo:null,Unattributed:true}]);
+ assert.deepEqual(replay([{whid:1,LocationCode:'A',Quantity:9}],[],[],[]),[{whid:1,LocationCode:'A',AnaNo:null,LotNo:null,ReceivedAt:null,Quantity:9,Unattributed:true}]);
 });
 test('Admin lot correction carries through later cross warehouse movements without changing stock',()=>{
  const events=[e(1,'ADJUST',1,'A',10,'COUNT'),e(2,'SHIP_PREP',1,'A',-4,'D',2),e(3,'SHIP_PREP',1,'OUT',4,'D',2),e(4,'LOAD',1,'OUT',-4,'D'),e(5,'SHIP_RECEIVE',2,'RCV',4,'D')];
