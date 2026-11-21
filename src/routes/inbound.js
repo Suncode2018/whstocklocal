@@ -128,6 +128,10 @@ function error(res, e) {
         originalError: e.originalError?.message
     });
 
+    if (e.code === 'ETIMEOUT') {
+        require('../services/sql-timeout-diagnostics')(poolPromise, 'INBOUND route', e);
+    }
+
     res.status(e.status || 500).json({
         success: false,
         message: e.status

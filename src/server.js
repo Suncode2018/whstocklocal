@@ -8,6 +8,7 @@ const access = require('./middleware/access');
 app.use((req,res,next)=>{res.set('Cache-Control','no-store');next();});
 app.use(cors());
 app.use(express.json());
+app.use(require('./middleware/request-metrics'));
 
 // Retired UI trees are not served. Old bookmarks return to the common login.
 app.use(['/supervisor','/poweruser','/poweruser.html'],(req,res)=>res.redirect('/index.html'));

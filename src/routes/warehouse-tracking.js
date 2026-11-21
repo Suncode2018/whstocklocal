@@ -50,5 +50,5 @@ router.get('/',async(req,res)=>{try{
  res.set('Content-Type','text/csv; charset=utf-8');res.set('Content-Disposition','attachment; filename="warehouse-tracking_'+start+'_'+end+'.csv"');return res.send(csv);
  }
  res.json({success:true,data,start,end});
- }catch(e){console.error('Warehouse tracking:',e.code||e.message);res.status(500).json({success:false,message:'โหลดงานคลังไม่สำเร็จ กรุณาตรวจฐานข้อมูลและ Log เซิร์ฟเวอร์'});}
+ }catch(e){console.error('Warehouse tracking:',e.code||e.message);if(e.code==='ETIMEOUT')require('../services/sql-timeout-diagnostics')(poolPromise,'GET /api/warehouse-tracking',e);res.status(500).json({success:false,message:'โหลดงานคลังไม่สำเร็จ กรุณาตรวจฐานข้อมูลและ Log เซิร์ฟเวอร์'});}
 });module.exports=router;

@@ -7,6 +7,7 @@ let locationSaving = false;
 let warehousesCache = [];
 let locationLoadVersion = 0;
 let locationsMasterRows = [];
+let locationsMasterLoaded = false;
 let locationPage = 1;
 const locationPageSize = 50;
 const locationHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -42,6 +43,17 @@ async function loadWarehouseDropdowns() {
   }
 }
 
+async function initializeLocationsMaster() {
+  await loadWarehouseDropdowns();
+  const tbody = document.getElementById('locationsTableBody');
+  if (!locationsMasterLoaded && tbody) {
+    tbody.dataset.loaded = 'false';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">ยังไม่ได้โหลดข้อมูล · เลือกคลังหรือเงื่อนไข แล้วกด “ค้นหา”</td></tr>';
+    document.getElementById('locResultsCount').textContent = 'พร้อมค้นหาโลเคชั่น';
+    document.getElementById('locPageInfo').textContent = '';
+  }
+}
+
 // 2. ดึงรายการ Locations ทั้งหมด
 async function loadLocationsMaster(showToast = false) {
   const tbody = document.getElementById('locationsTableBody');
@@ -52,13 +64,15 @@ async function loadLocationsMaster(showToast = false) {
   if (!hasLoadedRows) tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลดข้อมูลโลเคชั่น...</td></tr>`;
 
   try {
-    const [, res] = await Promise.all([loadWarehouseDropdowns(), fetchSafeLocations()]);
+    await loadWarehouseDropdowns();
+    const res = await fetchSafeLocations();
     if (!res.ok) throw new Error('API เส้นทาง locations ไม่ตอบสนอง (HTTP ' + res.status + ')');
     const data = await res.json();
     if (version !== locationLoadVersion) return;
     const locations = Array.isArray(data) ? data : (data.data || []);
 
     locationsMasterRows = locations;
+    locationsMasterLoaded = true;
     locationPage = 1;
     renderLocationTable();
     tbody.dataset.loaded = 'true';
@@ -89,6 +103,14 @@ function filteredLocationRows() {
 function renderLocationTable(keepPage = false) {
   const tbody = document.getElementById('locationsTableBody');
   if (!tbody) return;
+  if (!locationsMasterLoaded) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">ยังไม่ได้โหลดข้อมูล · เลือกคลังหรือเงื่อนไข แล้วกด “ค้นหา”</td></tr>';
+    document.getElementById('locResultsCount').textContent = 'พร้อมค้นหาโลเคชั่น';
+    document.getElementById('locPageInfo').textContent = '';
+    document.getElementById('locPrev').disabled = true;
+    document.getElementById('locNext').disabled = true;
+    return;
+  }
   const rows = filteredLocationRows();
   const pages = Math.max(1, Math.ceil(rows.length / locationPageSize));
   locationPage = keepPage ? Math.max(1, Math.min(locationPage, pages)) : 1;

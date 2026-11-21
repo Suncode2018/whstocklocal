@@ -1,13 +1,76 @@
-// Read-only diagnostics; do not cancel sessions or change server settings.
-let lastCapture=0;
-module.exports=function(poolPromise,label,error){
- if(error?.code!=='ETIMEOUT'||Date.now()-lastCapture<60000)return;
- lastCapture=Date.now();
- Promise.resolve(poolPromise).then(async pool=>{
- const request=pool.request();request.timeout=3000;
- const result=await request.query(`SELECT r.session_id,r.status,r.blocking_session_id,r.wait_type,r.wait_time,r.open_transaction_count,DB_NAME(r.database_id) AS DatabaseName,m.requested_memory_kb,m.granted_memory_kb
- FROM sys.dm_exec_requests r JOIN sys.dm_exec_sessions u ON u.session_id=r.session_id AND u.is_user_process=1 LEFT JOIN sys.dm_exec_query_memory_grants m ON m.session_id=r.session_id WHERE r.session_id<>@@SPID AND (r.blocking_session_id<>0 OR r.wait_type IS NOT NULL);
- SELECT session_id,status,open_transaction_count,host_name,program_name FROM sys.dm_exec_sessions WHERE is_user_process=1 AND open_transaction_count>0 AND session_id<>@@SPID;`);
- console.warn('SQL timeout diagnostics',JSON.stringify({endpoint:label,capturedAt:new Date().toISOString(),waitingRequests:result.recordsets[0],openTransactions:result.recordsets[1]}));
- }).catch(e=>console.warn('SQL timeout diagnostics unavailable:',e.code||'UNKNOWN'));
+// Read-only diagnostics. A separate, small pool keeps DMV inspection available
+// when the application pool itself is saturated.
+const { sql, config } = require('../config/db');
+
+let lastCapture = 0;
+let diagnosticsPoolPromise;
+
+function poolSnapshot(pool) {
+  const internal = pool?.pool;
+  if (!internal) return null;
+  return {
+    max: internal.max,
+    used: internal.numUsed(),
+    free: internal.numFree(),
+    pendingAcquires: internal.numPendingAcquires(),
+    pendingCreates: internal.numPendingCreates()
+  };
+}
+
+function getDiagnosticsPool() {
+  if (!diagnosticsPoolPromise) {
+    diagnosticsPoolPromise = new sql.ConnectionPool({
+      ...config,
+      connectionTimeout: 3000,
+      requestTimeout: 4000,
+      pool: { max: 1, min: 0, idleTimeoutMillis: 30000 }
+    }).connect().catch(error => {
+      diagnosticsPoolPromise = null;
+      throw error;
+    });
+  }
+  return diagnosticsPoolPromise;
+}
+
+module.exports = function captureSqlTimeout(poolPromise, endpoint, error) {
+  if (error?.code !== 'ETIMEOUT' || Date.now() - lastCapture < 15000) return;
+  lastCapture = Date.now();
+
+  Promise.resolve(poolPromise).then(async appPool => {
+    const appPoolState = poolSnapshot(appPool);
+    try {
+      const diagnosticsPool = await getDiagnosticsPool();
+      const result = await diagnosticsPool.request().query(`
+        SELECT r.session_id, r.status, r.blocking_session_id, r.wait_type,
+          r.wait_time, r.wait_resource, r.open_transaction_count,
+          DB_NAME(r.database_id) AS database_name, s.program_name
+        FROM sys.dm_exec_requests r
+        JOIN sys.dm_exec_sessions s ON s.session_id=r.session_id
+        WHERE r.session_id<>@@SPID AND s.is_user_process=1
+          AND (r.blocking_session_id<>0 OR r.wait_type IS NOT NULL OR r.total_elapsed_time>=1000);
+        SELECT session_id, status, open_transaction_count, host_name, program_name
+        FROM sys.dm_exec_sessions
+        WHERE is_user_process=1 AND open_transaction_count>0 AND session_id<>@@SPID;
+      `);
+      console.warn('SQL timeout diagnostics', JSON.stringify({
+        endpoint,
+        capturedAt: new Date().toISOString(),
+        appPool: appPoolState,
+        waitingRequests: result.recordsets[0],
+        openTransactions: result.recordsets[1]
+      }));
+    } catch (diagnosticError) {
+      console.warn('SQL timeout diagnostics unavailable', JSON.stringify({
+        endpoint,
+        appPool: appPoolState,
+        code: diagnosticError.code || 'UNKNOWN',
+        message: diagnosticError.message
+      }));
+    }
+  }).catch(diagnosticError => {
+    console.warn('SQL timeout diagnostics unavailable', JSON.stringify({
+      endpoint,
+      code: diagnosticError.code || 'UNKNOWN'
+    }));
+  });
 };

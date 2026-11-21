@@ -228,25 +228,7 @@
       </div>
     </section>
 
-    <!-- กลุ่มที่ 2: งานปฏิบัติการคลัง (Operations) -->
-    <section class="sidebar-group" data-sidebar-group="main-process">
-      <button type="button" class="sidebar-section-title" aria-expanded="true" onclick="toggleSidebarGroup('main-process')">
-        <span>กระบวนการหลัก</span><i class="bi bi-chevron-down"></i>
-      </button>
-      <div class="sidebar-group-items" id="sidebar-group-main-process">
-        <a class="sidebar-menu-item text-decoration-none" id="tab-op-RECEIVE" href="/desktop/receive.html"><i class="bi bi-box-arrow-in-down fs-5 text-success"></i> <span>RECEIVE (รับสินค้า)</span></a>
-        <button role="tab" class="sidebar-menu-item" id="tab-op-PUTAWAY" onclick="switchTab('OP_PUTAWAY')">
-          <i class="bi bi-box-seam fs-5 text-primary"></i> <span>PUTAWAY (จัดเก็บ)</span>
-        </button>
-        <a class="sidebar-menu-item" data-navigation-code="CHECK" href="/desktop/check.html"><i class="bi bi-clipboard-check fs-5 text-primary"></i><span>CHECK · ตรวจนับในตำแหน่ง</span></a>
-<button role="tab" class="sidebar-menu-item" id="tab-op-PICK" onclick="switchTab('OP_PICK')">
-          <i class="bi bi-box-arrow-up fs-5 text-danger"></i> <span>PICK (เบิกจ่าย)</span>
-        </button>
-        <button role="tab" class="sidebar-menu-item" id="tab-op-CYCLECOUNT" onclick="switchTab('OP_CYCLECOUNT')">
-          <i class="bi bi-clipboard2-check-fill fs-5 text-primary"></i> <span>CYCLECOUNT (ตรวจนับ)</span>
-        </button>
-      </div>
-    </section>
+    <a class="sidebar-menu-item text-decoration-none" href="/desktop/index.html?group=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%84%E0%B8%A5%E0%B8%B1%E0%B8%87" aria-label="เปิดศูนย์งานคลัง"><i class="bi bi-boxes fs-5 text-primary"></i><span>งานคลัง · เปิดศูนย์งานคลัง</span></a>
 
     <!-- กลุ่มที่ 3: รายงาน (Reports) -->
     <section class="sidebar-group" data-sidebar-group="reports">
@@ -438,6 +420,7 @@
             <div class="sub">ค้นหาและจัดการตำแหน่งจัดเก็บตามคลัง โซน และสถานะ</div>
           </div>
           <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-primary" onclick="loadLocationsMaster()"><i class="bi bi-search"></i> ค้นหา</button>
             <button class="btn btn-outline-secondary" onclick="loadLocationsMaster(true)"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
             <button class="btn btn-indigo" onclick="openAddLocation()"><i class="bi bi-plus-circle me-1"></i>เพิ่มโลเคชั่น</button>
           </div>
@@ -469,7 +452,7 @@
             </button>
           </div>
         </div>
-        <div class="d-flex justify-content-between align-items-center gap-2 mb-2 small text-muted"><span id="locResultsCount" role="status" aria-live="polite">กำลังโหลด...</span><span>แสดงครั้งละ 50 รายการ</span></div>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2 small text-muted"><span id="locResultsCount" role="status" aria-live="polite">เลือกตัวกรองแล้วกด “ค้นหา” เพื่อโหลดรายการ</span><span>แสดงครั้งละ 50 รายการ</span></div>
 
         <div class="table-responsive table-container-modern location-master-table-wrap">
           <table class="table table-modern align-middle mb-0 location-master-table">
@@ -482,9 +465,7 @@
                 <th style="width: 112px" class="text-end">จัดการ</th>
               </tr>
             </thead>
-            <tbody id="locationsTableBody">
-              <tr><td colspan="5" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังโหลด...</td></tr>
-            </tbody>
+            <tbody id="locationsTableBody" data-loaded="false"><tr><td colspan="5" class="text-center py-5 text-muted">ยังไม่ได้โหลดข้อมูล · เลือกคลังหรือเงื่อนไข แล้วกด “ค้นหา”</td></tr></tbody>
           </table>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-3"><span id="locPageInfo" class="small text-muted"></span><div class="btn-group btn-group-sm"><button id="locPrev" class="btn btn-outline-secondary" onclick="changeLocationPage(-1)" disabled>ก่อนหน้า</button><button id="locNext" class="btn btn-outline-secondary" onclick="changeLocationPage(1)" disabled>ถัดไป</button></div></div>
@@ -845,7 +826,7 @@
 <script src="/js/workflow-icons.js?v=20261120-workflow-icons-1"></script>
 <script src="/js/packing-levels.js?v=20261112-3"></script><script src="/js/admin-stock.js?v=20261115-stock-tabs-1"></script>
 <script src="/js/product-pack-versions.js?v=20261115-friendly-units-1"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/product-pallets.js?v=20261113-pallet-1"></script><script src="/js/admin-products.js?v=20261120-lean-products-stable-1"></script>
-<script src="/js/admin-locations.js?v=20261120-locations-lean-1"></script>
+<script src="/js/admin-locations.js?v=20261121-locations-search-first-1"></script>
 <script src="/js/shortage-reasons.js?v=20261120-master-lean-1"></script>
 <script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
 <script src="/js/admin-users.js?v=20261107-manual-reset"></script>
@@ -853,7 +834,8 @@
 <script src="/js/admin-permissions.js?v=20261106-two-roles"></script>
 <script src="/js/admin-roles.js?v=20261106-two-roles"></script>
 <script src="/js/bom-stock.js?v=20261106-two-roles"></script>
-<script src="/js/admin-bom.js?v=20261120-master-lean-1"></script>
+<dialog id="bomHistoryDialog" class="extension-dialog"><div class="dialog-head"><h5 class="mb-0">ประวัติสูตรการผลิต</h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('bomHistoryDialog').close()"></button></div><div class="dialog-body" id="bomHistoryBody"></div><div class="dialog-foot"><button class="btn btn-outline-secondary" onclick="document.getElementById('bomHistoryDialog').close()">ปิด</button></div></dialog>
+<script src="/js/admin-bom.js?v=20261121-admin-audit-1"></script>
 <script src="/js/admin-suppliers.js?v=20261114-lean-reads-1"></script>
 <script src="/js/admin-warehouses.js?v=20261120-master-lean-1"></script>
 
@@ -862,6 +844,8 @@
 <dialog id="transportDialog" class="extension-dialog"><form onsubmit="saveTransport(event)"><div class="dialog-head"><h5 id="transportTitle" class="mb-0"></h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('transportDialog').close()"></button></div><div class="dialog-body"><div class="mb-3"><label for="transportCode">รหัสผู้ขนส่ง *</label><input id="transportCode" class="form-control" maxlength="30" required></div><div class="mb-3"><label for="transportName">ชื่อผู้ให้บริการขนส่ง *</label><input id="transportName" class="form-control" maxlength="200" required></div><label for="transportEnabled">สถานะ</label><select id="transportEnabled" class="form-select"><option value="1">เปิดใช้งาน</option><option value="0">ปิดใช้งาน</option></select><p id="transportError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('transportDialog').close()">ยกเลิก</button><button id="transportSave" type="submit" class="btn btn-primary">บันทึก</button></div></form></dialog><dialog id="tpDialog" class="extension-dialog"><form onsubmit="saveTransportProducts(event)"><div class="dialog-head"><h5 class="mb-0">เชื่อมผู้ขนส่ง–สินค้า</h5><button type="button" class="btn-close" aria-label="ปิด" onclick="document.getElementById('tpDialog').close()"></button></div><div class="dialog-body"><p id="tpCompany" class="fw-bold"></p><label for="tpMode">สินค้าที่ขนส่งได้</label><select id="tpMode" class="form-select mb-3" onchange="changeTransportProductMode()"><option value="ALL">All · สินค้าทั้งหมด (ค่าเริ่มต้น)</option><option value="SELECTED">เฉพาะสินค้าที่เลือก</option></select><p id="tpAllHint" class="alert alert-light border">ใช้กับสินค้าทั้งหมด รวมสินค้าที่เพิ่มภายหลัง ไม่ต้องเพิ่มการเชื่อมทีละ SKU</p><div id="tpChoices" hidden><label for="tpProductSearch">ค้นหาสินค้า</label><input id="tpProductSearch" class="form-control mb-2" placeholder="รหัส ชื่อสินค้า หรือหมวด RM / PKG / SEMI / FG" oninput="renderTransportProductOptions()"><p id="tpPicked" class="small muted"></p><div id="tpProductOptions" style="max-height:280px;overflow:auto;border:1px solid #e2e6f1;border-radius:12px"></div></div><p id="tpError" class="text-danger mt-3" role="alert"></p></div><div class="dialog-foot d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('tpDialog').close()">ยกเลิก</button><button id="tpSave" type="submit" class="btn btn-primary">บันทึกการเชื่อมโยง</button></div></form></dialog><script src="/js/transport-products.js?v=20261114-lean-reads-1"></script><script src="/js/transports.js?v=20261114-lean-reads-1"></script>
 <script src="/js/customers.js?v=20261114-lean-reads-1"></script>
 <script>
+let sidebarPreferences = {};
+let sidebarSaveQueue = Promise.resolve();
 (function () {
   const payload = requireAuth(['ADMIN']);
   if (!payload) return;
@@ -876,13 +860,11 @@
   // โหลดข้อมูลเริ่มต้น
   loadSummaryStock();
   loadMasterProducts();
-  loadLocationsMaster();
+  initializeLocationsMaster();
   switchTab(initialView);
 })();
 
 function toggleSidebar() { document.getElementById('adminWrapper').classList.toggle('sidebar-collapsed'); }
-let sidebarPreferences = {};
-let sidebarSaveQueue = Promise.resolve();
 
 function sidebarPreferenceRequest(method = 'GET') {
   return fetch('/api/preferences/sidebar?surface=ADMIN', {
@@ -965,7 +947,7 @@ const destinations={OP_RECEIVE:'receive',receiving:'receive',OP_PUTAWAY:'putaway
   if (tab === 'company') loadCompany();
   if (tab === 'stock') loadSummaryStock();
   if (tab === 'master') loadMasterProducts();
-  if (tab === 'locations') loadLocationsMaster();
+  if (tab === 'locations') initializeLocationsMaster();
   if (tab === 'suppliers') loadSuppliers();
   if (tab === 'manufacturer-products') loadManufacturerLinks();
   if (tab === 'transport-products') loadTransportProducts();
