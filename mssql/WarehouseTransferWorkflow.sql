@@ -14,6 +14,26 @@ CREATE TABLE dbo.WarehouseTransferStorage(
  LineId int NOT NULL REFERENCES dbo.WarehouseTransferReceipts(LineId),
  ToLocationCode nvarchar(50) NOT NULL,Quantity decimal(18,2) NOT NULL CHECK(Quantity>0),
  CreatedBy nvarchar(100) NOT NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME());
+IF OBJECT_ID('dbo.WarehouseTransferLotAllocations','U') IS NULL
+CREATE TABLE dbo.WarehouseTransferLotAllocations(
+ AllocationId int IDENTITY PRIMARY KEY,
+ LineId int NOT NULL REFERENCES dbo.DeliveryLines(LineId),
+ [LineNo] int NOT NULL CHECK([LineNo]>0),
+ AnaNo nvarchar(100) NULL,LotNo nvarchar(100) NULL,FifoDate datetime2 NULL,
+ Quantity decimal(18,2) NOT NULL CHECK(Quantity>0),
+ StoredQuantity decimal(18,2) NOT NULL DEFAULT 0 CHECK(StoredQuantity>=0),
+ IsUnattributed bit NOT NULL DEFAULT 0,
+ CreatedAt datetime2 NOT NULL DEFAULT SYSDATETIME(),
+ CONSTRAINT UQ_WarehouseTransferLotAllocations_LineNo UNIQUE(LineId,[LineNo]),
+ CONSTRAINT CK_WarehouseTransferLotAllocations_Stored CHECK(StoredQuantity<=Quantity),
+ CONSTRAINT CK_WarehouseTransferLotAllocations_Source CHECK((IsUnattributed=1 AND AnaNo IS NULL AND LotNo IS NULL) OR (IsUnattributed=0 AND (AnaNo IS NOT NULL OR LotNo IS NOT NULL)))
+);
+IF COL_LENGTH('dbo.WarehouseTransferStorage','AllocationId') IS NULL
+ ALTER TABLE dbo.WarehouseTransferStorage ADD AllocationId int NULL;
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name='FK_WarehouseTransferStorage_Allocation')
+ ALTER TABLE dbo.WarehouseTransferStorage ADD CONSTRAINT FK_WarehouseTransferStorage_Allocation FOREIGN KEY(AllocationId) REFERENCES dbo.WarehouseTransferLotAllocations(AllocationId);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.WarehouseTransferLotAllocations') AND name='IX_WarehouseTransferLotAllocations_Line')
+ CREATE INDEX IX_WarehouseTransferLotAllocations_Line ON dbo.WarehouseTransferLotAllocations(LineId,AllocationId) INCLUDE(AnaNo,LotNo,FifoDate,Quantity,StoredQuantity,IsUnattributed);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.WarehouseTransferReceipts') AND name='IX_WarehouseTransferReceipts_RCV')
  CREATE INDEX IX_WarehouseTransferReceipts_RCV ON dbo.WarehouseTransferReceipts(WhId,ProductId,LocationCode) INCLUDE(ReceivedQuantity,StoredQuantity);
 EXEC(N'CREATE OR ALTER TRIGGER dbo.TR_Stock_WarehouseReceiptReservation ON dbo.tblStock AFTER UPDATE,DELETE AS

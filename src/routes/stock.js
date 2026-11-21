@@ -68,7 +68,7 @@ router.get('/balance', async (req, res) => {
     try{
       result=await pool.request().query(query+detailsQuery);
     }catch(error){
-      console.warn('Stock balance request context',JSON.stringify({compact,elapsedMs:Date.now()-startedAt,root:require('path').resolve(__dirname,'../..')}));
+      console.warn('Stock balance request context',JSON.stringify({requestNo:req.apiRequestNo,activeAtStart:req.apiActiveAtStart,compact,elapsedMs:Date.now()-startedAt,code:error.code,root:require('path').resolve(__dirname,'../..')}));
       throw error;
     }finally{clearTimeout(diagnosticTimer);}
     if(!compact){

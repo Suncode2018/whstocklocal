@@ -40,14 +40,18 @@ module.exports = function captureSqlTimeout(poolPromise, endpoint, error) {
     const appPoolState = poolSnapshot(appPool);
     try {
       const diagnosticsPool = await getDiagnosticsPool();
-      const result = await diagnosticsPool.request().query(`
+      const requestStartedAt = Date.now();
+      const requests = await diagnosticsPool.request().query(`
         SELECT r.session_id, r.status, r.blocking_session_id, r.wait_type,
           r.wait_time, r.wait_resource, r.open_transaction_count,
           DB_NAME(r.database_id) AS database_name, s.program_name
         FROM sys.dm_exec_requests r
         JOIN sys.dm_exec_sessions s ON s.session_id=r.session_id
         WHERE r.session_id<>@@SPID AND s.is_user_process=1
-          AND (r.blocking_session_id<>0 OR r.wait_type IS NOT NULL OR r.total_elapsed_time>=1000);
+          AND (r.blocking_session_id<>0 OR r.wait_type IS NOT NULL OR r.total_elapsed_time>=1000)
+        ORDER BY r.total_elapsed_time DESC;
+      `);
+      const openTransactions = await diagnosticsPool.request().query(`
         SELECT session_id, status, open_transaction_count, host_name, program_name
         FROM sys.dm_exec_sessions
         WHERE is_user_process=1 AND open_transaction_count>0 AND session_id<>@@SPID;
@@ -56,8 +60,9 @@ module.exports = function captureSqlTimeout(poolPromise, endpoint, error) {
         endpoint,
         capturedAt: new Date().toISOString(),
         appPool: appPoolState,
-        waitingRequests: result.recordsets[0],
-        openTransactions: result.recordsets[1]
+        diagnosticsDurationMs: Date.now() - requestStartedAt,
+        waitingRequests: requests.recordset,
+        openTransactions: openTransactions.recordset
       }));
     } catch (diagnosticError) {
       console.warn('SQL timeout diagnostics unavailable', JSON.stringify({

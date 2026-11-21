@@ -1,0 +1,68 @@
+.transfer-mode-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.transfer-mode-card{display:flex;align-items:center;gap:14px;min-width:0;padding:16px 18px;border:1px solid #dbe3f0;border-radius:14px;background:#fff;color:#263b5d;text-decoration:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.transfer-mode-card:hover{border-color:#80b7ff;box-shadow:0 5px 16px #1c4c7812;color:#124f9c}
+.transfer-mode-card[aria-current="page"]{border:2px solid #1976f3;background:#eef7ff;color:#104f9f;cursor:default}
+.transfer-mode-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:#e8f3ff;color:#1674ed;font-size:21px}
+.transfer-mode-copy{min-width:0;flex:1}
+.transfer-mode-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-weight:700}
+.transfer-mode-description{margin-top:3px;color:#71819a;font-size:.88rem;line-height:1.45}
+.transfer-mode-state{padding:3px 8px;border-radius:999px;background:#d8edff;color:#1262c2;font-size:.72rem;font-weight:700}
+.transfer-mode-go{color:#8596ae;font-size:1.1rem}
+@media(max-width:640px){.transfer-mode-switch{grid-template-columns:1fr;gap:8px}.transfer-mode-card{padding:12px 14px}}
+.transfer-steps{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:18px 0;padding:12px 14px;border-radius:12px;background:#f5f8fc;color:#51627c;font-size:.9rem}
+.transfer-steps span{display:flex;align-items:center;gap:7px}
+.transfer-steps b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e2efff;color:#1269d3;font-size:.8rem}
+.transfer-source{min-height:110px}
+.transfer-target{min-height:58px}
+.transfer-next-step,.transfer-empty{display:flex;align-items:center;gap:10px;min-height:80px;padding:18px;border:1px dashed #ccd7e5;border-radius:12px;background:#f8fafc;color:#71819a}
+.transfer-next-step i{font-size:1.25rem;color:#2581ef}
+.transfer-doc-card{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:10px;padding:14px;border:1px solid #dfe6f0;border-radius:12px;background:#fff}
+.transfer-doc-main{min-width:0}
+.transfer-doc-route{margin:5px 0;color:#31527f;font-weight:600}
+.transfer-doc-route i{margin:0 5px;color:#8799b1}
+.transfer-doc-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.transfer-history-details{margin-top:12px;padding:14px 16px;border:1px solid #e0e6ef;border-radius:12px;background:#fff;color:#475873}
+.transfer-history-details summary{cursor:pointer;font-weight:650}
+.transfer-dashboard-panel{padding:20px 22px}
+.transfer-category-filter{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.transfer-progress{margin:0 0 12px;padding:0 0 10px;border-bottom:1px solid #e5eaf2}
+.transfer-list-toolbar{margin:0 0 12px}
+.transfer-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 10px}
+.transfer-tabs [role="tab"]{border:1px solid #dedaf7;background:#fff;color:#596580;border-radius:12px;padding:10px 18px;font-weight:600}
+.transfer-tabs [role="tab"][aria-selected="true"]{background:#ede9ff;border-color:#9285f6;color:#5141d7}
+.transfer-list-area{margin-top:0;padding-top:0;border-top:0}
+.transfer-list-area .table-responsive{overflow:hidden;border:1px solid #e5eaf2;border-radius:12px;background:#f8fafc}
+.transfer-list-area .table{margin-bottom:0;--bs-table-bg:transparent}
+.transfer-list-area .table thead th{background:#f5f7fb;color:#53617d;font-size:.9rem;font-weight:650;white-space:nowrap}
+.transfer-list-area .transfer-pager{padding:10px 4px}
+.transfer-lot-qty{-moz-appearance:textfield;appearance:textfield}
+.transfer-lot-qty::-webkit-inner-spin-button,.transfer-lot-qty::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.transfer-stock-search-prompt{display:flex;align-items:center;justify-content:center;gap:10px;min-height:120px;padding:20px;border:1px dashed #d6dfeb;border-radius:12px;background:#f8fafc;color:#72819a;text-align:center}
+.transfer-stock-search-prompt i{color:#2581ef;font-size:1.15rem}
+.transfer-history-filters{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:12px 0 16px;padding:14px;border:1px solid #e3e8f2;border-radius:12px;background:#f8f9fd}
+.transfer-history-filters[hidden]{display:none!important}
+.transfer-history-filters label{min-width:190px;color:#53617d;font-size:.85rem}
+.transfer-history-filters input{margin-top:6px}
+.ship-flow-popup{width:min(1120px,calc(100vw - 32px))!important;max-width:calc(100vw - 32px)!important}
+.ship-flow-popup .swal2-title{padding:18px 22px 4px;color:#172b4d;font-size:1.35rem}
+.ship-flow-popup .swal2-html-container{margin:12px 20px 0;overflow:hidden}
+.ship-flow-popup .swal2-actions{margin:14px auto 18px}
+.ship-flow-content{max-height:68vh;overflow:auto;padding:4px 6px 10px;color:#24344d}
+.ship-flow-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}
+.ship-flow-current-status{color:#1565c0;font-weight:650;text-align:right}
+.ship-flow-route-label{display:flex;justify-content:space-between;gap:12px;margin:14px 2px 6px;color:#64748b;font-size:.75rem;font-weight:700}
+.ship-flow{display:flex;align-items:stretch;gap:7px;overflow-x:auto;padding:4px 2px 10px}
+.ship-flow-step{position:relative;display:flex;flex:1 0 145px;flex-direction:column;gap:5px;min-height:122px;padding:11px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;color:#64748b}
+.ship-flow-step.done{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+.ship-flow-step.current{border-color:#a5b4fc;background:#eff6ff;color:#1565c0;box-shadow:0 2px 8px #1877f21a}
+.ship-flow-step.skipped{opacity:.55}
+.ship-flow-marker{font-size:1rem;font-weight:800}
+.ship-flow-step small{font-size:.76rem;overflow-wrap:anywhere}
+.ship-flow-tag{margin-top:auto;font-size:.68rem;font-weight:700}
+.ship-flow-arrow{display:grid;place-items:center;flex:0 0 18px;color:#94a3b8;font-size:1.2rem}
+.ship-flow-products{min-width:820px;font-size:.82rem}
+.ship-flow-products th{background:#f8fafc;color:#475569;white-space:nowrap}
+.ship-flow-products td{vertical-align:middle;overflow-wrap:anywhere}
+@media(max-width:575px){.transfer-history-filters label{flex:1 1 100%}.transfer-history-filters button{width:100%}}
+@media(max-width:575px){.ship-flow-summary{align-items:flex-start;flex-direction:column}.ship-flow-current-status{text-align:left}.ship-flow-step{flex-basis:130px}.ship-flow-popup .swal2-html-container{margin-right:10px;margin-left:10px}}
+@media(max-width:640px){.transfer-steps{align-items:flex-start;flex-direction:column}.transfer-steps>i{display:none}.transfer-doc-card{align-items:flex-start;flex-direction:column}.transfer-doc-actions{justify-content:flex-start}}

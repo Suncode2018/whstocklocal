@@ -14,7 +14,12 @@ module.exports = function requestMetrics(req, res, next) {
   const startedAt = Date.now();
   const active = (inFlight.get(route) || 0) + 1;
   inFlight.set(route, active);
-  counts.set(route, (counts.get(route) || 0) + 1);
+  const requestNo = (counts.get(route) || 0) + 1;
+  counts.set(route, requestNo);
+  // Keep a stable correlation id on the request. Reading counts at response
+  // completion caused overlapping requests to all be logged with the latest id.
+  req.apiRequestNo = requestNo;
+  req.apiActiveAtStart = active;
   let recorded = false;
 
   const finish = outcome => {
@@ -23,7 +28,7 @@ module.exports = function requestMetrics(req, res, next) {
     inFlight.set(route, Math.max(0, (inFlight.get(route) || 1) - 1));
     console.info('[API TIMING]', JSON.stringify({
       route,
-      requestNo: counts.get(route),
+      requestNo,
       durationMs: Date.now() - startedAt,
       status: res.statusCode,
       activeAtStart: active,

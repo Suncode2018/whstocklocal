@@ -696,7 +696,7 @@ BEGIN
         Phone NVARCHAR(50) NOT NULL,
         DeliveryDate DATE NOT NULL,
         PoNo NVARCHAR(60) NULL,
-        SoNo NVARCHAR(60) NULL,
+        SoNo NVARCHAR(255) NULL,
         Note NVARCHAR(500) NULL,
         Status VARCHAR(10) NOT NULL DEFAULT 'DRAFT' CHECK(Status IN('DRAFT','SENT','RECEIVED','CANCELLED')),
         Carrier NVARCHAR(100) NULL,
@@ -723,6 +723,8 @@ BEGIN
     IF COL_LENGTH('dbo.DeliveryOrders','CompanySnapshot') IS NULL ALTER TABLE dbo.DeliveryOrders ADD CompanySnapshot NVARCHAR(MAX) NULL;
     IF COL_LENGTH('dbo.DeliveryOrders','RequestJson') IS NULL ALTER TABLE dbo.DeliveryOrders ADD RequestJson NVARCHAR(MAX) NULL;
 END;
+IF COL_LENGTH('dbo.DeliveryOrders','SoNo') IS NOT NULL AND COL_LENGTH('dbo.DeliveryOrders','SoNo')<510
+    ALTER TABLE dbo.DeliveryOrders ALTER COLUMN SoNo NVARCHAR(255) NULL;
 GO
 
 IF OBJECT_ID('dbo.DeliveryLines', 'U') IS NULL

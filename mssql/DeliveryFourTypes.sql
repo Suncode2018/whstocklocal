@@ -1,4 +1,7 @@
 USE dbWMS;
+GO
+IF COL_LENGTH('dbo.DeliveryOrders','SoNo') IS NOT NULL AND COL_LENGTH('dbo.DeliveryOrders','SoNo')<510
+ ALTER TABLE dbo.DeliveryOrders ALTER COLUMN SoNo NVARCHAR(255) NULL;
 IF COL_LENGTH('dbo.DeliveryOrders','CategoryCode') IS NULL ALTER TABLE dbo.DeliveryOrders ADD CategoryCode varchar(4) NOT NULL DEFAULT 'FG',Prepared bit NOT NULL DEFAULT 1,CarrierCode nvarchar(30) NULL,RequestJson nvarchar(max) NULL;
 IF OBJECT_ID('dbo.DeliveryContainers','U') IS NULL CREATE TABLE dbo.DeliveryContainers(DeliveryId int NOT NULL REFERENCES dbo.DeliveryOrders(DeliveryId),ContainerId int NOT NULL REFERENCES dbo.RMContainers(ContainerId),Quantity decimal(18,2) NOT NULL,PRIMARY KEY(DeliveryId,ContainerId));
 GO

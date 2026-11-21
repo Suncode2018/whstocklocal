@@ -25,6 +25,21 @@ test('Admin lot correction carries through later cross warehouse movements witho
  const rows=replay([{whid:1,LocationCode:'A',Quantity:6},{whid:2,LocationCode:'RCV',Quantity:4}],events,[],[],adjustments);
  assert.deepEqual(rows.map(r=>[r.AnaNo,r.LotNo,r.Quantity]),[['ANA-X','LOT-X',6],['ANA-X','LOT-X',4]]);
 });
+test('cross-warehouse transfer preserves the selected ANA/LOT allocation and putaway split',()=>{
+ const events=[e(1,'RECEIVE',1,'A',10,'R1'),e(2,'RECEIVE',1,'A',10,'R2'),e(3,'SHIP_PREP',1,'A',-5,'D1',3),e(4,'SHIP_PREP',1,'OUT',5,'D1',3),e(5,'LOAD',1,'OUT',-5,'D1',4),e(6,'SHIP_RECEIVE',2,'RCV',5,'D1',5),e(7,'PUTAWAY',2,'RCV',-3,'D1',7),e(8,'PUTAWAY',2,'A',3,'D1',7)];
+ const receipts=[{whid:1,ReceiveNo:'R1',LocationCode:'A',Quantity:10,AnaNo:'ANA-1',LotNo:'LOT-1'},{whid:1,ReceiveNo:'R2',LocationCode:'A',Quantity:10,AnaNo:'ANA-2',LotNo:'LOT-2'}];
+ const allocations=[{DeliveryNo:'D1',WhId:1,LocationCode:'A',AnaNo:'ANA-2',LotNo:'LOT-2',Quantity:5}];
+ const storage=[{DeliveryNo:'D1',WhId:2,FromLocationCode:'RCV',AnaNo:'ANA-2',LotNo:'LOT-2',Quantity:3,MovedAt:new Date(7000)}];
+ const rows=replay([{whid:1,LocationCode:'A',Quantity:15},{whid:2,LocationCode:'RCV',Quantity:2},{whid:2,LocationCode:'A',Quantity:3}],events,receipts,[],[],[],allocations,storage);
+ assert.deepEqual(rows.map(x=>[x.whid,x.LocationCode,x.AnaNo,x.LotNo,x.Quantity]),[[1,'A','ANA-1','LOT-1',10],[1,'A','ANA-2','LOT-2',5],[2,'RCV','ANA-2','LOT-2',2],[2,'A','ANA-2','LOT-2',3]]);
+});
+test('cancelling a prepared transfer restores the exact allocated ANA/LOT quantities',()=>{
+ const events=[e(1,'RECEIVE',1,'A',10,'R1'),e(2,'RECEIVE',1,'A',10,'R2'),e(3,'SHIP_PREP',1,'A',-5,'D1',3),e(4,'SHIP_PREP',1,'OUT',5,'D1',3),e(5,'SHIP_CANCEL',1,'OUT',-5,'D1',5),e(6,'SHIP_CANCEL',1,'A',5,'D1',5)];
+ const receipts=[{whid:1,ReceiveNo:'R1',LocationCode:'A',Quantity:10,AnaNo:'ANA-1',LotNo:'LOT-1'},{whid:1,ReceiveNo:'R2',LocationCode:'A',Quantity:10,AnaNo:'ANA-2',LotNo:'LOT-2'}];
+ const allocations=[{DeliveryNo:'D1',WhId:1,LocationCode:'A',AnaNo:'ANA-2',LotNo:'LOT-2',Quantity:5}];
+ const rows=replay([{whid:1,LocationCode:'A',Quantity:20}],events,receipts,[],[],[],allocations);
+ assert.deepEqual(rows.map(x=>[x.AnaNo,x.LotNo,x.Quantity]),[['ANA-1','LOT-1',10],['ANA-2','LOT-2',10]]);
+});
 test('latest correction at the same movement version wins and supports splitting lots',()=>{
  const adjustments=[{AdjustmentId:1,ThroughTransId:1,WhId:1,LocationCode:'A',RowsJson:JSON.stringify([{LotNo:'old',Quantity:10}])},{AdjustmentId:2,ThroughTransId:1,WhId:1,LocationCode:'A',RowsJson:JSON.stringify([{AnaNo:'a',LotNo:'one',Quantity:3},{LotNo:'two',Quantity:7}])}];
  const rows=replay([{whid:1,LocationCode:'A',Quantity:10}],[e(1,'ADJUST',1,'A',10,'COUNT')],[],[],adjustments);assert.deepEqual(rows.map(r=>[r.LotNo,r.Quantity]),[['one',3],['two',7]]);

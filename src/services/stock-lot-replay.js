@@ -3,7 +3,7 @@
 const units=n=>Math.round(Number(n)*100);
 const key=(w,l)=>JSON.stringify([Number(w),l]);
 const lotKey=x=>JSON.stringify([x.AnaNo||null,x.LotNo||null]);
-function replay(stock,events,receipts,plans,adjustments=[],pickAllocations=[]){
+function replay(stock,events,receipts,plans,adjustments=[],pickAllocations=[],transferAllocations=[],storageMoves=[]){
  const balances=new Map(),transit=new Map();
  const add=(list,rows)=>{for(const r of rows){if(r.q<=0)continue;const old=list.find(x=>lotKey(x)===lotKey(r));if(old){old.q+=r.q;if(r.ReceivedAt&&(!old.ReceivedAt||new Date(r.ReceivedAt)<new Date(old.ReceivedAt)))old.ReceivedAt=r.ReceivedAt;}else list.push({...r});}};
  const at=(w,l)=>{const k=key(w,l);if(!balances.has(k))balances.set(k,[]);return balances.get(k)};
@@ -45,7 +45,9 @@ function replay(stock,events,receipts,plans,adjustments=[],pickAllocations=[]){
   const plan=plans.find(p=>p.PlanNo===first.RefDocNo&&Number(p.WhId)===Number(first.whid));
   for(const e of group.filter(x=>Number(x.QtyChange)<0)){
    const exact=first.TransType==='PICK'?(picksByRef.get(first.RefDocNo)||[]).filter(p=>Number(p.WhId)===Number(e.whid)&&p.FromLocationCode===e.LocationCode):[];
-   const rows=exact.length?takeExact(at(e.whid,e.LocationCode),exact):take(at(e.whid,e.LocationCode),-units(e.QtyChange),plan?.InboundReceiptId?plan:null);add(moved,rows);
+   const transfer=first.TransType==='SHIP_PREP'?transferAllocations.filter(x=>x.DeliveryNo===first.RefDocNo&&Number(x.WhId)===Number(e.whid)&&x.LocationCode===e.LocationCode):first.TransType==='SHIP_CANCEL'?transferAllocations.filter(x=>x.DeliveryNo===first.RefDocNo&&Number(x.WhId)===Number(e.whid)):[];
+   const stored=first.TransType==='PUTAWAY'?storageMoves.filter(x=>x.DeliveryNo===first.RefDocNo&&Number(x.WhId)===Number(e.whid)&&x.FromLocationCode===e.LocationCode&&new Date(x.MovedAt).getTime()===new Date(e.CreatedAt).getTime()):[];
+   const rows=exact.length?takeExact(at(e.whid,e.LocationCode),exact):transfer.length?takeExact(at(e.whid,e.LocationCode),transfer):stored.length?takeExact(at(e.whid,e.LocationCode),stored):take(at(e.whid,e.LocationCode),-units(e.QtyChange),plan?.InboundReceiptId?plan:null);add(moved,rows);
   }
   if(first.TransType==='LOAD'&&moved.length){const k=first.RefDocNo;if(!transit.has(k))transit.set(k,[]);add(transit.get(k),moved);}
   for(const e of group.filter(x=>Number(x.QtyChange)>0)){

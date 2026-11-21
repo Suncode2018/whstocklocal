@@ -31,7 +31,17 @@ async function load(pool,sql,id,stock,requestFactory){
  IF OBJECT_ID('dbWMS.dbo.FGLotPickLines','U') IS NOT NULL
  SELECT o.PickNo,x.WhId,x.ProductId,x.FromLocationCode,x.ToLocationCode,x.AnaNo,x.LotNo,x.FifoDate,x.Quantity FROM dbWMS.dbo.FGLotPickLines x JOIN dbWMS.dbo.PickOperations o ON o.PickId=x.PickId WHERE x.ProductId=@P ORDER BY o.PickId,x.[LineNo];
  ELSE SELECT CAST(NULL AS NVARCHAR(40)) PickNo,CAST(NULL AS INT) WhId,CAST(NULL AS INT) ProductId,CAST(NULL AS NVARCHAR(50)) FromLocationCode,CAST(NULL AS NVARCHAR(50)) ToLocationCode,CAST(NULL AS NVARCHAR(100)) AnaNo,CAST(NULL AS NVARCHAR(100)) LotNo,CAST(NULL AS DATETIME2) FifoDate,CAST(NULL AS DECIMAL(18,2)) Quantity WHERE 1=0;
+ IF OBJECT_ID('dbWMS.dbo.WarehouseTransferLotAllocations','U') IS NOT NULL
+ SELECT h.DeliveryNo,h.WhId,COALESCE(NULLIF(l.OriginLocationCode,N''),l.LocationCode) LocationCode,a.AnaNo,a.LotNo,a.FifoDate,a.Quantity,a.IsUnattributed
+ FROM dbWMS.dbo.WarehouseTransferLotAllocations a JOIN dbWMS.dbo.DeliveryLines l ON l.LineId=a.LineId JOIN dbWMS.dbo.DeliveryOrders h ON h.DeliveryId=l.DeliveryId
+ WHERE l.ProductId=@P AND h.DeliveryType='WAREHOUSE';
+ ELSE SELECT CAST(NULL AS NVARCHAR(40)) DeliveryNo,CAST(NULL AS INT) WhId,CAST(NULL AS NVARCHAR(50)) LocationCode,CAST(NULL AS NVARCHAR(100)) AnaNo,CAST(NULL AS NVARCHAR(100)) LotNo,CAST(NULL AS DATETIME2) FifoDate,CAST(NULL AS DECIMAL(18,2)) Quantity,CAST(NULL AS BIT) IsUnattributed WHERE 1=0;
+ IF OBJECT_ID('dbWMS.dbo.WarehouseTransferStorage','U') IS NOT NULL AND COL_LENGTH('dbWMS.dbo.WarehouseTransferStorage','AllocationId') IS NOT NULL
+ SELECT h.DeliveryNo,r.WhId,r.LocationCode FromLocationCode,s.CreatedAt MovedAt,a.AnaNo,a.LotNo,s.Quantity
+ FROM dbWMS.dbo.WarehouseTransferStorage s JOIN dbWMS.dbo.WarehouseTransferLotAllocations a ON a.AllocationId=s.AllocationId JOIN dbWMS.dbo.WarehouseTransferReceipts r ON r.LineId=s.LineId JOIN dbWMS.dbo.DeliveryOrders h ON h.DeliveryId=r.DeliveryId
+ WHERE r.ProductId=@P;
+ ELSE SELECT CAST(NULL AS NVARCHAR(40)) DeliveryNo,CAST(NULL AS INT) WhId,CAST(NULL AS NVARCHAR(50)) FromLocationCode,CAST(NULL AS DATETIME2) MovedAt,CAST(NULL AS NVARCHAR(100)) AnaNo,CAST(NULL AS NVARCHAR(100)) LotNo,CAST(NULL AS DECIMAL(18,2)) Quantity WHERE 1=0;
  `);
- return require('./stock-lot-replay').replay(stock,r.recordsets[0],r.recordsets[1],r.recordsets[2],r.recordsets[3]||[],r.recordsets[4]||[]);
+ return require('./stock-lot-replay').replay(stock,r.recordsets[0],r.recordsets[1],r.recordsets[2],r.recordsets[3]||[],r.recordsets[4]||[],r.recordsets[5]||[],r.recordsets[6]||[]);
 }
 module.exports={load,reconcile};
