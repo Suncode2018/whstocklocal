@@ -49,14 +49,24 @@ router.get('/balance', async (req, res) => {
     const pool = await poolPromise;
     const compact=req.query.compact==='1';
     const scope=require('../middleware/warehouse-scope');
-    const query=balanceQuery.replace('/*WAREHOUSE_SCOPE*/',scope.predicate(req,'whid')).replace('/*TRANSIT_SCOPE*/',scope.predicate(req,'SourceWhId')+' OR '+scope.predicate(req,'DestinationWhId'));
+    let productIds=null,productIdClause='';
+    if(req.query.productIds!==undefined){
+      const raw=String(req.query.productIds).split(',');
+      if(!compact||!raw.length||raw.length>100||raw.some(value=>!/^\d{1,10}$/.test(value)||Number(value)<=0||Number(value)>2147483647))return res.status(400).json({success:false,message:'ระบุรหัสสินค้า 1–100 รายการสำหรับยอดแบบย่อ'});
+      productIds=[...new Set(raw.map(Number))];
+      if(productIds.length>100)return res.status(400).json({success:false,message:'ระบุรหัสสินค้าไม่เกิน 100 รายการ'});
+      productIdClause='ProductId IN ('+productIds.map((_,index)=>'@StockProductId'+index).join(',')+')';
+    }
+    const stockIdFilter=productIdClause?' AND '+productIdClause:'';
+    let query=balanceQuery.replace('WHERE /*WAREHOUSE_SCOPE*/','WHERE '+scope.predicate(req,'whid')+stockIdFilter).replace('/*TRANSIT_SCOPE*/',scope.predicate(req,'SourceWhId')+' OR '+scope.predicate(req,'DestinationWhId'));
+    if(productIdClause){query=query.replace('GROUP BY ProductId)',stockIdFilter+' GROUP BY ProductId)').replace(/\s*$/, '')+' WHERE p.'+productIdClause+' ';}
     // Keep the location text out of the aggregate/product join. STRING_AGG over
     // NVARCHAR(MAX) can require a large sort memory grant even for small stock tables.
     const detailsQuery=compact?'':`;
       SELECT ProductId, LocationCode,
         CONCAT(LocationCode, N' (', SUM(Quantity), N')') AS Detail
       FROM dbWMS.dbo.tblStock
-      WHERE ${scope.predicate(req,'whid')}
+      WHERE ${scope.predicate(req,'whid')}${stockIdFilter}
       GROUP BY ProductId, whid, LocationCode
       ORDER BY ProductId, LocationCode`;
     const startedAt=Date.now();
@@ -66,7 +76,8 @@ router.get('/balance', async (req, res) => {
     diagnosticTimer.unref();
     let result;
     try{
-      result=await pool.request().query(query+detailsQuery);
+      const request=pool.request();if(productIds)productIds.forEach((id,index)=>request.input('StockProductId'+index,sql.Int,id));
+      result=await request.query(query+detailsQuery);
     }catch(error){
       console.warn('Stock balance request context',JSON.stringify({requestNo:req.apiRequestNo,activeAtStart:req.apiActiveAtStart,compact,elapsedMs:Date.now()-startedAt,code:error.code,root:require('path').resolve(__dirname,'../..')}));
       throw error;

@@ -8,7 +8,7 @@
   <!-- CSS Frameworks & Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="/css/wms.css?v=20261120-material-kit-colors-1">
+  <link rel="stylesheet" href="/css/wms.css?v=20261122-hide-number-spinner-1">
   <link rel="stylesheet" href="/css/wms-friendly.css?v=20261120-material-kit-colors-1">
 
   <style>
@@ -309,10 +309,11 @@
         </div>
 
         <div class="row g-2 mb-2 align-items-end">
-          <div class="col-md-2"><label for="prodSearchMode" class="form-label small">ค้นหาโดย</label><select id="prodSearchMode" class="form-select" onchange="changeProductSearchMode()"><option value="code">รหัสสินค้า</option><option value="name">ชื่อสินค้า</option><option value="barcode">บาร์โค้ด</option></select></div>
+          <div class="col-md-2"><label for="prodSearchMode" class="form-label small">ค้นหาโดย</label><select id="prodSearchMode" class="form-select" onchange="changeProductSearchMode()"><option value="code">รหัสหลัก</option><option value="reference">รหัสอ้างอิง</option><option value="name">ชื่อสินค้า</option><option value="barcode">บาร์โค้ด</option></select></div>
           <div class="col-md"><label for="prodSearchInput" class="form-label small">ค้นหาสินค้า</label><div class="search-input-wrap"><i class="bi bi-search search-icon"></i><input type="search" id="prodSearchInput" class="form-control form-control-modern" placeholder="พิมพ์รหัสสินค้า" aria-describedby="productSearchHelp" oninput="scheduleProductSearch(event)" oncompositionstart="productSearchComposing=true" oncompositionend="productSearchComposing=false; scheduleProductSearch(event)" onkeydown="handleProductSearchKey(event)"></div></div>
-          <div class="col-md-3 col-lg-2"><label for="prodStockFilter" class="form-label small">สถานะสต๊อก</label><select id="prodStockFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกสถานะ</option><option value="available">มีสินค้า</option><option value="empty">หมดสต๊อก</option><option value="low">ต่ำกว่า Min</option></select></div>
+          <div class="col-md-3 col-lg-2"><label for="prodStockFilter" class="form-label small">สถานะสต๊อก</label><select id="prodStockFilter" class="form-select form-select-modern" onchange="onProductStockFilterChange()"><option value="">ทุกสถานะ</option><option value="available">มีสินค้า</option><option value="empty">หมดสต๊อก</option><option value="low">ต่ำกว่า Min</option></select></div>
           <div class="col-md-3 col-lg-2"><label for="prodCategoryFilter" class="form-label small">หมวดสินค้า</label><select id="prodCategoryFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกหมวดที่มีสิทธิ์</option></select></div>
+          <div class="col-md-3 col-lg-2"><label for="prodMasterStatusFilter" class="form-label small">สถานะสินค้า</label><select id="prodMasterStatusFilter" class="form-select form-select-modern" onchange="renderProductResults()"><option value="">ทุกสถานะ</option><option value="ready">เปิดใช้งาน</option><option value="draft">ร่าง</option><option value="inactive">ปิดใช้งาน</option></select></div>
           <div class="col-auto"><button type="button" class="btn btn-clear-modern px-3" onclick="clearProductSearch()"><i class="bi bi-arrow-counterclockwise me-1"></i>ล้าง</button></div>
         </div>
         <div id="productSearchHelp" class="visually-hidden"></div>
@@ -824,8 +825,8 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/js/common.js?v=20261115-date-time-2"></script>
 <script src="/js/workflow-icons.js?v=20261120-workflow-icons-1"></script>
-<script src="/js/packing-levels.js?v=20261112-3"></script><script src="/js/admin-stock.js?v=20261115-stock-tabs-1"></script>
-<script src="/js/product-pack-versions.js?v=20261115-friendly-units-1"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/product-pallets.js?v=20261113-pallet-1"></script><script src="/js/admin-products.js?v=20261120-lean-products-stable-1"></script>
+<script src="/js/packing-levels.js?v=20261112-3"></script><script src="/js/admin-stock.js?v=20261122-stock-unknown-identifiers-1"></script>
+<script src="/js/product-pack-versions.js?v=20261115-friendly-units-1"></script><script src="/js/product-source-master.js?v=20261108-sql-fields-3"></script><script src="/js/product-pallets.js?v=20261113-pallet-1"></script><script src="/js/admin-products.js?v=20261122-lean-master-search-stock-1"></script>
 <script src="/js/admin-locations.js?v=20261121-locations-search-first-1"></script>
 <script src="/js/shortage-reasons.js?v=20261120-master-lean-1"></script>
 <script src="/js/admin-user-menus.js?v=20261107-warehouse-access"></script>
