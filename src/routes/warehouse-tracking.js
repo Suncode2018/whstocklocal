@@ -3,18 +3,21 @@ const {poolPromise,sql}=require('../config/db');
 const access=require('../middleware/access'),scope=require('../middleware/warehouse-scope');
 const {catalog}=require('../config/navigation'),{hasAction}=require('../middleware/navigation');
 router.use(access.authenticate);
+
 router.get('/',async(req,res)=>{try{
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const start=String(req.query.start||today),end=String(req.query.end||today);
  const valid=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
  if(!valid(start)||!valid(end)||start>end||end>'9999-12-30')return res.status(400).json({success:false,message:'ระบุวันที่ให้ถูกต้อง และวันที่สิ้นสุดต้องไม่น้อยกว่าวันเริ่มต้น'});
- const exporting=req.query.format==='csv';
- const admin=req.navigation?.user.Role==='ADMIN';
+ const kind=String(req.query.kind||''),warehouse=String(req.query.warehouse||''),category=String(req.query.category||''),state=String(req.query.state||''),search=String(req.query.search||'').trim();
+ if(kind&&!['RECEIVE','PUTAWAY','PICK','LOAD','TRANSFER'].includes(kind)||warehouse&&!/^[1-9]\d*$/.test(warehouse)||category&&!['RM','PKG','SEMI','FG'].includes(category)||state&&!['OPEN','WAITING','PROGRESS','DONE','CANCELLED'].includes(state)||search.length>200)return res.status(400).json({success:false,message:'ตัวกรองไม่ถูกต้อง'});
+ const exporting=req.query.format==='csv',admin=req.navigation?.user.Role==='ADMIN';
  if(exporting&&!admin&&!hasAction(req.navigation.profile,req.navigation.mode,'WAREHOUSE_TRACKING','EXPORT'))return res.status(403).json({success:false,message:'ไม่มีสิทธิ์ Export ติดตามงานคลัง'});
- const allowed=parent=>['RM','PKG','SEMI','FG'].filter(category=>admin||catalog.some(c=>c.scopeParent===parent&&c.categoryCode===category&&hasAction(req.navigation.profile,req.navigation.mode,c.code,'VIEW')));
- const filter=(parent,column)=>{const cats=allowed(parent);return cats.length?column+" IN ("+cats.map(c=>"'"+c+"'").join(',')+")":'1=0'};
- const request=(await poolPromise).request().input('Start',sql.Date,start).input('End',sql.Date,end);
- const r=await request.query(`
+ const allowed=parent=>['RM','PKG','SEMI','FG'].filter(c=>admin||catalog.some(item=>item.scopeParent===parent&&item.categoryCode===c&&hasAction(req.navigation.profile,req.navigation.mode,item.code,'VIEW')));
+ const filter=(parent,column)=>{const cats=allowed(parent);return cats.length?column+' IN ('+cats.map(c=>"'"+c+"'").join(',')+')':'1=0'};
+ const pageSize=25,pageRaw=Number.parseInt(String(req.query.page||'1'),10),requestedPage=Number.isInteger(pageRaw)&&pageRaw>0?pageRaw:1,offset=(requestedPage-1)*pageSize;
+ if(!exporting&&offset>1000000)return res.status(400).json({success:false,message:'หน้าเกินขอบเขต กรุณาระบุตัวกรองให้แคบลง'});
+ const activity=`
  SELECT 'RECEIVE' Kind,o.ReceiveNo DocumentNo,o.ReceiveType Category,o.WhId whid,w.whname,w.whdescription,o.CreatedAt EventAt,o.CreatedBy Actor,o.ReferenceNo Reference,o.SupplierName Party,
  CASE WHEN o.IsCancelled=1 THEN 'CANCELLED' WHEN o.Status='COMPLETED' THEN 'DONE' WHEN o.Status='PARTIAL' THEN 'PROGRESS' ELSE 'WAITING' END State,
  CASE WHEN o.IsCancelled=1 THEN N'ยกเลิกแล้ว' WHEN o.Status='COMPLETED' THEN N'รับครบแล้ว' WHEN o.Status='PARTIAL' THEN N'รับบางส่วน' ELSE N'รอรับสินค้า' END StateLabel,
@@ -38,17 +41,21 @@ router.get('/',async(req,res)=>{try{
  UNION ALL
  SELECT 'PICK',t.RefDocNo,c.CategoryCode,t.whid,w.whname,w.whdescription,t.CreatedAt,t.CreatedBy,t.LocationCode,N'','DONE',N'เบิกแล้ว',p.ProductCode,p.ProductName,ABS(t.QtyChange),ABS(t.QtyChange)
  FROM dbWMS.dbo.tblStockTransactions t JOIN dbMaster.dbo.tblProducts p ON p.ProductId=t.ProductId JOIN dbMaster.dbo.tblCategories c ON c.CategoryId=p.CategoryId JOIN dbMaster.dbo.tblWH w ON w.whid=t.whid
- WHERE t.CreatedAt>=@Start AND t.CreatedAt<DATEADD(day,1,@End) AND t.TransType='PICK' AND t.QtyChange<0 AND ${scope.predicate(req,'t.whid')} AND ${filter('PICK','c.CategoryCode')}
- ORDER BY EventAt DESC`);
- const q=String(req.query.search||'').trim().toLowerCase();
- const data=r.recordset.filter(row=>(!req.query.kind||row.Kind===req.query.kind)&&(!req.query.warehouse||String(row.whid)===req.query.warehouse)&&(!req.query.category||row.Category===req.query.category)&&(!req.query.state||(req.query.state==='OPEN'?['WAITING','PROGRESS'].includes(row.State):row.State===req.query.state))&&[row.DocumentNo,row.Reference,row.Party,row.ProductCode,row.ProductName].join(' ').toLowerCase().includes(q));
- if(exporting){
- if(!data.length)return res.status(400).json({success:false,message:'ไม่มีข้อมูลสำหรับส่งออก'});
- const cell=v=>'"'+String(v??'').replace(/^[=+@-]/,'\t$&').replace(/"/g,'""')+'"';
- const columns=[['กลุ่มงาน','Kind'],['เลขเอกสาร','DocumentNo'],['หมวด','Category'],['รหัสคลัง','whname'],['ชื่อคลัง','whdescription'],['สถานะ','StateLabel'],['รหัสสินค้า','ProductCode'],['ชื่อสินค้า','ProductName'],['อ้างอิง','Reference'],['ผู้ส่ง / ผู้รับ','Party'],['จำนวน','Quantity'],['ทำแล้ว','DoneQuantity'],['ผู้สร้าง','Actor'],['วันที่สร้าง','EventAt']];
- const csv='\uFEFF'+[columns.map(c=>cell(c[0])).join(','),...data.map(row=>columns.map(([,key])=>cell(row[key] instanceof Date?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',calendar:'gregory',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(row[key]):row[key])).join(','))].join('\r\n');
- res.set('Content-Type','text/csv; charset=utf-8');res.set('Content-Disposition','attachment; filename="warehouse-tracking_'+start+'_'+end+'.csv"');return res.send(csv);
+ WHERE t.CreatedAt>=@Start AND t.CreatedAt<DATEADD(day,1,@End) AND t.TransType='PICK' AND t.QtyChange<0 AND ${scope.predicate(req,'t.whid')} AND ${filter('PICK','c.CategoryCode')}`;
+ const params=request=>(request.input('Start',sql.Date,start).input('End',sql.Date,end).input('Kind',sql.VarChar(20),kind).input('Warehouse',sql.Int,warehouse?Number(warehouse):null).input('Category',sql.VarChar(10),category).input('State',sql.VarChar(20),state).input('Search',sql.NVarChar(200),search));
+ const where=`(@Kind='' OR a.Kind=@Kind) AND (@Warehouse IS NULL OR a.whid=@Warehouse) AND (@Category='' OR a.Category=@Category) AND (@State='' OR (@State='OPEN' AND a.State IN('WAITING','PROGRESS')) OR a.State=@State) AND (@Search=N'' OR CONCAT(COALESCE(a.DocumentNo,N''),N' ',COALESCE(a.Reference,N''),N' ',COALESCE(a.Party,N''),N' ',COALESCE(a.ProductCode,N''),N' ',COALESCE(a.ProductName,N'')) LIKE N'%'+@Search+N'%')`;
+ const pool=await poolPromise,base=`SELECT * INTO #WarehouseActivity FROM (${activity}) a WHERE ${where};`;
+ if(exporting){const result=await params(pool.request()).query(`${base} SELECT * FROM #WarehouseActivity ORDER BY EventAt DESC;`),data=result.recordset;if(!data.length)return res.status(400).json({success:false,message:'ไม่มีข้อมูลสำหรับส่งออก'});
+  const cell=v=>'"'+String(v??'').replace(/^[=+@-]/,'\t$&').replace(/"/g,'""')+'"';
+  const columns=[['กลุ่มงาน','Kind'],['เลขเอกสาร','DocumentNo'],['หมวด','Category'],['รหัสคลัง','whname'],['ชื่อคลัง','whdescription'],['สถานะ','StateLabel'],['รหัสสินค้า','ProductCode'],['ชื่อสินค้า','ProductName'],['อ้างอิง','Reference'],['ผู้ส่ง / ผู้รับ','Party'],['จำนวน','Quantity'],['ทำแล้ว','DoneQuantity'],['ผู้สร้าง','Actor'],['วันที่สร้าง','EventAt']];
+  const csv='\uFEFF'+[columns.map(c=>cell(c[0])).join(','),...data.map(row=>columns.map(([,key])=>cell(row[key] instanceof Date?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',calendar:'gregory',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(row[key]):row[key])).join(','))].join('\r\n');
+  res.set('Content-Type','text/csv; charset=utf-8');res.set('Content-Disposition','attachment; filename="warehouse-tracking_'+start+'_'+end+'.csv"');return res.send(csv);
  }
- res.json({success:true,data,start,end});
+ const result=await params(pool.request()).input('Offset',sql.Int,offset).input('PageSize',sql.Int,pageSize).query(`${base} SELECT State,COUNT_BIG(*) Count FROM #WarehouseActivity GROUP BY State; SELECT * FROM #WarehouseActivity ORDER BY EventAt DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;`),summary=result.recordsets[0]||[],data=result.recordsets[1]||[];
+ const total=summary.reduce((sum,row)=>sum+Number(row.Count),0),totalPages=Math.max(1,Math.ceil(total/pageSize)),page=Math.min(requestedPage,totalPages),pageData=page===requestedPage?data:(await params(pool.request()).input('Offset',sql.Int,(page-1)*pageSize).input('PageSize',sql.Int,pageSize).query(`${base} SELECT * FROM #WarehouseActivity ORDER BY EventAt DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;`)).recordset;
+ const warehouses=(await pool.request().query(`SELECT whid,whname,whdescription FROM dbMaster.dbo.tblWH WHERE ${scope.predicate(req,'whid')} ORDER BY whname`)).recordset;
+ const categories=['RM','PKG','SEMI','FG'].filter(c=>admin||catalog.some(item=>item.categoryCode===c&&['RECEIVE','PUTAWAY','LOAD','PICK'].includes(item.scopeParent)&&hasAction(req.navigation.profile,req.navigation.mode,item.code,'VIEW')));
+ res.set('Cache-Control','no-store').json({success:true,data:pageData,start,end,page,pageSize,total,totalPages,summary,filters:{warehouses,categories}});
  }catch(e){console.error('Warehouse tracking:',e.code||e.message);if(e.code==='ETIMEOUT')require('../services/sql-timeout-diagnostics')(poolPromise,'GET /api/warehouse-tracking',e);res.status(500).json({success:false,message:'โหลดงานคลังไม่สำเร็จ กรุณาตรวจฐานข้อมูลและ Log เซิร์ฟเวอร์'});}
-});module.exports=router;
+});
+module.exports=router;
