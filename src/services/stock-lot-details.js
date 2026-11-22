@@ -7,7 +7,7 @@ function reconcile(stock, candidates, outgoing) {
   const sum=known.reduce((n,c)=>n+Number(c.Quantity),0);
   if(quantity<0 || sum>quantity+0.005)known=[];
   const groups=new Map();
-  for(const c of known){const k=JSON.stringify([c.AnaNo||'',c.LotNo||'']);if(!groups.has(k))groups.set(k,{whid:s.whid,LocationCode:s.LocationCode,AnaNo:c.AnaNo||null,LotNo:c.LotNo||null,Quantity:0});groups.get(k).Quantity+=Number(c.Quantity);}
+  for(const c of known){const k=JSON.stringify([c.AnaNo||'',c.LotNo||'',c.PackVersionId||null]);if(!groups.has(k))groups.set(k,{whid:s.whid,LocationCode:s.LocationCode,AnaNo:c.AnaNo||null,LotNo:c.LotNo||null,PackVersionId:c.PackVersionId||null,Quantity:0});groups.get(k).Quantity+=Number(c.Quantity);}
   const remainder=Math.round((quantity-[...groups.values()].reduce((n,c)=>n+c.Quantity,0))*100)/100;
   if(remainder!==0)groups.set('unknown',{whid:s.whid,LocationCode:s.LocationCode,AnaNo:null,LotNo:null,Quantity:remainder,Unattributed:true});
   return [...groups.values()];
@@ -16,9 +16,9 @@ function reconcile(stock, candidates, outgoing) {
 async function load(pool,sql,id,stock,requestFactory){
  const request=requestFactory?requestFactory():pool.request();
  const r=await request.input('P',sql.Int,id).query(`
- SELECT TransId,TransType,whid,LocationCode,QtyChange,QtyAfter,RefDocNo,CreatedAt
+ SELECT TransId,TransType,whid,LocationCode,QtyChange,QtyAfter,RefDocNo,CreatedAt,PackVersionId,AdjustmentAnaNo,AdjustmentLotNo
  FROM dbWMS.dbo.tblStockTransactions WHERE ProductId=@P ORDER BY CreatedAt,TransId;
- SELECT o.WhId whid,o.ReceiveNo,r.LocationCode,r.Quantity,r.ReceivedAt,l.AnaNo,COALESCE(NULLIF(r.LotNo,N''),l.ProductionLotNo) LotNo
+ SELECT o.WhId whid,o.ReceiveNo,r.LocationCode,r.Quantity,r.ReceivedAt,l.AnaNo,COALESCE(NULLIF(r.LotNo,N''),l.ProductionLotNo) LotNo,r.PackVersionId
  FROM dbWMS.dbo.InboundReceipts r JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId
  JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId
  WHERE l.ProductId=@P AND o.IsCancelled=0;

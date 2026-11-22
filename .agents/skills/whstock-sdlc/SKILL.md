@@ -23,6 +23,8 @@ Use for changes in this repository. Scale the process to risk; routine work shou
 
 For small isolated changes, the core flow is sufficient. For stock quantities, units, ANA/LOT, receiving, picking, transfer, putaway, permissions, schema, or deployment, inspect all affected layers and use the applicable references.
 
+For product units, packaging conversions, or packaging hierarchy changes, also follow [whstock-packaging-units](../whstock-packaging-units/SKILL.md). It defines the project's base-unit, optional-level, versioning, and traceability rules.
+
 ## Project map
 
 - UI: `public/desktop`, `public/handheld`, `public/admin`; client assets: `public/js`, `public/css`.

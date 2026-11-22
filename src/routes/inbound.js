@@ -353,8 +353,11 @@ router.get('/:id/lines', async (req, res) => {
                     l.*,
                     p.ProductCode,
                     p.ProductName,
+                    p.UnitId ProductUnitId,
+                    u.UnitCode ProductUnitCode,
                     p.Barcode,
-                    COALESCE(u.UnitCode,p.PackageType,N'') AS UOM
+                    COALESCE(u.UnitCode,p.PackageType,N'') AS UOM,
+                    (SELECT v.PackVersionId,v.VersionNo,v.PackUnit,v.UnitsPerPack,v.InnerPackUnit,v.UnitsPerInnerPack,v.OuterPackUnit,v.PacksPerOuter,v.StockUnitId,v.StockUnitLabel,v.PackTestFingerprint,v.PackTestPassedAt,u2.UnitCode FROM dbMaster.dbo.tblProductPackVersions v JOIN dbMaster.dbo.tblUnits u2 ON u2.UnitId=v.StockUnitId WHERE v.ProductId=l.ProductId AND v.IsActive=1 FOR JSON PATH) PackVersionsJson
                 FROM dbWMS.dbo.InboundLines l
                 LEFT JOIN dbWMS.dbo.RMInboundPacks rp
                     ON rp.LineId=l.LineId
@@ -383,7 +386,12 @@ router.get('/:id/lines', async (req, res) => {
 
         res.json({
             success: true,
-            data: r.recordsets[0],
+            data: r.recordsets[0].map(row=>{
+                const candidates=JSON.parse(row.PackVersionsJson||'[]');
+                const policy=require('../services/product-pack-version-policy');
+                const PackVersions=candidates.filter(version=>{try{if(Number(version.StockUnitId)!==Number(row.ProductUnitId))return false;policy.assertPassedTest(version,row.ProductUnitCode);return true;}catch{return false;}}).map(({PackVersionId,VersionNo,PackUnit,UnitsPerPack,InnerPackUnit,UnitsPerInnerPack,OuterPackUnit,PacksPerOuter,UnitCode})=>({PackVersionId,VersionNo,PackUnit,UnitsPerPack,InnerPackUnit,UnitsPerInnerPack,OuterPackUnit,PacksPerOuter,UnitCode}));
+                return {...row,PackVersions,PackVersionBlocked:candidates.length>0&&PackVersions.length===0};
+            }),
             receipts: r.recordsets[1],
             production: r.recordsets[2]?.[0] || null
         });
@@ -1300,6 +1308,7 @@ router.post('/:id/receive', async (req, res) => {
                 prior.LocationCode.toUpperCase() !==
                     b.locationCode.trim().toUpperCase() ||
                 (prior.LotNo || '') !== b.lotNo.trim() ||
+                (b.packVersionId!=null&&Number(prior.PackVersionId||0)!==Number(b.packVersionId)) ||
                 [
                     ['MfgDate', 'mfgDate'],
                     ['ExpDate', 'expDate']
@@ -1331,17 +1340,31 @@ router.post('/:id/receive', async (req, res) => {
                 .input('Line', sql.Int, b.lineId)
                 .input('Order', sql.Int, o.InboundId)
                 .query(`
-                    SELECT l.*,p.Barcode
+                    SELECT l.*,p.Barcode,p.UnitId ProductUnitId,u.UnitCode ProductUnitCode
                     FROM dbWMS.dbo.InboundLines l WITH(UPDLOCK,HOLDLOCK)
                     JOIN dbMaster.dbo.tblProducts p
                         ON p.ProductId=l.ProductId
+                    JOIN dbMaster.dbo.tblUnits u
+                        ON u.UnitId=p.UnitId
                     WHERE l.LineId=@Line
                       AND l.InboundId=@Order
                 `)
         ).recordset[0];
 
-        if (!line) {
-            fail(400, 'รายการไม่อยู่ในใบรับ');
+        if (!line) { fail(400, 'รายการไม่อยู่ในใบรับ'); }
+
+        const activePackVersions=(await request().input('Product',sql.Int,line.ProductId).query('SELECT v.*,u.UnitCode,p.UnitId ProductUnitId,pu.UnitCode ProductUnitCode FROM dbMaster.dbo.tblProductPackVersions v JOIN dbMaster.dbo.tblUnits u ON u.UnitId=v.StockUnitId JOIN dbMaster.dbo.tblProducts p ON p.ProductId=v.ProductId JOIN dbMaster.dbo.tblUnits pu ON pu.UnitId=p.UnitId WHERE v.ProductId=@Product AND v.IsActive=1 ORDER BY v.VersionNo')).recordset;
+        const versionPolicy=require('../services/product-pack-version-policy');
+        const packVersions=activePackVersions.filter(version=>{try{if(Number(version.StockUnitId)!==Number(version.ProductUnitId))return false;versionPolicy.assertPassedTest(version,version.ProductUnitCode);return true;}catch{return false;}});
+        if(activePackVersions.length&&!packVersions.length)fail(409,'Version ที่เปิดอยู่ยังไม่ผ่านการทดสอบคำนวณ จึงรับเข้า LOT ไม่ได้ กรุณาแก้หรือสร้าง Version ใหม่ ทดสอบให้ผ่านก่อน');
+        let packVersionId=b.packVersionId==null||b.packVersionId===''?null:Number(b.packVersionId);
+        if(packVersions.length===1&&packVersionId==null)packVersionId=Number(packVersions[0].PackVersionId);
+        if(packVersions.length>1&&(!packVersionId||!b.lotNo.trim()))fail(400,'สินค้านี้เปิดใช้หลาย Version กรุณาระบุ LOT และเลือก Version ให้ตรงกับสินค้าที่รับ');
+        if(packVersions.length&&!packVersionId)fail(400,'เลือก Version อัตราบรรจุสำหรับ LOT ที่รับ');
+        if(packVersionId&&!packVersions.some(v=>Number(v.PackVersionId)===packVersionId))fail(400,'Version ที่เลือกปิดใช้งานหรือไม่ตรงกับสินค้า');
+        if(b.lotNo.trim()){
+            const sameLot=(await request().input('Product',sql.Int,line.ProductId).input('Lot',sql.NVarChar(60),b.lotNo.trim()).input('Ana',sql.NVarChar(100),line.AnaNo||null).query(`SELECT TOP 1 r.PackVersionId FROM dbWMS.dbo.InboundReceipts r WITH(UPDLOCK,HOLDLOCK) JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId WHERE l.ProductId=@Product AND COALESCE(NULLIF(r.LotNo,N''),l.ProductionLotNo)=@Lot AND ISNULL(l.AnaNo,N'')=ISNULL(@Ana,N'')`)).recordset[0];
+            if(sameLot&&Number(sameLot.PackVersionId||0)!==Number(packVersionId||0))fail(409,'LOT นี้เคยรับด้วย Version อื่นแล้ว กรุณาตรวจ LOT/Version ก่อนรับต่อ');
         }
 
         if (
@@ -1515,6 +1538,7 @@ router.post('/:id/receive', async (req, res) => {
             .input('Loc', sql.NVarChar(50), loc.LocationCode)
             .input('Qty', sql.Decimal(18, 2), b.quantity)
             .input('Lot', sql.NVarChar(60), b.lotNo.trim() || null)
+            .input('PackVersion',sql.Int,packVersionId)
             .input('Mfg', sql.Date, b.mfgDate || null)
             .input('Exp', sql.Date, b.expDate || null)
             .input('By', sql.NVarChar(50), by)
@@ -1523,6 +1547,7 @@ router.post('/:id/receive', async (req, res) => {
                 (
                     RequestId,
                     LineId,
+                    PackVersionId,
                     LocationCode,
                     Quantity,
                     LotNo,
@@ -1534,6 +1559,7 @@ router.post('/:id/receive', async (req, res) => {
                 (
                     @Request,
                     @Line,
+                    @PackVersion,
                     @Loc,
                     @Qty,
                     @Lot,

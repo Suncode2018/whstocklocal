@@ -44,6 +44,18 @@ test('latest correction at the same movement version wins and supports splitting
  const adjustments=[{AdjustmentId:1,ThroughTransId:1,WhId:1,LocationCode:'A',RowsJson:JSON.stringify([{LotNo:'old',Quantity:10}])},{AdjustmentId:2,ThroughTransId:1,WhId:1,LocationCode:'A',RowsJson:JSON.stringify([{AnaNo:'a',LotNo:'one',Quantity:3},{LotNo:'two',Quantity:7}])}];
  const rows=replay([{whid:1,LocationCode:'A',Quantity:10}],[e(1,'ADJUST',1,'A',10,'COUNT')],[],[],adjustments);assert.deepEqual(rows.map(r=>[r.LotNo,r.Quantity]),[['one',3],['two',7]]);
 });
+test('packaging Version remains attached to a receipt LOT through an exact transfer',()=>{
+ const events=[e(1,'RECEIVE',1,'A',10,'R1'),e(2,'RECEIVE',1,'A',10,'R2'),e(3,'SHIP_PREP',1,'A',-4,'D',4),e(4,'SHIP_PREP',1,'OUT',4,'D',4),e(5,'LOAD',1,'OUT',-4,'D'),e(6,'SHIP_RECEIVE',2,'RCV',4,'D')];
+ const receipts=[{whid:1,ReceiveNo:'R1',LocationCode:'A',Quantity:10,AnaNo:'ANA',LotNo:'OLD',PackVersionId:1},{whid:1,ReceiveNo:'R2',LocationCode:'A',Quantity:10,AnaNo:'ANA',LotNo:'NEW',PackVersionId:2}];
+ const allocations=[{DeliveryNo:'D',WhId:1,LocationCode:'A',AnaNo:'ANA',LotNo:'NEW',Quantity:4}];
+ const rows=replay([{whid:1,LocationCode:'A',Quantity:16},{whid:2,LocationCode:'RCV',Quantity:4}],events,receipts,[],[],[],allocations);
+ assert.deepEqual(rows.map(x=>[x.whid,x.LotNo,x.PackVersionId,x.Quantity]),[[1,'OLD',1,10],[1,'NEW',2,6],[2,'NEW',2,4]]);
+});
+test('package adjustment changes only its selected Versioned LOT in replay',()=>{
+ const events=[{...e(1,'RECEIVE',1,'A',10,'R1'),PackVersionId:7},{...e(2,'ADJUST',1,'A',-2,'ADJ1',2),PackVersionId:7,AdjustmentAnaNo:'ANA',AdjustmentLotNo:'LOT-A'},{...e(3,'ADJUST',1,'A',3,'ADJ2',3),PackVersionId:7,AdjustmentAnaNo:'ANA',AdjustmentLotNo:'LOT-A'}];
+ const rows=replay([{whid:1,LocationCode:'A',Quantity:11}],events,[{whid:1,ReceiveNo:'R1',LocationCode:'A',Quantity:10,AnaNo:'ANA',LotNo:'LOT-A',PackVersionId:7}],[]);
+ assert.deepEqual(rows.map(x=>[x.AnaNo,x.LotNo,x.PackVersionId,x.Quantity]),[['ANA','LOT-A',7,11]]);
+});
 test('lot adjustment validation rejects invalid quantities, duplicate lots and missing reasons',()=>{
  const {validate}=require('../src/services/stock-lot-adjustment');const b={productId:1,whid:1,locationCode:'A',throughTransId:0,version:0,reason:'ตรวจเอกสาร',rows:[{AnaNo:'ANA',LotNo:'LOT',Quantity:'10.25'}]};assert.equal(validate(b).cents,1025);
  for(const invalid of [{...b,reason:''},{...b,rows:[{Quantity:-1}]},{...b,rows:[{Quantity:'1.001'}]},{...b,rows:[b.rows[0],b.rows[0]]},{...b,productId:0}])assert.throws(()=>validate(invalid),e=>e.status===400);

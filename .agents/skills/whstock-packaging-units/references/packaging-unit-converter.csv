@@ -1,0 +1,86 @@
+﻿Category,Level,Thai Name,English Name,GS1 Packaging Level Code,Abbreviation,Multiplier From Previous Level (example),PCS Per Unit (example),Typical Flags,Notes
+Packaging,1,ชิ้น / ซอง / ถุง / ขวด / กระป๋อง,Piece / Sachet / Bag / Bottle / Can,Base Unit or Each,"PCS, SAC, BAG, BTL",1,1,Base Unit + Consumer Unit,หน่วยเล็กสุด ไม่มีหน่วยย่อยที่มี GTIN อยู่ข้างใน
+Packaging,2,กล่อง / แพ็ค,Box / Pack / Inner Pack,Pack or Inner Pack,"BOX, PK",6,6,Consumer Unit (ถ้าขายแยก),ตัวคูณตัวอย่าง 6 ซองต่อกล่อง ให้ใส่ค่าจริงของสินค้า
+Packaging,3,ลัง,Case / Carton,Case,CTN,10,60,Orderable Unit + Shipping Unit,ตัวคูณตัวอย่าง 10 กล่องต่อลัง คำว่า carton ใน GS1 อาจหมายถึงแพ็คผู้บริโภคได้ ควรยืนยันความหมาย
+Packaging,4,พาเลท,Pallet,Pallet,PLT,20,1200,Shipping Unit,คำนวณจาก ชั้น x จำนวนต่อชั้น ถ้าพาเลทไม่สม่ำเสมอให้ใช้ยอดจริง พาเลทอาจไม่มี GTIN
+Packaging,5,ตู้คอนเทนเนอร์,Container (20' / 40'),(not a GS1 packaging level),CNTR,,,Shipment,ระดับขนส่ง ไม่ใช่ระดับบรรจุของ GS1
+Packaging,-,โหล,Dozen,-,DZ,,12,-,หน่วยนับ 12 ชิ้น
+Packaging,-,แกรอส,Gross,-,GRS,,144,-,หน่วยนับ 144 ชิ้น
+Packaging,-,ถัง,Drum / Pail / Tank,-,DRM,,,-,ของเหลว สารเคมี น้ำมัน ควรแยกว่าคิดเป็นจำนวนถังหรือปริมาตร (ลิตร)
+Packaging,-,กระสอบ,Sack,-,SK,,,-,ข้าว ปุ๋ย น้ำตาล มักคิดเป็นน้ำหนัก
+Packaging,-,ลัง (พลาสติก/ไม้),Crate,-,CRT,,,-,ผัก ผลไม้ เครื่องดื่ม
+Packaging,-,ม้วน / ห่อ,Roll / Wrap,-,RL,,,-,
+Warehouse,-,หน่วยฐาน,Base UOM,-,UOM,,1,-,หน่วยที่เก็บยอดสต๊อกจริง มักเป็น PCS
+Warehouse,-,หน่วยสั่งซื้อ,Purchase UOM,-,PUOM,,,-,หน่วยที่สั่งจากซัพพลายเออร์ เช่น ลัง
+Warehouse,-,หน่วยขาย,Sales UOM,-,SUOM,,,-,หน่วยที่ขายให้ลูกค้า เช่น กล่อง
+Warehouse,-,หน่วยหยิบจ่าย,Pick / Issue UOM,-,PICK,,,-,หน่วยที่หยิบออกจากคลัง
+Warehouse,-,ตัวคูณแปลงหน่วย,Conversion Factor,-,CF,,,-,จำนวนหน่วยฐานต่อหนึ่งหน่วยอื่น เช่น 1 CTN = 60 PCS
+Warehouse,-,รหัสสินค้า,SKU,-,SKU,,,-,สินค้าหนึ่งแบบ (รส ขนาด สี) แต่ละ SKU มีลำดับชั้นบรรจุของตัวเอง
+Warehouse,-,ล็อตการผลิต,Lot / Batch,-,LOT,,,-,ใช้ตามรอยและเรียกคืนสินค้า อย่ารวมสต๊อกต่างล็อตเมื่อต้อง trace
+Warehouse,-,เลขซีเรียล,Serial Number,-,SN,,,-,เลขเฉพาะรายชิ้น
+Warehouse,-,วันหมดอายุ,Expiry / Best Before Date,-,EXP,,,-,ใช้กำหนด FEFO / FIFO
+Warehouse,-,ตำแหน่งจัดเก็บ,Bin / Slot,-,BIN,,,-,Zone > Aisle > Rack > Level > Bin
+Warehouse,-,ช่องวางพาเลท,Pallet Position,-,PP,,,-,หน่วยวัดความจุชั้นวาง
+Warehouse,-,หน่วยเคลื่อนย้าย,Handling Unit / LPN,-,"HU, LPN",,,Logistic Unit,สิ่งที่เคลื่อนย้ายจริง เช่น พาเลทที่ติดป้าย SSCC
+Warehouse,-,ลัง/ตะกร้าหยิบสินค้า,Tote / Roll Cage,-,"TOTE, RC",,,-,ภาชนะสำหรับหยิบและส่งต่อ
+Warehouse,-,ชั้นต่อพาเลท,Layers per Pallet (HI),-,HI,,,-,จำนวนชั้นบนพาเลท
+Warehouse,-,จำนวนต่อชั้น,Units per Layer (TI),-,TI,,,-,จำนวนลังต่อหนึ่งชั้น
+Warehouse,-,ปัจจัยการซ้อน,Stacking Factor,-,STK,,,-,ซ้อนได้กี่ชั้น (1 = ซ้อนไม่ได้)
+Transport,-,น้ำหนักรวม,Gross Weight,-,GW,,,-,น้ำหนักรวมบรรจุภัณฑ์ ใช้ในการคำนวณการบรรทุก
+Transport,-,น้ำหนักสุทธิ,Net Weight,-,NW,,,-,น้ำหนักสินค้าไม่รวมบรรจุภัณฑ์
+Transport,-,ลูกบาศก์เมตร,Cubic Metre,-,CBM,,,-,กว้าง x ยาว x สูง (เมตร) ใช้คิดพื้นที่และค่าระวาง
+Transport,-,ขนาดพาเลทมาตรฐาน,Standard Pallet Footprint,-,"1200x1000, 1200x800",,,-,ISO 1200 x 1000 มม. และ Euro 1200 x 800 มม.
+Transport,-,ตู้ 20 ฟุต,20' Container,-,"20GP, TEU",,,-,1 TEU ความจุภายในประมาณ 33 CBM ค่าประมาณ ให้ตรวจสเปคจริงกับสายเรือ
+Transport,-,ตู้ 40 ฟุต,40' Container,-,"40GP, FEU",,,-,2 TEU ความจุภายในประมาณ 67 CBM (40HC ประมาณ 76 CBM) ค่าประมาณ
+Transport,-,รถเต็มคัน / ไม่เต็มคัน,FTL / LTL,-,"FTL, LTL",,,-,Full Truck Load / Less than Truck Load
+Transport,-,การส่งหนึ่งครั้ง,Shipment,-,SHP,,,Shipment,สินค้าที่ส่งไปปลายทางเดียวในครั้งเดียว
+Transport,-,บรรทัดรายการสั่งซื้อ,Order Line,-,OL,,,-,SKU หนึ่งรายการในใบสั่ง ใช้วัดงานหยิบ
+Transport,-,น้ำหนักคิดค่าระวาง,Chargeable Weight,-,CW,,,-,ขนส่งอากาศ = มากกว่าระหว่างน้ำหนักจริงกับ (ก x ย x ส ซม. / 6000) ทางเรือ LCL ประมาณ 1 CBM = 1000 กก. ทางถนนขึ้นกับผู้ให้บริการ ให้ยืนยันกฎก่อน
+Transport,-,หมายเลขหน่วยขนส่ง,SSCC,-,SSCC,,,Logistic Unit,รหัสระบุหน่วยโลจิสติกส์ เช่น พาเลทหรือลังที่ขนส่ง
+Import/Export,-,รหัสพิกัดศุลกากร,HS Code,-,HS,,,-,ใช้กำหนดอัตราอากร ต้องยืนยันกับกรมศุลกากรหรือชิปปิ้ง
+Import/Export,-,ราคาที่ท่าส่งออก,FOB (Free On Board),-,FOB,,,Incoterm (ทางเรือ),ผู้ขายรับผิดชอบถึงวางสินค้าบนเรือที่ท่าต้นทาง
+Import/Export,-,ราคารวมค่าระวางและประกัน,CIF (Cost Insurance Freight),-,CIF,,,Incoterm (ทางเรือ),ผู้ขายจ่ายค่าระวางและประกันถึงท่าปลายทาง CIF = FOB + ค่าระวาง + ประกัน ใช้เป็นฐานคิดอากรนำเข้า
+Import/Export,-,ราคาหน้าโรงงาน,EXW (Ex Works),-,EXW,,,Incoterm (ทุกรูปแบบ),ผู้ซื้อรับผิดชอบทุกอย่างตั้งแต่สถานที่ผู้ขาย
+Import/Export,-,ส่งมอบ ณ สถานที่ปลายทาง,DAP (Delivered At Place),-,DAP,,,Incoterm (ทุกรูปแบบ),ผู้ขายส่งถึงสถานที่ปลายทาง ผู้ซื้อทำพิธีการนำเข้า
+Import/Export,-,ส่งมอบรวมอากรขาเข้า,DDP (Delivered Duty Paid),-,DDP,,,Incoterm (ทุกรูปแบบ),ผู้ขายรับผิดชอบทุกอย่างรวมอากรขาเข้า
+Import/Export,-,ใบกำกับสินค้า,Commercial Invoice,-,CI,,,เอกสาร,ระบุมูลค่า ราคาต่อหน่วย และเงื่อนไข Incoterm ต้องตรงกับ Packing List
+Import/Export,-,ใบแสดงรายการบรรจุหีบห่อ,Packing List,-,PL,,,เอกสาร,เลขที่ลัง เนื้อหา จำนวน น้ำหนักสุทธิ/รวม ขนาด CBM ต้องตรงกับใบกำกับและ B/L
+Import/Export,-,ใบตราส่งสินค้าทางเรือ,Bill of Lading,-,B/L,,,เอกสาร,เอกสารขนส่งทางเรือ ระบุเลขตู้ ซีล จำนวนหีบห่อ
+Import/Export,-,ใบตราส่งสินค้าทางอากาศ,Air Waybill,-,AWB,,,เอกสาร,เอกสารขนส่งทางอากาศ
+Import/Export,-,หนังสือรับรองถิ่นกำเนิดสินค้า,Certificate of Origin,-,CO,,,เอกสาร,ใช้ขอสิทธิลดหรือยกเว้นอากรตามข้อตกลง ต้องตรวจฟอร์มที่ใช้
+Import/Export,-,อากรนำเข้า,Import Duty,-,DUTY,,,-,อากร = CIF (บาท) x อัตราอากรตาม HS Code อัตราให้ผู้ใช้ระบุ
+Import/Export,-,ภาษีมูลค่าเพิ่มนำเข้า,Import VAT,-,VAT,,,-,VAT = (CIF + อากร + ภาษีสรรพสามิตถ้ามี) x อัตรา VAT ปกติขอคืนได้ถ้าจด VAT ยืนยันกับผู้เชี่ยวชาญ
+Import/Export,-,ต้นทุนสินค้าถึงคลัง,Landed Cost,-,LC,,,-,CIF + อากร + ค่าธรรมเนียมท่า + ชิปปิ้ง + ขนส่งในประเทศ + ค่าอื่น ๆ (ไม่รวม VAT ที่ขอคืนได้) แล้วหารจำนวน PCS
+Import/Export,-,อัตราแลกเปลี่ยน,Exchange Rate,-,FX,,,-,ศุลกากรใช้อัตราตามประกาศของกรมศุลกากรสำหรับคิดอากร ส่วนการจ่ายเงินจริงใช้อัตราธนาคาร
+Import/Export,-,การรมไม้บรรจุภัณฑ์,ISPM 15,-,ISPM15,,,-,พาเลทและลังไม้ที่ส่งระหว่างประเทศมักต้องผ่านการรมและมีเครื่องหมาย ให้ยืนยันกับปลายทาง
+Import/Export,-,ปอนด์เป็นกิโลกรัม,Pound to Kilogram,-,lb,,,-,1 lb = 0.45359237 kg
+Import/Export,-,นิ้วเป็นเซนติเมตร,Inch to Centimetre,-,in,,,-,1 in = 2.54 cm
+Import/Export,-,ฟุตเป็นเมตร,Foot to Metre,-,ft,,,-,1 ft = 0.3048 m และ 1 ลูกบาศก์ฟุต = 0.0283168 CBM (ปัดเศษ)
+Import/Export,-,แกลลอนเป็นลิตร,Gallon to Litre,-,gal,,,-,1 US gal = 3.785411784 L และ 1 UK gal = 4.54609 L
+Import/Export,-,ตันสั้น / ตันยาว,Short Ton / Long Ton,-,"ST, LT",,,-,1 short ton = 907.18474 kg และ 1 long ton = 1016.0469 kg ต่างจากตันเมตริก 1000 กก.
+Document,-,ใบเสนอราคา,Quotation,-,QT,,,เอกสารขาย,เริ่มต้นกระบวนการขาย ราคาต่อหน่วยต้องระบุ UOM
+Document,-,ใบสั่งซื้อ,Purchase Order,-,PO,,,เอกสารซื้อ,สั่งซื้อจากซัพพลายเออร์ จำนวนและราคาต่อ Purchase UOM
+Document,-,ใบสั่งขาย,Sales Order,-,SO,,,เอกสารขาย,คำสั่งซื้อจากลูกค้า ใช้คำนวณยอดค้างส่ง
+Document,-,ใบแจ้งหนี้ล่วงหน้า,Proforma Invoice,-,PI,,,เอกสารขาย/ส่งออก,ใช้ก่อนส่งของ เช่น ขอชำระล่วงหน้า หรือขอใบอนุญาตนำเข้า ไม่ใช่ใบกำกับภาษี
+Document,-,ใบกำกับภาษี / ใบแจ้งหนี้,Tax Invoice / Invoice,-,INV,,,เอกสารขาย,ยอดรวมต้องเท่ากับผลรวมรายการ + ภาษี - ส่วนลด รูปแบบตามกฎหมายให้ยืนยันกับผู้ทำบัญชี
+Document,-,ใบลดหนี้,Credit Note,-,CN,,,เอกสารปรับยอด,ลดยอดลูกหนี้ เช่น คืนสินค้า ลดราคา ส่วนลด ของขาดหรือเสียหาย ต้องอ้างอิงใบกำกับเดิม มูลค่า = จำนวนที่คืน x ราคาต่อหน่วยในใบเดิม + VAT ถ้ามี คำว่า CN ในงานขนส่งอาจหมายถึง Consignment Note
+Document,-,ใบเพิ่มหนี้,Debit Note,-,DN,,,เอกสารปรับยอด,เพิ่มยอดจากใบกำกับเดิม เช่น ราคาขึ้นหรือคิดค่าใช้จ่ายเพิ่ม ยอดสุทธิ = Invoice - CN + DN
+Document,-,ใบเสร็จรับเงิน,Receipt,-,RC,,,เอกสารการเงิน,หลักฐานการรับชำระเงิน
+Document,-,ใบวางบิล,Billing Note,-,BN,,,เอกสารการเงิน,รวมใบแจ้งหนี้หลายใบเพื่อเรียกเก็บ
+Document,-,ใบส่งของ,Delivery Order / Delivery Note,-,DO,,,เอกสารคลัง/ขนส่ง,ระบุสินค้าที่ส่งมอบจริง จำนวนที่ส่งใช้ตัดยอดค้างส่ง
+Document,-,ใบรับสินค้า,Goods Received Note,-,GRN,,,เอกสารคลัง,บันทึกรับของเข้าคลัง ใช้จับคู่ 3 ทาง (PO - GRN - Invoice)
+Document,-,ใบเบิกสินค้า,Goods Issue / Requisition,-,GI,,,เอกสารคลัง,ตัดสต๊อกออกจากคลัง
+Document,-,ใบหยิบสินค้า,Pick List,-,PICK,,,เอกสารคลัง,รายการที่ต้องหยิบ ระบุตำแหน่ง จำนวน และ UOM หยิบ
+Document,-,ใบแพ็คสินค้า,Packing Slip,-,PS,,,เอกสารคลัง,แนบกับพัสดุ ระบุเนื้อหาในลัง
+Document,-,ใบแจ้งการส่งสินค้าล่วงหน้า,Advance Ship Notice / Despatch Advice,-,"ASN, DESADV",,,เอกสารขนส่ง,แจ้งผู้รับก่อนของถึง ระบุ SSCC และจำนวน
+Document,-,หลักฐานการส่งมอบ,Proof of Delivery,-,POD,,,เอกสารขนส่ง,ลายเซ็นหรือหลักฐานรับของ ใช้ยืนยันจำนวนที่ส่งถึง
+Document,-,ใบขออนุมัติคืนสินค้า,Return Material Authorization,-,RMA,,,เอกสารคืนสินค้า,อนุมัติการคืน ตามด้วยรับคืนเข้าคลังและใบลดหนี้
+Document,-,ใบโอนย้ายสินค้า,Stock Transfer Order,-,STO,,,เอกสารคลัง,โอนสินค้าระหว่างคลังหรือสาขา
+Document,-,ใบตรวจนับ / ปรับปรุงสต๊อก,Stock Count / Stock Adjustment,-,SA,,,เอกสารคลัง,ปรับยอดตามการนับจริง ทำเป็นหน่วยฐาน
+Document,-,ใบรับขน / ใบตราส่งทางบก,Consignment Note / Waybill,-,"CN, WB",,,เอกสารขนส่ง,เอกสารรับขนสินค้าทางถนน ไม่ใช่ Credit Note
+Document,-,ใบจองระวางพาหนะ,Booking Confirmation,-,BKG,,,เอกสารขนส่ง,ยืนยันการจองตู้หรือระวาง
+Document,-,ใบสั่งปล่อยสินค้าจากสายเรือ,Delivery Order (Shipping Line),-,D/O,,,เอกสารขนส่ง,ใช้รับสินค้าที่ท่า ไม่ใช่ใบส่งของ DO ของลูกค้า
+Document,-,ใบสำแดงรายการสินค้าบรรทุก,Manifest,-,MNF,,,เอกสารขนส่ง,รายการสินค้าทั้งหมดในเที่ยวขนส่งหนึ่ง
+Document,-,ใบขนสินค้าขาเข้า / ขาออก,Customs Declaration,-,"IMP, EXP",,,เอกสารศุลกากร,แสดงรหัสพิกัด ปริมาณ มูลค่า ต้องตรงกับ Invoice และ Packing List
+Document,-,กรมธรรม์ประกันภัยสินค้า,Insurance Certificate,-,INS,,,เอกสารขนส่ง,ใช้เมื่อเงื่อนไขเป็น CIF หรือ CIP
+Document,-,เลตเตอร์ออฟเครดิต,Letter of Credit,-,L/C,,,เอกสารการเงิน,เอกสารที่ส่งต้องตรงกับเงื่อนไข L/C ทุกตัวอักษร

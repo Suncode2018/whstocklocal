@@ -32,6 +32,7 @@ CREATE TABLE dbo.InboundLines (
 IF OBJECT_ID('dbo.InboundReceipts','U') IS NULL
 CREATE TABLE dbo.InboundReceipts (
  ReceiptId INT IDENTITY PRIMARY KEY,
+ PackVersionId INT NULL,
  RequestId UNIQUEIDENTIFIER NOT NULL UNIQUE,
  LineId INT NOT NULL REFERENCES dbo.InboundLines(LineId),
  LocationCode NVARCHAR(50) NOT NULL,

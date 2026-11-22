@@ -21,7 +21,7 @@ const snapshotSql=`
  COALESCE((SELECT SUM(pl.Quantity-pl.MovedQuantity) FROM dbWMS.dbo.StoragePlans h JOIN dbWMS.dbo.StoragePlanLines pl ON pl.PlanId=h.PlanId WHERE h.InboundReceiptId=r.ReceiptId AND h.Status='OPEN'),0) ReservedQuantity
  FROM dbWMS.dbo.InboundReceipts r JOIN dbWMS.dbo.InboundLines l ON l.LineId=r.LineId JOIN dbWMS.dbo.InboundOrders o ON o.InboundId=l.InboundId
  WHERE o.ReceiveType='FG' AND o.IsCancelled=0;
- SELECT p.ProductId,v.PackUnit,v.UnitsPerPack,v.StockUnitLabel FROM dbMaster.dbo.tblProducts p CROSS APPLY(SELECT TOP 1 PackUnit,UnitsPerPack,StockUnitLabel FROM dbMaster.dbo.tblProductPackVersions v WHERE v.ProductId=p.ProductId AND v.StockUnitId=p.UnitId AND v.IsActive=1 AND v.EffectiveFrom<=CONVERT(date,DATEADD(hour,7,SYSUTCDATETIME())) ORDER BY EffectiveFrom DESC,VersionNo DESC)v;
+ SELECT p.ProductId,v.PackUnit,v.UnitsPerPack,v.StockUnitLabel FROM dbMaster.dbo.tblProducts p OUTER APPLY(SELECT MAX(v.PackUnit) PackUnit,MAX(v.UnitsPerPack) UnitsPerPack,MAX(v.StockUnitLabel) StockUnitLabel FROM dbMaster.dbo.tblProductPackVersions v WHERE v.ProductId=p.ProductId AND v.StockUnitId=p.UnitId AND v.IsActive=1 HAVING COUNT(*)=1)v;
  SELECT WhId,ProductId,LocationCode,SUM(ReceivedQuantity-StoredQuantity) AS ReservedQuantity FROM dbWMS.dbo.WarehouseTransferReceipts GROUP BY WhId,ProductId,LocationCode;
 
 
