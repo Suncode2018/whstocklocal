@@ -1,0 +1,183 @@
+#fgPickWorkspace.fg-shell {
+  padding: clamp(16px, 2vw, 24px);
+}
+
+#fgPickWorkspace header {
+  align-items: center;
+}
+
+#fgPickWorkspace header > div:first-child {
+  min-width: 0;
+}
+
+#fgPickWorkspace .fg-chip {
+  white-space: nowrap;
+}
+
+#fgPickWorkspace .fg-batch-reference {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 100%;
+  margin: 10px 0 0;
+  padding: 4px 8px;
+  border: 1px solid #e2e8f2;
+  border-radius: 9px;
+  background: #f8faff;
+}
+
+#fgPickWorkspace .fg-batch-reference label {
+  margin: 0;
+  color: #6c7890;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+#fgPickWorkspace .fg-batch-reference input[readonly] {
+  width: 190px;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 3px 5px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .01em;
+}
+
+#fgPickWorkspace .fg-search {
+  margin-bottom: 14px;
+}
+
+#fgPickWorkspace .fg-results {
+  margin-top: 0;
+}
+
+#fgPickWorkspace .fg-selection {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 64px;
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  border-color: #dce5f0;
+  background: #f8fafc;
+}
+
+#fgPickWorkspace .fg-selection > div {
+  min-width: 0;
+}
+
+#fgPickWorkspace .fg-selection strong {
+  display: block;
+  color: #26344e;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+#fgPickWorkspace .fg-grid {
+  align-items: stretch;
+  gap: 14px;
+}
+
+#fgPickWorkspace .fg-wh {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 15px;
+  border: 1px solid #dfe6ef;
+  border-top: 3px solid var(--fgc);
+  border-left-width: 1px;
+  background: #fbfdff;
+  box-shadow: 0 2px 7px rgba(28, 37, 46, .035);
+}
+
+#fgPickWorkspace .fg-whhead {
+  min-height: 42px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+#fgPickWorkspace .fg-whhead strong {
+  font-size: 16px;
+}
+
+#fgPickWorkspace .fg-whhead strong::before {
+  display: none;
+}
+
+#fgPickWorkspace .fg-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 5px 9px;
+}
+
+#fgPickWorkspace .fg-total::before {
+  content: "รวมพร้อมหยิบ";
+  color: inherit;
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.2;
+  opacity: .82;
+}
+
+#fgPickWorkspace .fg-wh:has(.fg-locations button:only-child) .fg-total {
+  display: none;
+}
+
+#fgPickWorkspace .fg-locations {
+  flex: 1;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 8px;
+  margin-top: 0;
+}
+
+#fgPickWorkspace .fg-locations button {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid #e0e8f2;
+  border-left: 3px solid color-mix(in srgb, var(--fgc) 55%, #fff);
+  background: #fff;
+}
+
+#fgPickWorkspace .fg-locations button:hover {
+  border-color: var(--fgc);
+  background: color-mix(in srgb, var(--bgc) 38%, #fff);
+}
+
+#fgPickWorkspace .fg-locations button small {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+@media (max-width: 650px) {
+  #fgPickWorkspace .fg-batch-reference {
+    width: 100%;
+  }
+
+  #fgPickWorkspace .fg-batch-reference input[readonly] {
+    width: 1%;
+    min-width: 150px;
+    flex: 1;
+  }
+
+  #fgPickWorkspace .fg-selection {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  #fgPickWorkspace .fg-selection button {
+    width: 100%;
+  }
+}

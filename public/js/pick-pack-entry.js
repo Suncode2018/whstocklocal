@@ -20,7 +20,7 @@
   window.openFGLocation=async function(...args){
     await originalFGLocation.apply(this,args);
     const input=document.getElementById('fgPickQuantity');
-    if(fgPickState.product&&input)WmsPacking.mount(input,fgPickState.product.ProductId);
+    if(input)WmsPacking.clear(input);
   };
   const originalCloseFG=window.closeFGPickDialog;
   window.closeFGPickDialog=function(...args){

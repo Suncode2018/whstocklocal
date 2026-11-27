@@ -1,0 +1,37 @@
+/* Keep entered values readable in every page, including unavailable/locked fields. */
+:is(
+  input:not([type]),
+  input[type="text"],
+  input[type="search"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  textarea,
+  select
+) {
+  opacity: 1 !important;
+}
+
+:is(input, textarea, select):disabled {
+  opacity: 1 !important;
+  color: #34415d !important;
+  -webkit-text-fill-color: #34415d !important;
+}
+
+:is(input, textarea)[readonly] {
+  opacity: 1 !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #68778d !important;
+  opacity: 1 !important;
+}

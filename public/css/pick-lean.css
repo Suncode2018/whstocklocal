@@ -1,0 +1,69 @@
+/* Compact layout for the shared Pack and SEMI search → location → issue flow. */
+html[data-pick-type="PKG"] #fgPickWorkspace,
+html[data-pick-type="SEMI"] #fgPickWorkspace { gap: 12px; padding: 16px; }
+html[data-pick-type="PKG"] #fgPickWorkspace > header,
+html[data-pick-type="SEMI"] #fgPickWorkspace > header { align-items: center; }
+html[data-pick-type="PKG"] #fgPickWorkspace.fg-shell h5,
+html[data-pick-type="SEMI"] #fgPickWorkspace.fg-shell h5 { font-size: 1.1rem; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-chip,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-chip { padding: 5px 9px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-search,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-search { min-height: 44px; margin-bottom: 0; padding: 0 12px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .shared-pick-search-hint,
+html[data-pick-type="SEMI"] #fgPickWorkspace .shared-pick-search-hint { margin-top: -6px; color: #52627a; font-size: .8rem; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-results,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-results { gap: 7px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-result,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-result { padding: 9px 11px; font-size: .9rem; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-selection,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-selection { min-height: 0; margin: 0; padding: 9px 12px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-selection strong,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-selection strong { font-size: .9rem; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-grid,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-grid { gap: 9px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-wh,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-wh { padding: 11px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-whhead,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-whhead { min-height: 0; margin-bottom: 8px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-total::before,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-total::before { content: none; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-locations,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-locations { grid-template-columns: repeat(auto-fill,minmax(min(100%,190px),1fr)); gap: 6px; }
+html[data-pick-type="PKG"] #fgPickWorkspace .fg-locations button,
+html[data-pick-type="SEMI"] #fgPickWorkspace .fg-locations button { min-height: 0; padding: 8px 9px; }
+html[data-pick-type="PKG"] #sharedPickDetailsHost,
+html[data-pick-type="SEMI"] #sharedPickDetailsHost { margin-top: 10px !important; }
+html[data-pick-type="PKG"] #sharedPickDetails .panel-modern,
+html[data-pick-type="SEMI"] #sharedPickDetails .panel-modern { padding: 13px; border-radius: 12px; }
+html[data-pick-type="PKG"] #sharedPickDetails h5,
+html[data-pick-type="SEMI"] #sharedPickDetails h5 { margin-bottom: 9px !important; font-size: .98rem; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickSelection,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickSelection { margin-bottom: 9px !important; padding: 10px 12px !important; font-size: .875rem; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickFields .row.g-3,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickFields .row.g-3 { --bs-gutter-y: .55rem; --bs-gutter-x: .65rem; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickFields .row > .col-12:not(#pickOutGroup):not(#rmBatchGroup),
+html[data-pick-type="SEMI"] #sharedPickDetails #pickFields .row > .col-12:not(#pickOutGroup):not(#rmBatchGroup) { flex: 0 0 50%; width: 50%; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickAvailable,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickAvailable,
+html[data-pick-type="PKG"] #sharedPickDetails #pickQuantity,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickQuantity { max-width: 100%; min-height: 38px; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickQuantity,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickQuantity { font-weight: 650; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickEffect,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickEffect { margin: 9px 0 !important; padding: 8px 10px; }
+html[data-pick-type="PKG"] #sharedPickDetails #pickSubmit,
+html[data-pick-type="SEMI"] #sharedPickDetails #pickSubmit { width: auto !important; min-width: 0; padding: 8px 16px; }
+html[data-pick-type="PKG"] #pickFields [data-packing-for="pickQuantity"],
+html[data-pick-type="SEMI"] #pickFields [data-packing-for="pickQuantity"] { padding: 10px !important; }
+html[data-pick-type="PKG"] #pickFields [data-packing-for="pickQuantity"] .row,
+html[data-pick-type="SEMI"] #pickFields [data-packing-for="pickQuantity"] .row { --bs-gutter-y: .45rem; }
+@media (max-width: 991.98px) {
+  html[data-pick-type="PKG"] #sharedPickDetails #pickSubmit,
+  html[data-pick-type="SEMI"] #sharedPickDetails #pickSubmit { width: 100% !important; }
+}
+@media (max-width: 575.98px) {
+  html[data-pick-type="PKG"] #fgPickWorkspace,
+  html[data-pick-type="SEMI"] #fgPickWorkspace { padding: 12px; }
+  html[data-pick-type="PKG"] #sharedPickDetails #pickFields .row > .col-12:not(#pickOutGroup):not(#rmBatchGroup),
+  html[data-pick-type="SEMI"] #sharedPickDetails #pickFields .row > .col-12:not(#pickOutGroup):not(#rmBatchGroup) { flex-basis: 100%; width: 100%; }
+}

@@ -4,6 +4,7 @@ const reportHubItems=[
 {title:'สต๊อกคงเหลือ / Export',icon:'boxes',description:'ยอดคงเหลือและตำแหน่งจัดเก็บ พร้อมค้นหาสินค้าและส่งออกข้อมูล',code:'STOCK',path:'/desktop/stock.html'},
 {title:'สต๊อกรายวัน',icon:'table',description:'ยอดรับเข้า จ่ายออก และคงเหลือรายวัน แยกตามสินค้าและคลัง',code:'REPORTS',path:'/desktop/stock-daily.html'},
 {title:'ประวัติเคลื่อนไหวสินค้า',icon:'arrow-left-right',description:'รับ โอน เบิก ส่ง ปรับยอด พร้อมยอดก่อน–หลังและผู้ทำรายการ',code:'REPORTS',path:'/desktop/stock-movements.html'},
+{title:'สินค้าเบิกแล้ว รอส่งที่ OUT',icon:'boxes',description:'ยอดสินค้าคงเหลือใน Location OUT แยกยอดที่ผูกใบส่งร่างและยอดที่ยังไม่ผูกใบส่ง',code:'REPORTS',path:'/desktop/outstanding-out.html'},
 {title:'แผนเทียบรับจริง',icon:'box-arrow-in-down',description:'ดูตามแผน ออกใบรับแล้ว รับจริง ค้างรับ และเอกสารที่เชื่อมโยง',code:'RECEIVE',path:'/desktop/inbound-plans.html',source:'เปิดหน้าแผนรับและยอดจริง'},
 {title:'แผนเทียบส่งจริง',icon:'truck',description:'ดูตามแผน ออกใบส่งแล้ว ส่งจริง ค้างส่ง และเอกสารที่เชื่อมโยง',code:'LOAD',path:'/desktop/delivery-plans.html',source:'เปิดหน้าแผนส่งและยอดจริง'},
 {title:'RM ใหญ่–ย่อย / Batch',icon:'box-seam',description:'สรุปภาชนะเต็ม WH01 โอนไป WH04 เปิดใช้ และเบิกย่อยตาม Batch',planned:true},

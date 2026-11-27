@@ -20,6 +20,7 @@ Use for changes in this repository. Scale the process to risk; routine work shou
 - UI, architecture, database schema, or API changes: [references/design-architecture.md](references/design-architecture.md)
 - Implementation, security, or performance work: [references/development-standards.md](references/development-standards.md)
 - Test strategy, review, release, or troubleshooting: [references/testing-release.md](references/testing-release.md)
+- Production issue documents, their PICK-driven workflow, print/PDF output, or outstanding OUT stock reports: [references/production-issue-and-outstanding-stock.md](references/production-issue-and-outstanding-stock.md)
 
 For small isolated changes, the core flow is sufficient. For stock quantities, units, ANA/LOT, receiving, picking, transfer, putaway, permissions, schema, or deployment, inspect all affected layers and use the applicable references.
 

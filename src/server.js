@@ -51,12 +51,14 @@ app.use('/api/deliveries', require('./routes/deliveries'));
 app.use('/api/warehouse-tracking',require('./routes/warehouse-tracking'));
 app.use('/api/daily-operations',require('./routes/daily-operations'));
 app.use('/api/stock-movements',require('./routes/stock-movements'));
+app.use('/api/outstanding-out',require('./routes/outstanding-out'));
 app.use('/api/stock-daily',require('./routes/stock-daily'));
 app.use('/api/stock-transfers', require('./routes/stock-transfers'));
 app.use('/api/bom-stock', require('./routes/bom-stock'));
+app.use('/api/production-issues', require('./routes/production-issues'));
 app.use('/api/bom', require('./routes/bom'));
 app.use('/api/inventory-counts', require('./routes/inventory-counts'));
-app.get('/api/version',(req,res)=>res.json({success:true,version:'20261120-atomic-fg-batch',root:path.resolve(__dirname,'..')}));
+app.get('/api/version',(req,res)=>res.json({success:true,version:'20261127-production-issue-flow-1',root:path.resolve(__dirname,'..')}));
 app.use('/api',(req,res)=>res.status(404).json({success:false,message:'ไม่พบ API นี้ กรุณาอัปเดตโปรแกรมและรีสตาร์ท Service',path:req.path}));
 app.use((err,req,res,next)=>{if(!req.path.startsWith('/api/'))return next(err);res.status(err.status||500).json({success:false,message:err.status===400?'รูปแบบข้อมูลไม่ถูกต้อง':'เกิดข้อผิดพลาดในบริการ API'});});
 // 3. เส้นทางลัด (Shortcuts & Redirects)
