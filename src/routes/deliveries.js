@@ -151,8 +151,9 @@ router.get('/:id/pdf',async(req,res)=>{try{
  const result=await pool.request().input('Id',sql.Int,req.params.id).query('SELECT * FROM dbWMS.dbo.DeliveryOrders WHERE DeliveryId=@Id;SELECT * FROM dbWMS.dbo.DeliveryLines WHERE DeliveryId=@Id ORDER BY LineId');
  if(!result.recordsets[0].length)fail(404,'ไม่พบใบส่ง');
  const order=result.recordsets[0][0];if(!shipping.can(req,order.CategoryCode,'EXPORT'))fail(403,'ไม่มีสิทธิ์ส่งออกกลุ่มนี้');
+ const formRevision=(await pool.request().query("SELECT TOP(1) FormCode,FormRevision,EffectiveDate FROM dbWMS.dbo.ProductionIssueFormTemplates WHERE FormCode=N'WH-ACC-01' AND IsActive=1 ORDER BY EffectiveDate DESC,FormTemplateId DESC")).recordset[0]||null;
  const {createDeliveryPdf}=require('../services/delivery-pdf');
- const pdf=await createDeliveryPdf(order,result.recordsets[1]);
+ const pdf=await createDeliveryPdf(order,result.recordsets[1],formRevision);
  const filename=String(order.DeliveryNo).replace(/[^A-Za-z0-9_-]/g,'_')+'.pdf';
  res.set({'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="'+filename+'"','Cache-Control':'no-store','Content-Length':String(pdf.length)}).send(pdf);
 }catch(e){error(res,e)}});

@@ -1,0 +1,399 @@
+html.production-issue-mode #standardPickHeader,
+html.production-issue-mode .pick-types,
+html.production-issue-mode #rmPickHistorySection,
+html.production-issue-mode #rmModeBar,
+html.production-issue-mode #rmSubPurposeGroup,
+html.production-issue-mode #rmRequestPanel,
+html.production-issue-mode #rmSubPanel,
+html.production-issue-mode #rmPickingWorkspace,
+html.production-issue-mode #productionIssueContext[hidden] {
+  display: none !important;
+}
+
+html.production-issue-mode #productionIssueHeader[hidden] {
+  display: none !important;
+}
+
+html.production-issue-mode .production-issue-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+html.production-issue-mode #productionIssueContext {
+  padding: 20px;
+  border-color: #d7e2f1;
+}
+
+html.production-issue-mode #pickNotice:not(:empty) {
+  padding: 10px 14px;
+  border: 1px solid #d7e2f1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+html.production-issue-mode #fgPickWorkspace:not([hidden]) {
+  display: block !important;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  margin-top: 18px;
+}
+
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > header,
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > .fg-search,
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > .shared-pick-search-hint,
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > #fgPickProducts,
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > #fgPickWarehouseCards,
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > #fgPickNotice,
+html.production-issue-mode #fgPickWorkspace:not([hidden]) > #sharedPickLocationResults {
+  display: none !important;
+}
+
+html.production-issue-mode #sharedPickDetailsHost[hidden] {
+  display: none !important;
+}
+
+html.production-issue-mode #sharedPickDetailsHost:not([hidden]) {
+  display: block !important;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html.production-issue-mode .production-issue-pick-modal .modal-dialog {
+  width: min(1180px, calc(100vw - 24px));
+}
+
+html.production-issue-mode .production-issue-pick-modal .modal-content {
+  border: 1px solid #d7e2f1;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(17, 24, 39, .2);
+}
+
+html.production-issue-mode .production-issue-pick-modal .modal-body {
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  padding: 20px 24px;
+}
+
+html.production-issue-mode .production-issue-pick-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+html.production-issue-mode #productionIssuePickDocument {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+  align-self: start;
+}
+
+html.production-issue-mode #productionIssuePickDialogBody {
+  min-width: 0;
+}
+
+html.production-issue-mode .production-issue-paper {
+  margin-bottom: 16px;
+  border: 1px solid #222;
+  background: #fff;
+  color: #111;
+  font-size: 13px;
+}
+
+html.production-issue-mode .production-issue-overview {
+  margin-bottom: 0;
+}
+
+html.production-issue-mode .production-issue-overview .production-issue-paper-meta {
+  grid-template-columns: 1fr 1fr 1.6fr 1.2fr;
+}
+
+html.production-issue-mode .production-issue-overview-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #777;
+}
+
+html.production-issue-mode .production-issue-status-label {
+  display: block;
+  margin-bottom: 3px;
+  color: #444;
+  font-size: 11px;
+}
+
+html.production-issue-mode .production-issue-overview-status strong {
+  font-weight: 600;
+}
+
+html.production-issue-mode .production-issue-progress {
+  height: 6px;
+  background: #e8e8e8;
+}
+
+html.production-issue-mode .production-issue-progress > div {
+  height: 100%;
+  background: #333;
+}
+
+html.production-issue-mode .production-issue-guidance {
+  padding: 9px 12px;
+  border-bottom: 1px solid #777;
+  color: #333;
+  font-size: 12px;
+}
+
+html.production-issue-mode .production-issue-context-lines {
+  min-width: 900px;
+}
+
+html.production-issue-mode .production-issue-context-lines td:nth-child(2) > div {
+  margin-top: 3px;
+  color: #555;
+}
+
+html.production-issue-mode .production-issue-pick-quantity-cell {
+  min-width: 190px;
+  vertical-align: middle;
+}
+
+html.production-issue-mode .production-issue-confirmed-quantity {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+html.production-issue-mode .production-issue-confirmed-quantity span {
+  color: #555;
+  font-size: 11px;
+}
+
+html.production-issue-mode .production-issue-inline-entry,
+html.production-issue-mode .production-issue-inline-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+html.production-issue-mode .production-issue-inline-entry {
+  justify-content: space-between;
+  margin-top: 7px;
+  color: #333;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+html.production-issue-mode .production-issue-inline-entry input {
+  width: 94px;
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid #888;
+  border-radius: 4px;
+  background: #fff;
+  color: #111;
+  text-align: right;
+}
+
+html.production-issue-mode .production-issue-inline-entry input:focus {
+  border-color: #222;
+  outline: 2px solid #ddd;
+}
+
+html.production-issue-mode .production-issue-inline-entry small {
+  color: #333;
+  font-size: 11px;
+}
+
+html.production-issue-mode .production-issue-paper-heading {
+  padding: 12px 16px 8px;
+  text-align: center;
+}
+
+html.production-issue-mode .production-issue-company {
+  margin-bottom: 3px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+html.production-issue-mode .production-issue-paper-heading h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+html.production-issue-mode .production-issue-paper-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr 1.2fr;
+  border-top: 1px solid #222;
+}
+
+html.production-issue-mode .production-issue-paper-cell {
+  min-height: 68px;
+  padding: 8px 10px;
+  border-right: 1px solid #777;
+  border-bottom: 1px solid #777;
+}
+
+html.production-issue-mode .production-issue-paper-cell > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #444;
+  font-size: 11px;
+}
+
+html.production-issue-mode .production-issue-paper-cell strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+html.production-issue-mode .production-issue-paper-cell small {
+  display: block;
+  margin-top: 3px;
+}
+
+html.production-issue-mode .production-issue-paper-number {
+  text-align: right;
+}
+
+html.production-issue-mode .production-issue-paper-batch {
+  grid-column: span 2;
+}
+
+html.production-issue-mode .production-issue-paper-date {
+  grid-column: span 2;
+  border-right: 0;
+}
+
+html.production-issue-mode .production-issue-blank-line {
+  width: 70%;
+  height: 18px;
+  border-bottom: 1px dotted #444;
+}
+
+html.production-issue-mode .production-issue-selected-label {
+  padding: 8px 10px;
+  border-bottom: 1px solid #777;
+  background: #f3f3f3;
+  font-weight: 600;
+}
+
+html.production-issue-mode .production-issue-paper-lines {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+html.production-issue-mode .production-issue-pick-document .production-issue-paper-lines {
+  min-width: 540px;
+  font-size: 11px;
+}
+
+html.production-issue-mode .production-issue-paper-lines th,
+html.production-issue-mode .production-issue-paper-lines td {
+  padding: 9px 8px;
+  border-right: 1px solid #999;
+  border-bottom: 1px solid #999;
+  vertical-align: top;
+}
+
+html.production-issue-mode .production-issue-paper-lines th {
+  background: #f1f1f1;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+html.production-issue-mode .production-issue-paper-lines th:last-child,
+html.production-issue-mode .production-issue-paper-lines td:last-child {
+  border-right: 0;
+}
+
+html.production-issue-mode .production-issue-pick-modal #sharedPickDetails > .panel-modern {
+  display: flex;
+  flex-direction: column;
+}
+
+html.production-issue-mode .production-issue-pick-modal #pickSelection {
+  order: 0;
+}
+
+html.production-issue-mode .production-issue-pick-modal #sharedPickDetails form {
+  order: 1;
+}
+
+html.production-issue-mode .production-issue-pick-modal #rmContainerSummary {
+  order: 2;
+}
+
+html.production-issue-mode .production-issue-pick-modal .modal-footer {
+  padding: 12px 24px;
+}
+
+html.production-issue-mode #pickStock {
+  max-height: 60vh;
+}
+
+@media (max-width: 767.98px) {
+  html.production-issue-mode .production-issue-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  html.production-issue-mode .production-issue-heading button {
+    width: 100%;
+  }
+
+  html.production-issue-mode #productionIssueContext {
+    padding: 14px;
+  }
+
+  html.production-issue-mode .production-issue-pick-modal .modal-body {
+    padding: 14px;
+  }
+
+  html.production-issue-mode .production-issue-paper-meta {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  html.production-issue-mode .production-issue-overview .production-issue-paper-meta {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  html.production-issue-mode .production-issue-paper-number {
+    text-align: left;
+  }
+
+  html.production-issue-mode .production-issue-paper-batch,
+  html.production-issue-mode .production-issue-paper-date {
+    grid-column: span 1;
+  }
+
+  html.production-issue-mode .production-issue-pick-modal .modal-footer > .small {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 991.98px) {
+  html.production-issue-mode .production-issue-pick-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.production-issue-mode #productionIssuePickDocument {
+    position: static;
+  }
+}

@@ -3,7 +3,8 @@ const path=require('node:path');
 const fontDir=path.join(__dirname,'../assets/fonts');
 const text=value=>String(value??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
 function deliveryDate(value){const raw=value instanceof Date?value.toISOString().slice(0,10):String(value).slice(0,10);const d=new Date(raw+'T00:00:00Z');return Number.isNaN(d.getTime())?raw:raw.split('-').reverse().join('/');}
-function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
+function revisionFooterDate(value){const raw=value instanceof Date?value.toISOString().slice(0,10):String(value||'').slice(0,10);const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);return match?`${match[3]}.${match[2]}.${match[1].slice(-2)}`:raw;}
+function createDeliveryPdf(order,lines,formRevision=null){return new Promise((resolve,reject)=>{
  const doc=new PDFDocument({size:'A4',margins:{top:36,bottom:36,left:36,right:36},bufferPages:true,info:{Title:'Delivery Order '+text(order.DeliveryNo),Author:'RUAYMANGKHANG 69 CO., LTD',Subject:'Temporary delivery order - no prices'}});
  const chunks=[];doc.on('data',c=>chunks.push(c));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);
  try{
@@ -15,6 +16,7 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
  const left=36,width=doc.page.width-72,right=left+width,bottom=778;let y=36,tableOpen=false;
  const status={DRAFT:'ร่าง - ยังไม่ยืนยันส่งจริง',SENT:'ส่งสินค้าแล้ว',RECEIVED:'ปลายทางรับสินค้าแล้ว',CANCELLED:'ยกเลิกเอกสาร'}[order.Status]||text(order.Status);
  const type={WAREHOUSE:'ส่งระหว่างคลัง',FACTORY:'ส่งโรงงาน',CUSTOMER:'ส่งลูกค้า',CLINIC:'ส่งคลินิก',FULFILLMENT:'ส่ง Fulfillment'}[order.DeliveryType]||'';
+ const formRevisionFooterText=formRevision?`${text(formRevision.FormRevision)} · ${revisionFooterDate(formRevision.EffectiveDate)}`:'';
  function write(value,x,top,w,size=11,bold=false,extra={}){doc.font(bold?'ThaiBold':'Thai').fontSize(size).fillColor(extra.color||'#172033').text(text(value),x,top,{width:w,lineGap:2,...extra});}
  function height(value,w,size=11,bold=false){return doc.font(bold?'ThaiBold':'Thai').fontSize(size).heightOfString(text(value),{width:w,lineGap:2});}
  function rule(top){doc.strokeColor('#cbd5e1').lineWidth(.6).moveTo(left,top).lineTo(right,top).stroke();}
@@ -82,7 +84,9 @@ function createDeliveryPdf(order,lines){return new Promise((resolve,reject)=>{
   doc.switchToPage(i);
   const savedBottom=doc.page.margins.bottom;
   doc.page.margins.bottom=0;
-  write('หน้า '+(i-copyStart+1)+' / '+copyPageCount,right-80,812,80,8,false,{align:'right',lineBreak:false});
+  if(formRevision)write(text(formRevision.FormCode),left,812,150,8,false,{lineBreak:false});
+  const pageFooter=(formRevision?formRevisionFooterText+' · ':'')+'หน้า '+(i-copyStart+1)+' / '+copyPageCount;
+  write(pageFooter,right-220,812,220,8,false,{align:'right',lineBreak:false});
   doc.page.margins.bottom=savedBottom;
  }
  }

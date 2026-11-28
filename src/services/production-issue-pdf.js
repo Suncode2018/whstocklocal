@@ -1,37 +1,145 @@
 'use strict';
+
 const PDFDocument=require('pdfkit');
+const QRCode=require('qrcode');
 const path=require('node:path');
+
 const clean=value=>String(value??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
 const fmt=value=>Number(value||0).toLocaleString('th-TH',{maximumFractionDigits:6});
-function createProductionIssuePdf(progress){return new Promise((resolve,reject)=>{
- const {document:d,lines=[],summary={}}=progress;
- const doc=new PDFDocument({size:'A4',margins:{top:38,bottom:42,left:42,right:42},bufferPages:true,info:{Title:'ใบขอเบิกผลิต '+clean(d.IssueNo),Author:'WH Stock System'}}),chunks=[];
- doc.on('data',chunk=>chunks.push(chunk));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);
- try{
-  const fonts=path.join(__dirname,'../assets/fonts');doc.registerFont('Thai',path.join(fonts,'Sarabun-Regular.ttf'));doc.registerFont('ThaiBold',path.join(fonts,'Sarabun-Bold.ttf'));
-  const left=42,right=doc.page.width-42,width=right-left,bottom=doc.page.height-45;let y=38;
-  const text=(value,x,top,w,size=10,bold=false,extra={})=>doc.font(bold?'ThaiBold':'Thai').fontSize(size).fillColor(extra.color||'#172033').text(clean(value),x,top,{width:w,lineGap:2,...extra});
-  const status={DRAFT:'ยังไม่เบิก',PARTIAL:'เบิกบางส่วน',ISSUED:'เบิกครบแล้ว',CANCELLED:'ยกเลิก'}[d.FulfillmentStatus]||d.FulfillmentStatus;
-  function header(first){if(first){text('ใบขอเบิกวัตถุดิบ / บรรจุภัณฑ์เพื่อการผลิต',left,y,width,18,true);y+=28;text('เลขที่ '+d.IssueNo,left,y,width*.58,12,true);text('สถานะ: '+status,right-width*.38,y,width*.38,11,true,{align:'right'});y+=24;text('FG: '+d.FGProductCode+' · '+d.FGProductName,left,y,width,10);y+=17;text('จำนวนผลิต: '+fmt(d.BaseQuantity)+' '+d.BaseUnit+' · สูตร V'+d.BOMVersion,left,y,width*.58,10);text('วันที่: '+new Date(d.CreatedAt).toLocaleString('th-TH'),right-width*.42,y,width*.42,9,false,{align:'right'});y+=24;text('คลังที่อนุญาต: '+JSON.parse(d.WarehouseIdsJson||'[]').join(', '),left,y,width,9,false,{color:'#475569'});y+=20;}else{text('ใบขอเบิกผลิต · '+d.IssueNo,left,y,width,12,true);y+=23;}}
-  const cols=[left,left+26,left+190,left+281,left+357,left+429,right];
-  function tableHead(){const labels=['#','รหัส / รายการ','ประเภท','ต้องเบิก','เบิกแล้ว','คงเหลือ'];doc.rect(left,y,width,27).fill('#eef2f7');for(let i=0;i<labels.length;i++)text(labels[i],cols[i]+4,y+7,cols[i+1]-cols[i]-8,8,true,{align:i>2?'right':'left'});y+=27;}
-  header(true);tableHead();
-  for(const [index,line] of lines.entries()){
-   const label=clean(line.ProductCode)+' · '+clean(line.ProductName),lineHeight=Math.max(30,doc.font('Thai').fontSize(9).heightOfString(label,{width:cols[2]-cols[1]-12,lineGap:2})+12);
-   if(y+lineHeight>bottom){doc.addPage();y=38;header(false);tableHead();}
-   doc.strokeColor('#d5dbe5').lineWidth(.5).moveTo(left,y+lineHeight).lineTo(right,y+lineHeight).stroke();
-   text(index+1,cols[0]+4,y+7,cols[1]-cols[0]-8,8);text(label,cols[1]+5,y+6,cols[2]-cols[1]-10,9,true);text(line.CategoryCode,cols[2]+4,y+7,cols[3]-cols[2]-8,8);text(fmt(line.RequiredQuantity)+' '+line.UnitCode,cols[3]+4,y+7,cols[4]-cols[3]-8,8,false,{align:'right'});text(fmt(line.PickedQuantity),cols[4]+4,y+7,cols[5]-cols[4]-8,8,false,{align:'right'});text(fmt(line.RemainingQuantity),cols[5]+4,y+7,cols[6]-cols[5]-8,8,false,{align:'right'});y+=lineHeight;
-  }
-  y+=14;
-  // Reserve room for the summary and both signature rows. If PDFKit is left
-  // to page-break one of these text calls automatically, its extra page gets
-  // added after our buffered page count and appears as a blank PDF page.
-  const closingBlockHeight=112;
-  if(y+closingBlockHeight>bottom){doc.addPage();y=40;header(false)}
-  const unitSummary=(summary.byUnit||[]).map(item=>`${fmt(item.pickedQuantity)} / ${fmt(item.requiredQuantity)} ${item.unit} เบิกแล้ว`).join(' · ');
-  doc.roundedRect(left,y,width,62,5).fill('#f3f6fa');text('ความคืบหน้า: '+summary.completeCount+'/'+summary.lineCount+' รายการครบ',left+10,y+7,width-20,10,true);text(unitSummary||'ยังไม่มีการเบิก',left+10,y+24,width-20,8,false);text('ยืนยัน PICK แล้วระบบตัดสต๊อกตามจำนวนจริง · เอกสารนี้ไม่ใช่หลักฐานการตัดสต๊อก',left+10,y+40,width-20,8,false,{color:'#475569'});y+=78;
-  text('ผู้ขอเบิก __________________________',left,y,width*.48,9);text('ผู้จ่าย / ผู้ตรวจนับ __________________________',left+width*.52,y,width*.48,9);y+=28;text('วันที่ __________________________',left,y,width*.48,9);text('วันที่ __________________________',left+width*.52,y,width*.48,9);
-  const pages=doc.bufferedPageRange();for(let i=0;i<pages.count;i++){doc.switchToPage(i);doc.page.margins.bottom=12;doc.font('Thai').fontSize(8).fillColor('#64748b').text(`หน้า ${i+1} / ${pages.count}`,right-70,doc.page.height-31,{width:70,align:'right',lineBreak:false});}doc.end();
- }catch(error){doc.destroy();reject(error)}
-});}
-module.exports={createProductionIssuePdf};
+const issuePickedQuantity=line=>{const quantity=Number(line?.PickedQuantity||0);return Number.isFinite(quantity)&&quantity>0?fmt(quantity):''};
+const dateText=value=>{
+ const date=value?new Date(value):new Date();
+ return Number.isNaN(date.getTime())?'':date.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'});
+};
+const revisionDateText=value=>{
+ const date=value?new Date(value):new Date('2024-10-02T00:00:00Z');
+ return Number.isNaN(date.getTime())?'':`${String(date.getUTCDate()).padStart(2,'0')}.${String(date.getUTCMonth()+1).padStart(2,'0')}.${String(date.getUTCFullYear()).slice(-2)}`;
+};
+
+async function createProductionIssuePdf(progress){
+ const qrBuffer=await QRCode.toBuffer(clean(progress.document.IssueNo),{type:'png',errorCorrectionLevel:'M',margin:1,width:240});
+ return new Promise((resolve,reject)=>{
+  const {document:d,lines=[]}=progress;
+  const formCompany=d.FormCompanyNameSnapshot||d.CompanyName||'บริษัท รวยมั่งคั่ง 69 จำกัด';
+  const formTitle=d.FormDocumentTitleSnapshot||d.DocumentTitle||'ใบเบิกสินค้าเพื่อผลิต';
+  const formCode=d.FormCodeSnapshot||d.FormCode||'FR-PD-02';
+  const formRevision=d.FormRevisionSnapshot||d.FormRevision||'Rev.00';
+  const formRevisionDate=revisionDateText(d.FormEffectiveDateSnapshot||d.EffectiveDate);
+  const doc=new PDFDocument({size:'A4',margins:{top:30,bottom:38,left:34,right:34},bufferPages:true,info:{Title:'ใบเบิกสินค้าเพื่อผลิต '+clean(d.IssueNo),Author:'WH Stock System'}});
+  const chunks=[];
+  doc.on('data',chunk=>chunks.push(chunk));
+  doc.on('end',()=>resolve(Buffer.concat(chunks)));
+  doc.on('error',reject);
+
+  try{
+   const fonts=path.join(__dirname,'../assets/fonts');
+   doc.registerFont('Thai',path.join(fonts,'Sarabun-Regular.ttf'));
+   doc.registerFont('ThaiBold',path.join(fonts,'Sarabun-Bold.ttf'));
+   const left=34,right=doc.page.width-34,width=right-left,bottom=doc.page.height-43;
+   let y=30;
+   const ink='#000000',muted='#000000',line='#000000',pale='#ffffff';
+   const text=(value,x,top,w,size=9,bold=false,extra={})=>doc.font(bold?'ThaiBold':'Thai').fontSize(size).fillColor(extra.color||ink).text(clean(value),x,top,{width:w,lineGap:1,...extra});
+   const rule=(x1,y1,x2,y2,color=line,thickness=.6)=>doc.strokeColor(color).lineWidth(thickness).moveTo(x1,y1).lineTo(x2,y2).stroke();
+
+   function field(label,value,x,top,w,{size=8,valueSize=9,bold=false,align='left'}={}){
+    text(label,x+6,top+4,w-12,7,true,{color:muted});
+    text(value||'________________',x+6,top+17,w-12,valueSize,bold,{align});
+   }
+   function firstPageHeader(){
+    text(formCompany,left,y,width,12,true,{align:'center'});y+=20;
+    text(formTitle,left,y,width,12,true,{align:'center'});y+=25;
+    const metaH=57,firstW=width*.70,docW=width-firstW;
+    doc.rect(left,y,firstW,metaH).fillAndStroke('#ffffff','#000000');
+    doc.rect(left+firstW,y,docW,metaH).fillAndStroke('#ffffff','#000000');
+    field('เลขที่อ้างอิง MO','',left,y,firstW*.38);
+    field('รหัสสูตรการผลิต',d.FGProductCode,left+firstW*.38,y,firstW*.25,{bold:true});
+    field('ชื่อสูตรการผลิต',d.FGProductName,left+firstW*.63,y,firstW*.37,{valueSize:8,bold:true});
+    const issueCellX=left+firstW,qrSize=40,issueTextWidth=docW-qrSize-18;
+    text('เลขที่เอกสารใบเบิก',issueCellX+6,y+4,issueTextWidth,7,true);
+    text(d.IssueNo,issueCellX+6,y+20,issueTextWidth,8,false);
+    doc.image(qrBuffer,right-45,y+8,{width:qrSize,height:qrSize});
+    y+=metaH;
+    const subH=25,lotW=width*.58,dateW=width-lotW;
+    doc.rect(left,y,lotW,subH).fillAndStroke('#ffffff','#000000');
+    doc.rect(left+lotW,y,dateW,subH).fillAndStroke('#ffffff','#000000');
+    text('Batch / Lot No. ______________________________',left+6,y+6,lotW-12,8);
+    text('วัน เดือน ปี  '+dateText(d.CreatedAt),left+lotW+6,y+6,dateW-12,8);
+    y+=subH+10;
+   }
+   function continuationHeader(){
+    text('ใบเบิกสินค้าเพื่อผลิต · '+d.IssueNo,left,y,width,10,true);y+=19;
+   }
+
+   const widths=[24,80,166,55,43,74,width-24-80-166-55-43-74];
+   const xs=[left];for(const colWidth of widths)xs.push(xs[xs.length-1]+colWidth);
+   function tableHeader(){
+    const labels=['ลำดับที่','รหัสสินค้า','ชื่อสินค้า','จำนวน','หน่วยนับ','ANA No.','หมายเหตุ'];
+    const headH=30;
+    doc.rect(left,y,width,headH).fillAndStroke('#ffffff','#000000');
+    for(let i=0;i<labels.length;i++){
+     const centered=i===0||i===3||i===4||i===5;
+     text(labels[i],xs[i]+3,y+8,widths[i]-6,7.5,true,{align:centered?'center':'left'});
+     if(i>0)rule(xs[i],y,xs[i],y+headH,'#000000',.5);
+    }
+    y+=headH;
+   }
+
+   firstPageHeader();tableHeader();
+   for(const [index,item] of lines.entries()){
+    const name=clean(item.ProductName);
+    const nameHeight=doc.font('Thai').fontSize(8.5).heightOfString(name,{width:widths[2]-10,lineGap:1});
+    const rowH=Math.max(40,nameHeight+14);
+    if(y+rowH>bottom-85){doc.addPage();y=30;continuationHeader();tableHeader();}
+    doc.rect(left,y,width,rowH).fillAndStroke('#ffffff','#000000');
+    for(let i=1;i<xs.length-1;i++)rule(xs[i],y,xs[i],y+rowH,'#000000',.5);
+    text(index+1,xs[0]+2,y+8,widths[0]-4,8,false,{align:'center'});
+    text(item.ProductCode,xs[1]+5,y+8,widths[1]-10,8,true);
+    text(name,xs[2]+5,y+7,widths[2]-10,8.5,false);
+    text(issuePickedQuantity(item),xs[3]+2,y+8,widths[3]-4,8,false,{align:'center'});
+    text(item.UnitCode,xs[4]+2,y+8,widths[4]-4,7.5,false,{align:'center'});
+    // ANA/LOT is left blank for the warehouse to record the actual lot issued.
+    y+=rowH;
+   }
+
+   y+=14;
+   const signH=94;
+   if(y+signH>bottom){doc.addPage();y=30;continuationHeader();}
+   const prodW=width*.42,warehouseW=width-prodW;
+   doc.rect(left,y,prodW,signH).fillAndStroke('#ffffff','#000000');
+   doc.rect(left+prodW,y,warehouseW,signH).fillAndStroke('#ffffff','#000000');
+   doc.rect(left,y,prodW,20).fillAndStroke(pale,'#000000');
+   doc.rect(left+prodW,y,warehouseW,20).fillAndStroke(pale,'#000000');
+   text('ผลิต',left,y+4,prodW,9,true,{align:'center'});
+   text('คลังสินค้า',left+prodW,y+4,warehouseW,9,true,{align:'center'});
+   const prodCell=prodW/2,whCell=warehouseW/3;
+   const prodRoles=['ผู้ส่ง','ผู้อนุมัติ'];
+   for(let i=0;i<2;i++){
+    const x=left+i*prodCell;
+    if(i)rule(x,y+20,x,y+signH,'#000000',.5);
+    text(prodRoles[i],x+3,y+27,prodCell-6,8,true,{align:'center'});
+    rule(x+10,y+57,x+prodCell-10,y+57,'#000000',.5);
+    text('วันที่ ______________',x+5,y+65,prodCell-10,7.5,false,{align:'center'});
+   }
+   const whRoles=['ผู้รับสินค้า','ผู้จ่ายสินค้า','ผู้อนุมัติ'];
+   for(let i=0;i<3;i++){
+    const x=left+prodW+i*whCell;
+    if(i)rule(x,y+20,x,y+signH,'#000000',.5);
+    text(whRoles[i],x+3,y+27,whCell-6,8,true,{align:'center'});
+    rule(x+8,y+57,x+whCell-8,y+57,'#000000',.5);
+    text('วันที่ __________',x+3,y+65,whCell-6,7,false,{align:'center'});
+   }
+   y+=signH+5;
+   text(formCode,left,y,width*.5,7,false,{color:muted});
+   text(`${formRevision} · ${formRevisionDate}`,right-width*.5,y,width*.5,7,false,{align:'right',color:muted});
+
+   const pages=doc.bufferedPageRange();
+   for(let i=0;i<pages.count;i++){
+    doc.switchToPage(i);doc.page.margins.bottom=10;
+    doc.font('Thai').fontSize(7).fillColor(muted).text(`หน้า ${i+1} / ${pages.count}`,right-62,doc.page.height-27,{width:62,align:'right',lineBreak:false});
+   }
+   doc.end();
+  }catch(error){doc.destroy();reject(error);}
+ });
+}
+
+module.exports={createProductionIssuePdf,issuePickedQuantity};

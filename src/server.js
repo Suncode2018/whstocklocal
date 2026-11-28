@@ -56,6 +56,7 @@ app.use('/api/stock-daily',require('./routes/stock-daily'));
 app.use('/api/stock-transfers', require('./routes/stock-transfers'));
 app.use('/api/bom-stock', require('./routes/bom-stock'));
 app.use('/api/production-issues', require('./routes/production-issues'));
+app.use('/api/production-issue-forms', require('./routes/production-issue-forms'));
 app.use('/api/bom', require('./routes/bom'));
 app.use('/api/inventory-counts', require('./routes/inventory-counts'));
 app.get('/api/version',(req,res)=>res.json({success:true,version:'20261127-production-issue-flow-1',root:path.resolve(__dirname,'..')}));
